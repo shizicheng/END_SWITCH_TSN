@@ -27,6 +27,9 @@ module rx_port_mng#(
     output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac_hash_key                    , // 源 mac 的值有效标识
     output              wire   [47 : 0]                         o_smac                             , // 源 mac 的值
     output              wire                                    o_smac_vld                         , // smac_vld
+    /*---------------------------------------- 查找的转发端口号 ---------------------------------------*/
+    input               wire   [PORT_NUM-1:0]                   i_swlist_tx_port                   , // 交换发送端口信息
+    input               wire                                    i_swlist_vld                       , // 发送端口信号有效信号
     /*---------------------------------------- 单 PORT 聚合数据流 -------------------------------------------*/
     output              wire                                    o_mac_cross_port_link              , // 端口的连接状态
     output              wire   [1:0]                            o_mac_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
@@ -40,6 +43,10 @@ module rx_port_mng#(
     output             wire                                     o_cross_metadata_valid             , // 聚合总线 metadata 数据有效信号
     output             wire                                     o_cross_metadata_last              , // 信息流结束标识
     input              wire                                     i_cross_metadata_ready             , // 下游模块反压流水线 
+
+    //qbu验证信号
+    output             wire                                     o_qbu_verify_valid                 ,
+    output             wire                                     o_qbu_response_valid               ,
     /*
         metadata 数据组成
             [63](1bit) : port_speed 
@@ -95,6 +102,7 @@ module rx_port_mng#(
 
 wire    [PORT_NUM-1:0]                  w_swlist_tx_port                    ; // 发送端口信息
 wire                                    w_swlist_vld                        ; // 有效使能信号  
+
 
 // rx_data_stream_cross 的输入数据流
 wire                                    w_mac_port_link                     ;   
@@ -167,6 +175,7 @@ wire                                    w_acl_vld                           ;
 wire                                    w_acl_find_match                    ; 
 wire   [7:0]                            w_acl_frmtype                       ; 
 wire   [15:0]                           w_acl_fetch_info                    ;
+wire                                    w_acl_list_rdy_regs                 ;
 
 
 wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac_hash_key                    ; // 目的 mac 的哈希值
@@ -181,7 +190,7 @@ wire                                    w_cross_metadata_valid             ; // 
 wire                                    w_cross_metadata_last              ; // 信息流结束标识
 wire                                    w_cross_metadata_ready             ; // 下游模块反压流水线 
 
-// rx_froward_mng 的信号
+// rx_forward_mng 的信号
 wire                                    w_port_rx_ultrashort_frm           ; // 端口接收超短帧(小于64字节)
 wire                                    w_port_rx_overlength_frm           ; // 端口接收超长帧(大于MTU字节)
 wire                                    w_port_rx_crcerr_frm               ; // 端口接收CRC错误帧
@@ -199,7 +208,28 @@ wire                                    w_port_mac_vld_regs                ; // 
 wire   [7:0]                            w_port_mtu_regs                    ; // MTU配置值
 wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs            ; // 镜像转发寄存器，若对应的端口置1，则本端口接收到的任何转发数据帧将镜像转发值被置1的端口
 wire   [15:0]                           w_port_flowctrl_cfg_regs           ; // 限流管理配置                                                                        
-wire   [4:0]                            w_port_rx_ultrashortinterval_num   ; // 帧间隔                                                                          
+wire   [4:0]                            w_port_rx_ultrashortinterval_num   ; // 帧间隔    
+
+//qbu的寄存器信号
+wire                                    w_rx_busy                          ;
+wire   [15:0]                           w_rx_fragment_cnt                  ;
+wire                                    w_rx_fragment_mismatch             ;
+wire   [15:0]                           w_err_rx_crc_cnt                   ;
+wire   [15:0]                           w_err_rx_frame_cnt                 ;
+wire   [15:0]                           w_err_fragment_cnt                 ;
+wire   [15:0]                           w_rx_frames_cnt                    ;
+wire   [7:0]                            w_frag_next_rx                     ;
+wire   [7:0]                            w_frame_seq                        ;
+
+wire                                    w_verify_enabled                   ;
+wire                                    w_start_verify                     ;
+wire                                    w_clear_verify                     ;
+wire                                    w_verify_succ                      ;
+wire                                    w_verify_succ_val                  ;
+wire   [15:0]                           w_verify_timer                     ;
+wire                                    w_verify_timer_vld                 ;
+wire   [15:0]                           w_err_verify_cnt                   ;
+wire                                    w_preempt_enable                   ;
 
 /* ------------------------------ 内部数据流链接 ------------------------------- */
 assign              w_mac_cross_port_link               =      o_mac_cross_port_link        ;
@@ -276,6 +306,42 @@ assign              o_port_diag_state                   =      w_port_diag_state
 
 
 /* ------------------------------ 帧抢占接收通路 ------------------------------- */
+/* ------------------------------ 帧抢占接收通路 ------------------------------- */
+qbu_rec #(
+    .DWIDTH                           (PORT_MNG_DATA_WIDTH                  ),
+    .P_SOURCE_MAC                     ({8'h00,8'h00,8'h00,8'hff,8'hff,8'hff})
+) qbu_rec_inst (          
+    .i_clk                            (i_clk                        ),
+    .i_rst                            (i_rst                        ),
+    //接口层输入数据流
+    .i_mac_axi_data                   (w_mac_axi_data               ), 
+    .i_mac_axi_data_keep              (w_mac_axi_data_keep          ), 
+    .i_mac_axi_data_valid             (w_mac_axi_data_valid         ), 
+    .o_mac_axi_data_ready             (w_mac_axi_data_ready         ), 
+    .i_mac_axi_data_last              (w_mac_axi_data_last          ), 
+    //输出给tx_mac，验证qbu功能
+    .o_qbu_verify_valid               (i_qbu_verify_valid           ),
+    .o_qbu_response_valid             (i_qbu_response_valid         ),
+    //输出qbu emac和pmac通道数据，emac通道数据优先输出
+    .o_qbu_rx_axis_data               (w_qbu_mac_axi_data           ),
+    .o_qbu_rx_axis_user               (                             ),
+    .o_qbu_rx_axis_keep               (w_qbu_mac_axi_data_keep      ),
+    .o_qbu_rx_axis_last               (w_qbu_mac_axi_data_last      ),
+    .o_qbu_rx_axis_valid              (w_qbu_mac_axi_data_valid     ),
+    .i_qbu_rx_axis_ready              (w_qbu_mac_axi_data_ready     ),     
+    //qbu寄存器管理
+    .o_rx_busy                        (w_rx_busy             	    ), 
+    .o_rx_fragment_cnt                (w_rx_fragment_cnt     	    ), 
+    .o_rx_fragment_mismatch           (w_rx_fragment_mismatch	    ), 
+    .o_err_rx_crc_cnt                 (w_err_rx_crc_cnt      	    ), 
+    .o_err_rx_frame_cnt               (w_err_rx_frame_cnt    	    ), 
+    .o_err_fragment_cnt               (w_err_fragment_cnt    	    ), 
+    .o_rx_frames_cnt                  (w_rx_frames_cnt       	    ), 
+    .o_frag_next_rx                   (w_frag_next_rx        	    ), 
+    .o_frame_seq                      (w_frame_seq           	    )  
+    
+);
+
 
 
 /* ----------------------------- 数据流聚合模块 -------------------------------- */
@@ -318,7 +384,7 @@ assign w_mac_cross_axi_data_ready_1 = w_mac_frm_info_cross_axi_data_ready | w_ma
 rx_frm_info_mng#(
     .PORT_NUM                       (PORT_NUM                       )   ,
     .PORT_MNG_DATA_WIDTH            (PORT_MNG_DATA_WIDTH            )   ,
-    .CROSS_DATA_WIDTH               (CROSS_DATA_WIDTH               )   ,
+    .CROSS_DATA_WIDTH               (CROSS_DATA_WIDTH               )   
 )rx_frm_info_mng_inst (
     .i_clk                          (i_clk                          )   , 
     .i_rst                          (i_rst                          )   ,
@@ -414,12 +480,12 @@ rx_mac_hash_calc#(
     .s_dmac_vld                     (w_smac_vld                     )               
 );
 
-rx_froward_mng#(
+rx_forward_mng#(
     .PORT_NUM                           (PORT_NUM                       ) , // 交换机的端口数
     .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH            ) , // Mac_port_mng 数据位宽
     .METADATA_WIDTH                     (METADATA_WIDTH                 ) , // 信息流位宽
     .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH               )   // 聚合总线输出
-)rx_froward_mng_inst (
+)rx_forward_mng_inst (
     .i_clk                              (i_clk                          )    ,   // 250MHz
     .i_rst                              (i_rst                          )    ,
     /*---------------------------------------- 控制转发相关的寄存器 -------------------------------------------*/

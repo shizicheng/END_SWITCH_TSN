@@ -5,6 +5,8 @@ module switch_core_top#(
     parameter                                                   METADATA_WIDTH          =      64       ,  // 信息流（METADATA）的位宽
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng 数据位宽 
     parameter                                                   HASH_DATA_WIDTH         =      12       ,  // 哈希计算的值的位宽
+    parameter                                                   ADDR_WIDTH              =      6        ,  // 地址表的深度     
+    parameter                                                   PORT_FIFO_PRI_NUM       =      8        ,  // 出端口优先级个数
     parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH*PORT_NUM // 聚合总线输出 
 )(
     input               wire                                    i_clk                               ,   // 250MHz
@@ -57,7 +59,6 @@ module switch_core_top#(
     output              wire                                    o_txmac1_axi_data_valid             , // 端口数据有效
     input               wire                                    i_txmac1_axi_data_ready             , // 端口数据就绪信号,表示当前模块准备好接收数据
     output              wire                                    o_txmac1_axi_data_last              , // 数据流结束标识
-    // 报文时间打时间戳 
     output              wire                                    o_mac1_time_irq                     , // 打时间戳中断信号
     output              wire  [7:0]                             o_mac1_frame_seq                    , // 帧序列号
     output              wire  [7:0]                             o_timestamp1_addr                   , // 打时间戳存储的 RAM 地址
@@ -594,7 +595,7 @@ swlist#(
     .PORT_MNG_DATA_WIDTH        ( PORT_MNG_DATA_WIDTH       ),  // Mac_port_mng 数据位宽 
     .HASH_DATA_WIDTH            ( HASH_DATA_WIDTH           ),  // 哈希计算的值的位宽
     .ADDR_WIDTH                 ( ADDR_WIDTH                ),  // 地址表的深度 
-    .CROSS_DATA_WIDTH           ( CROSS_DATA_WIDTH          ) // 聚合总线输出 
+    .CROSS_DATA_WIDTH           ( CROSS_DATA_WIDTH          )  // 聚合总线输出 
 )swlist_inst (  
     .i_clk                      ( i_clk                     ) ,   // 250MHz
     .i_rst                      ( i_rst                     ) ,   
@@ -719,6 +720,8 @@ tx_mac_mng #(
     .METADATA_WIDTH                         ( METADATA_WIDTH      ),                   // 信息流（METADATA）的位宽
     .PORT_MNG_DATA_WIDTH                    ( PORT_MNG_DATA_WIDTH ),                   // Mac_port_mng 数据位宽
     .PORT_FIFO_PRI_NUM                      ( PORT_FIFO_PRI_NUM   ),                   // 支持端口优先级 FIFO 的数量
+    .REG_ADDR_BUS_WIDTH                     (  ),
+    .REG_DATA_BUS_WIDTH                     (  ),
     .CROSS_DATA_WIDTH                       ( CROSS_DATA_WIDTH    )  // 聚合总线输出 
 )tx_mac_mng_inst (      
     .i_clk                                  ()           ,   // 250MHz
@@ -736,8 +739,8 @@ tx_mac_mng #(
     // 寄存器读控制接口             
     .i_switch_reg_bus_rd                    ()     , // 寄存器读使能
     .i_switch_reg_bus_rd_addr               ()     , // 寄存器读地址
-    .o_switch_reg_bus_we_dout               ()     , // 读出寄存器数据
-    .o_switch_reg_bus_we_dout_v             ()     , // 读数据有效使能
+    .o_switch_reg_bus_rd_dout               ()     , // 读出寄存器数据
+    .o_switch_reg_bus_rd_dout_v             ()     , // 读数据有效使能
     /*---------------------------------------- 业务接口数据输出 -------------------------------------------*/
 `ifdef CPU_MAC
     // 数据流信息 

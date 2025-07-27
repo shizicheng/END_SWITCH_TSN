@@ -1,4 +1,4 @@
-module rx_froward_mng#(
+module rx_forward_mng#(
     parameter                                                   PORT_NUM                =      4        ,  // 交换机的端口数
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng 数据位宽
     parameter                                                   METADATA_WIDTH          =      64       ,  // 信息流位宽
