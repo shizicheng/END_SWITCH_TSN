@@ -136,32 +136,46 @@ ram_simple2port #(
     .doutb            (read_ram_data  )      // RAM output data
 );
     
+async_fifo_fwft #(
+    .C_WIDTH          (DATAWIDTH      ),
+    .C_DEPTH          (DEPT_W         )
+) u_async_fifo_fwft (
+    .RD_CLK           (i_clk          ),
+    .RD_RST           (i_rst          ),
+    .WR_CLK           (i_clk          ),
+    .WR_RST           (i_rst          ),
+    .WR_DATA          (write_fifo_data),
+    .WR_EN            (write_fifo_en  ),
+    .RD_DATA          (read_fifo_data ),
+    .RD_EN            (read_fifo_en   ),
+    .WR_FULL          (               ),
+    .RD_EMPTY         (empty          )
+);
 
 
 
-
-    my_xpm_fifo_sync #(
-            .DATAWIDTH(DATAWIDTH),
-            .DEPT_W(DEPT_W),
-            .AL_FUL(AL_FUL),
-            .AL_EMP(AL_EMP),
-            .READ_MODE(READ_MODE),
-            .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
-        ) inst_my_xpm_fifo_sync (
-            .wr_clk        (i_clk),
-            .din           (write_fifo_data),
-            .wr_en         (write_fifo_en),
-            .dout          (read_fifo_data),
-            .data_valid    (),
-            .rd_en         (read_fifo_en),
-            .rst           (i_rst),
-            .empty         (empty),
-            .full          (),
-            .rd_data_count (),
-            .wr_data_count (),
-            .almost_empty  (),
-            .almost_full   ()
-        );
+    // my_xpm_fifo_sync #(
+    //         .DATAWIDTH(DATAWIDTH),
+    //         .DEPT_W(DEPT_W),
+    //         .AL_FUL(AL_FUL),
+    //         .AL_EMP(AL_EMP),
+    //         .READ_MODE(READ_MODE),
+    //         .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
+    //     ) inst_my_xpm_fifo_sync (
+    //         .wr_clk        (i_clk),
+    //         .din           (write_fifo_data),
+    //         .wr_en         (write_fifo_en),
+    //         .dout          (read_fifo_data),
+    //         .data_valid    (),
+    //         .rd_en         (read_fifo_en),
+    //         .rst           (i_rst),
+    //         .empty         (empty),
+    //         .full          (),
+    //         .rd_data_count (),
+    //         .wr_data_count (),
+    //         .almost_empty  (),
+    //         .almost_full   ()
+    //     );
 
 
 /***************assign****************/

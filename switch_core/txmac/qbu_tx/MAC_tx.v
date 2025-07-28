@@ -150,62 +150,92 @@ assign o_mac_axi_data_keep = 1'b1;
 assign o_mac_axi_data_user = r_w_fifo_len_dout;
 assign o_mac_axi_data_last = ro_mac_axi_data_last;
 /***************component*************/
-
-    my_xpm_fifo_sync #(
-            .DATAWIDTH(AXIS_DATA_WIDTH),
-            .DEPT_W('d1024),
-            .AL_FUL('d1014),
-            .AL_EMP(AL_EMP),
-            .READ_MODE(READ_MODE),
-            .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
-        ) inst_FIFO_MAC_8X1024_U0 (
-            .wr_clk        (i_clk),
-            .din           (ri_send_data),
-            .wr_en         (ri_send_valid),
-            .dout          (w_fifo_mac_dout),
-            .data_valid    (),
-            .rd_en         (r_fifo_mac_rd_en),
-            .rst           (i_rst),
-            .empty         (w_fifo_mac_empty),
-            .full          (w_fifo_mac_full),
-            .rd_data_count (),
-            .wr_data_count (),
-            .almost_empty  (),
-            .almost_full   ()
-        );
-/*
-FIFO_MAC_8X64 FIFO_MAC_8X1024_U0 (
-  .clk              (i_clk              ),  // input wire clk
-  .din              (ri_send_data       ),  // input wire [7 : 0] din
-  .wr_en            (ri_send_valid      ),  // input wire wr_en
-  .rd_en            (r_fifo_mac_rd_en   ),  // input wire rd_en
-  .dout             (w_fifo_mac_dout    ),  // output wire [7 : 0] dout
-  .full             (w_fifo_mac_full    ),  // output wire full
-  .empty            (w_fifo_mac_empty   )   // output wire empty
+async_fifo_fwft #(
+    .C_WIDTH (AXIS_DATA_WIDTH),
+    .C_DEPTH ('d1024        )
+) inst_FIFO_MAC_8X1024_U0 (
+    .RD_CLK   (i_clk              ),
+    .RD_RST   (i_rst              ),
+    .WR_CLK   (i_clk              ),
+    .WR_RST   (i_rst              ),
+    .WR_DATA  (ri_send_data       ),
+    .WR_EN    (ri_send_valid      ),
+    .RD_DATA  (w_fifo_mac_dout    ),
+    .RD_EN    (r_fifo_mac_rd_en   ),
+    .WR_FULL  (w_fifo_mac_full    ),
+    .RD_EMPTY (w_fifo_mac_empty   )
 );
-*/
-    my_xpm_fifo_sync #(
-            .DATAWIDTH('d16),
-            .DEPT_W('d32),
-            .AL_FUL('d22),
-            .AL_EMP(AL_EMP),
-            .READ_MODE(READ_MODE),
-            .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
-        ) inst_FIFO_16X64_LEN (
-            .wr_clk        (i_clk),
-            .din           (i_send_len),
-            .wr_en         (write_fifo_len_en),
-            .dout          (w_fifo_len_dout),
-            .data_valid    (),
-            .rd_en         (read_fifo_len_en),
-            .rst           (i_rst),
-            .empty         (w_fifo_len_empty),
-            .full          (w_fifo_len_full),
-            .rd_data_count (),
-            .wr_data_count (),
-            .almost_empty  (),
-            .almost_full   ()
-        );
+//     my_xpm_fifo_sync #(
+//             .DATAWIDTH(AXIS_DATA_WIDTH),
+//             .DEPT_W('d1024),
+//             .AL_FUL('d1014),
+//             .AL_EMP(AL_EMP),
+//             .READ_MODE(READ_MODE),
+//             .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
+//         ) inst_FIFO_MAC_8X1024_U0 (
+//             .wr_clk        (i_clk),
+//             .din           (ri_send_data),
+//             .wr_en         (ri_send_valid),
+//             .dout          (w_fifo_mac_dout),
+//             .data_valid    (),
+//             .rd_en         (r_fifo_mac_rd_en),
+//             .rst           (i_rst),
+//             .empty         (w_fifo_mac_empty),
+//             .full          (w_fifo_mac_full),
+//             .rd_data_count (),
+//             .wr_data_count (),
+//             .almost_empty  (),
+//             .almost_full   ()
+//         );
+// /*
+// FIFO_MAC_8X64 FIFO_MAC_8X1024_U0 (
+//   .clk              (i_clk              ),  // input wire clk
+//   .din              (ri_send_data       ),  // input wire [7 : 0] din
+//   .wr_en            (ri_send_valid      ),  // input wire wr_en
+//   .rd_en            (r_fifo_mac_rd_en   ),  // input wire rd_en
+//   .dout             (w_fifo_mac_dout    ),  // output wire [7 : 0] dout
+//   .full             (w_fifo_mac_full    ),  // output wire full
+//   .empty            (w_fifo_mac_empty   )   // output wire empty
+// );
+
+async_fifo_fwft #(
+    .C_WIDTH  ('d16               ),
+    .C_DEPTH  ('d32               )
+) inst_FIFO_16X64_LEN (
+    .RD_CLK   (i_clk              ),
+    .RD_RST   (i_rst              ),
+    .WR_CLK   (i_clk              ),
+    .WR_RST   (i_rst              ),
+    .WR_DATA  (i_send_len         ),
+    .WR_EN    (write_fifo_len_en  ),
+    .RD_DATA  (w_fifo_len_dout    ),
+    .RD_EN    (read_fifo_len_en   ),
+    .WR_FULL  (w_fifo_len_full    ),
+    .RD_EMPTY (w_fifo_len_empty   )
+);
+
+    // my_xpm_fifo_sync #(
+    //         .DATAWIDTH('d16),
+    //         .DEPT_W('d32),
+    //         .AL_FUL('d22),
+    //         .AL_EMP(AL_EMP),
+    //         .READ_MODE(READ_MODE),
+    //         .FIFO_READ_LATENCY(FIFO_READ_LATENCY)
+    //     ) inst_FIFO_16X64_LEN (
+    //         .wr_clk        (i_clk),
+    //         .din           (i_send_len),
+    //         .wr_en         (write_fifo_len_en),
+    //         .dout          (w_fifo_len_dout),
+    //         .data_valid    (),
+    //         .rd_en         (read_fifo_len_en),
+    //         .rst           (i_rst),
+    //         .empty         (w_fifo_len_empty),
+    //         .full          (w_fifo_len_full),
+    //         .rd_data_count (),
+    //         .wr_data_count (),
+    //         .almost_empty  (),
+    //         .almost_full   ()
+    //     );
         /*
 FIFO_16X64 FIFO_16X64_LEN (
   .clk              (i_clk              ),      
