@@ -1642,19 +1642,19 @@ rx_port_reg#(
     .i_port_rx_frame_cnt_2                      () ,  // 端口0接收帧个数计数器值  
 `endif
 `ifdef MAC3
-    .o_hash_ploy_regs_3                         (), // 哈希多项式
-    .o_hash_init_val_regs_3                     (), // 哈希多项式初始值
-    .o_hash_regs_vld_3                          (),
-    .o_port_rxmac_down_regs_3                   (), // 端口接收方向MAC关闭使能
-    .o_port_broadcast_drop_regs_3               (), // 端口广播帧丢弃使能
-    .o_port_multicast_drop_regs_3               (), // 端口组播帧丢弃使能
-    .o_port_loopback_drop_regs_3                (), // 端口环回帧丢弃使能
-    .o_port_mac_regs_3                          (), // 端口的 MAC 地址
-    .o_port_mac_vld_regs_3                      (), // 使能端口 MAC 地址有效
-    .o_port_mtu_regs_3                          (), // MTU配置值
-    .o_port_mirror_frwd_regs_3                  (), // 镜像转发寄存器，若对应的端口置1，则本端口接收到的任何转发数据帧将镜像转发值被置1的端口
-    .o_port_flowctrl_cfg_regs_3                 (), // 限流管理配置
-    .o_port_rx_ultrashortinterval_num_3         (), // 帧间隔
+    .o_hash_ploy_regs_3                         () , // 哈希多项式
+    .o_hash_init_val_regs_3                     () , // 哈希多项式初始值
+    .o_hash_regs_vld_3                          () ,
+    .o_port_rxmac_down_regs_3                   () , // 端口接收方向MAC关闭使能
+    .o_port_broadcast_drop_regs_3               () , // 端口广播帧丢弃使能
+    .o_port_multicast_drop_regs_3               () , // 端口组播帧丢弃使能
+    .o_port_loopback_drop_regs_3                () , // 端口环回帧丢弃使能
+    .o_port_mac_regs_3                          () , // 端口的 MAC 地址
+    .o_port_mac_vld_regs_3                      () , // 使能端口 MAC 地址有效
+    .o_port_mtu_regs_3                          () , // MTU配置值
+    .o_port_mirror_frwd_regs_3                  () , // 镜像转发寄存器，若对应的端口置1，则本端口接收到的任何转发数据帧将镜像转发值被置1的端口
+    .o_port_flowctrl_cfg_regs_3                 () , // 限流管理配置
+    .o_port_rx_ultrashortinterval_num_3         () , // 帧间隔
     // ACL 寄存
     .o_acl_port_sel_3                           () , // 选择要配置的端口
     .o_acl_clr_list_regs_3                      () , // 清空寄存器列表
