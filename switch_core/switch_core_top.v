@@ -232,8 +232,8 @@ module switch_core_top#(
     // 寄存器读控制接口     
     input               wire                                    i_switch_reg_bus_rd                 , // 寄存器读使能
     input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // 寄存器读地址
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_we_dout            , // 读出寄存器数据
-    output              wire                                    o_switch_reg_bus_we_dout_v           // 读数据有效使能
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // 读出寄存器数据
+    output              wire                                    o_switch_reg_bus_rd_dout_v           // 读数据有效使能
 );
 
 /*----------------------------- 交换表接口 --------------------*/
@@ -338,6 +338,38 @@ wire   [METADATA_WIDTH-1:0]                 w_cross_metadata                    
 wire                                        w_cross_metadata_valid              ;
 wire                                        w_cross_metadata_last               ;
 wire                                        w_cross_metadata_ready              ;
+
+/*----------------------------- 寄存器平台接口  --------------------*/
+wire                                        w_refresh_list_pulse                ; // 刷新寄存器列表（状态寄存器和控制寄存器
+wire                                        w_switch_err_cnt_clr                ; // 刷新错误计数器
+wire                                        w_switch_err_cnt_stat               ; // 刷新错误状态寄存器
+
+wire                                        w_rxmac_reg_bus_we                  ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_rxmac_reg_bus_we_addr             ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_rxmac_reg_bus_we_din              ;
+wire                                        w_rxmac_reg_bus_we_din_v            ;
+wire                                        w_rxmac_reg_bus_rd                  ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_rxmac_reg_bus_rd_addr             ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_rxmac_reg_bus_rd_dout             ;
+wire                                        w_rxmac_reg_bus_rd_dout_v           ;
+
+wire                                        w_txmac_reg_bus_we                  ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_txmac_reg_bus_we_addr             ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_txmac_reg_bus_we_din              ;
+wire                                        w_txmac_reg_bus_we_din_v            ;
+wire                                        w_txmac_reg_bus_rd                  ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_txmac_reg_bus_rd_addr             ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_txmac_reg_bus_rd_dout             ;
+wire                                        w_txmac_reg_bus_rd_dout_v           ;
+
+wire                                        w_swlist_reg_bus_we                 ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_swlist_reg_bus_we_addr            ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_swlist_reg_bus_we_din             ;
+wire                                        w_swlist_reg_bus_we_din_v           ;
+wire                                        w_swlist_reg_bus_rd                 ;
+wire   [REG_ADDR_BUS_WIDTH-1:0]             w_swlist_reg_bus_rd_addr            ;
+wire   [REG_DATA_BUS_WIDTH-1:0]             w_swlist_reg_bus_rd_dout            ;
+wire                                        w_swlist_reg_bus_rd_dout_v          ;
 /*---------------------------- RXMAC ---------------------------*/
 rx_mac_mng #(
             .PORT_NUM                (  PORT_NUM                      ) ,  // 交换机的端口数
@@ -352,19 +384,19 @@ rx_mac_mng #(
     .i_rst                               (i_rst                       ) ,
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
-    .i_refresh_list_pulse                (      ), // 刷新寄存器列表（状态寄存器和控制寄存器）
-    .i_switch_err_cnt_clr                (      ), // 刷新错误计数器
-    .i_switch_err_cnt_stat               (      ), // 刷新错误状态寄存器
+    .i_refresh_list_pulse                ( w_refresh_list_pulse      ), // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .i_switch_err_cnt_clr                ( w_switch_err_cnt_clr      ), // 刷新错误计数器
+    .i_switch_err_cnt_stat               ( w_switch_err_cnt_stat     ), // 刷新错误状态寄存器
     // 寄存器写控制接口     
-    .i_switch_reg_bus_we                 (      ), // 寄存器写使能
-    .i_switch_reg_bus_we_addr            (      ), // 寄存器写地址
-    .i_switch_reg_bus_we_din             (      ), // 寄存器写数据
-    .i_switch_reg_bus_we_din_v           (      ), // 寄存器写数据使能
+    .i_switch_reg_bus_we                 ( w_rxmac_reg_bus_we        ), // 寄存器写使能
+    .i_switch_reg_bus_we_addr            ( w_rxmac_reg_bus_we_addr   ), // 寄存器写地址
+    .i_switch_reg_bus_we_din             ( w_rxmac_reg_bus_we_din    ), // 寄存器写数据
+    .i_switch_reg_bus_we_din_v           ( w_rxmac_reg_bus_we_din_v  ), // 寄存器写数据使能
     // 寄存器读控制接口     
-    .i_switch_reg_bus_rd                 (      ), // 寄存器读使能
-    .i_switch_reg_bus_rd_addr            (      ), // 寄存器读地址
-    .o_switch_reg_bus_we_dout            (      ), // 读出寄存器数据
-    .o_switch_reg_bus_we_dout_v          (      ), // 读数据有效使能
+    .i_switch_reg_bus_rd                 ( w_rxmac_reg_bus_rd        ), // 寄存器读使能
+    .i_switch_reg_bus_rd_addr            ( w_rxmac_reg_bus_rd_addr   ), // 寄存器读地址
+    .o_switch_reg_bus_we_dout            ( w_rxmac_reg_bus_rd_dout   ), // 读出寄存器数据
+    .o_switch_reg_bus_we_dout_v          ( w_rxmac_reg_bus_rd_dout_v ), // 读数据有效使能
     /*---------------------------------------- CPU_MAC数据流 -------------------------------------------*/
 `ifdef CPU_MAC
     // 数据流信息 
@@ -700,19 +732,19 @@ swlist#(
 `endif  
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
-    .i_refresh_list_pulse       ()         , // 刷新寄存器列表（状态寄存器和控制寄存器）
-    .i_switch_err_cnt_clr       ()         , // 刷新错误计数器
-    .i_switch_err_cnt_stat      ()         , // 刷新错误状态寄存器
+    .i_refresh_list_pulse       (  w_refresh_list_pulse       )         , // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .i_switch_err_cnt_clr       (  w_switch_err_cnt_clr       )         , // 刷新错误计数器
+    .i_switch_err_cnt_stat      (  w_switch_err_cnt_stat      )         , // 刷新错误状态寄存器
     // 寄存器写控制接口     
-    .i_switch_reg_bus_we        ()         , // 寄存器写使能
-    .i_switch_reg_bus_we_addr   ()         , // 寄存器写地址
-    .i_switch_reg_bus_we_din    ()         , // 寄存器写数据
-    .i_switch_reg_bus_we_din_v  ()         , // 寄存器写数据使能
+    .i_switch_reg_bus_we        ( w_swlist_reg_bus_we         )         , // 寄存器写使能
+    .i_switch_reg_bus_we_addr   ( w_swlist_reg_bus_we_addr    )         , // 寄存器写地址
+    .i_switch_reg_bus_we_din    ( w_swlist_reg_bus_we_din     )         , // 寄存器写数据
+    .i_switch_reg_bus_we_din_v  ( w_swlist_reg_bus_we_din_v   )         , // 寄存器写数据使能
     // 寄存器读控制接口     
-    .i_switch_reg_bus_rd        ()         , // 寄存器读使能
-    .i_switch_reg_bus_rd_addr   ()         , // 寄存器读地址
-    .o_switch_reg_bus_we_dout   ()         , // 读出寄存器数据
-    .o_switch_reg_bus_we_dout_v ()           // 读数据有效使能
+    .i_switch_reg_bus_rd        ( w_swlist_reg_bus_rd         )         , // 寄存器读使能
+    .i_switch_reg_bus_rd_addr   ( w_swlist_reg_bus_rd_addr    )         , // 寄存器读地址
+    .o_switch_reg_bus_we_dout   ( w_swlist_reg_bus_rd_dout    )         , // 读出寄存器数据
+    .o_switch_reg_bus_we_dout_v ( w_swlist_reg_bus_rd_dout_v  )           // 读数据有效使能
 );
 
 tx_mac_mng #(
@@ -724,23 +756,23 @@ tx_mac_mng #(
     .REG_DATA_BUS_WIDTH                     (  ),
     .CROSS_DATA_WIDTH                       ( CROSS_DATA_WIDTH    )  // 聚合总线输出 
 )tx_mac_mng_inst (      
-    .i_clk                                  ()           ,   // 250MHz
-    .i_rst                                  ()           ,
+    .i_clk                                  ( i_clk                       )           ,   // 250MHz
+    .i_rst                                  ( i_rst                       )           ,
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
-    .i_refresh_list_pulse                   ()            , // 刷新寄存器列表（状态寄存器和控制寄存器）
-    .i_switch_err_cnt_clr                   ()            , // 刷新错误计数器
-    .i_switch_err_cnt_stat                  ()            , // 刷新错误状态寄存器
+    .i_refresh_list_pulse                   (  w_refresh_list_pulse       )            , // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .i_switch_err_cnt_clr                   (  w_switch_err_cnt_clr       )            , // 刷新错误计数器
+    .i_switch_err_cnt_stat                  (  w_switch_err_cnt_stat      )            , // 刷新错误状态寄存器
     // 寄存器写控制接口             
-    .i_switch_reg_bus_we                    ()           , // 寄存器写使能
-    .i_switch_reg_bus_we_addr               ()           , // 寄存器写地址
-    .i_switch_reg_bus_we_din                ()           , // 寄存器写数据
-    .i_switch_reg_bus_we_din_v              ()           , // 寄存器写数据使能
+    .i_switch_reg_bus_we                    ( w_txmac_reg_bus_we          )           , // 寄存器写使能
+    .i_switch_reg_bus_we_addr               ( w_txmac_reg_bus_we_addr     )           , // 寄存器写地址
+    .i_switch_reg_bus_we_din                ( w_txmac_reg_bus_we_din      )           , // 寄存器写数据
+    .i_switch_reg_bus_we_din_v              ( w_txmac_reg_bus_we_din_v    )           , // 寄存器写数据使能
     // 寄存器读控制接口             
-    .i_switch_reg_bus_rd                    ()     , // 寄存器读使能
-    .i_switch_reg_bus_rd_addr               ()     , // 寄存器读地址
-    .o_switch_reg_bus_rd_dout               ()     , // 读出寄存器数据
-    .o_switch_reg_bus_rd_dout_v             ()     , // 读数据有效使能
+    .i_switch_reg_bus_rd                    ( w_txmac_reg_bus_rd          )     , // 寄存器读使能
+    .i_switch_reg_bus_rd_addr               ( w_txmac_reg_bus_rd_addr     )     , // 寄存器读地址
+    .o_switch_reg_bus_rd_dout               ( w_txmac_reg_bus_rd_dout     )     , // 读出寄存器数据
+    .o_switch_reg_bus_rd_dout_v             ( w_txmac_reg_bus_rd_dout_v   )     , // 读数据有效使能
     /*---------------------------------------- 业务接口数据输出 -------------------------------------------*/
 `ifdef CPU_MAC
     // 数据流信息 
@@ -904,6 +936,66 @@ tx_mac_mng #(
     .i_cross_metadata_valid               ( w_cross_metadata_valid      ), // 聚合总线 metadata 数据有效信号
     .i_cross_metadata_last                ( w_cross_metadata_last       ), // 信息流结束标识
     .o_cross_metadata_ready               ( w_cross_metadata_ready      )  // 下游模块反压流水线  
+);
+
+switch_core_regs #(
+    .REG_ADDR_BUS_WIDTH             ()       ,  // 接收 MAC 层的配置寄存器地址位宽
+    .REG_DATA_BUS_WIDTH             ()         // 接收 MAC 层的配置寄存器数据位宽
+)switch_core_regs_inst (
+    .i_clk                          ( i_clk                         )     ,   // 250MHz
+    .i_rst                          ( i_rst                         )     ,
+    /*---------------------------------------- 寄存器配置接口与接口平台交互 -------------------------------------------*/
+    // 寄存器控制信号                     
+    .i_refresh_list_pulse           ( i_refresh_list_pulse          )     , // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .i_switch_err_cnt_clr           ( i_switch_err_cnt_clr          )     , // 刷新错误计数器
+    .i_switch_err_cnt_stat          ( i_switch_err_cnt_stat         )     , // 刷新错误状态寄存器
+    // 寄存器写控制接口     
+    .i_switch_reg_bus_we            ( i_switch_reg_bus_we           )     , // 寄存器写使能
+    .i_switch_reg_bus_we_addr       ( i_switch_reg_bus_we_addr      )     , // 寄存器写地址
+    .i_switch_reg_bus_we_din        ( i_switch_reg_bus_we_din       )     , // 寄存器写数据
+    .i_switch_reg_bus_we_din_v      ( i_switch_reg_bus_we_din_v     )     , // 寄存器写数据使能
+    // 寄存器读控制接口     
+    .i_switch_reg_bus_rd            ( i_switch_reg_bus_rd           )     , // 寄存器读使能
+    .i_switch_reg_bus_rd_addr       ( i_switch_reg_bus_rd_addr      )     , // 寄存器读地址
+    .o_switch_reg_bus_rd_dout       ( o_switch_reg_bus_rd_dout      )     , // 读出寄存器数据
+    .o_switch_reg_bus_rd_dout_v     ( o_switch_reg_bus_rd_dout_v    )     , // 读数据有效使能
+    /*----------------------------------- 通用接口（刷新整个平台的寄存器） -------------------------------------------*/
+    .o_refresh_list_pulse           ( w_refresh_list_pulse          )     , // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .o_switch_err_cnt_clr           ( w_switch_err_cnt_clr          )     , // 刷新错误计数器
+    .o_switch_err_cnt_stat          ( w_switch_err_cnt_stat         )     , // 刷新错误状态寄存器
+    /*----------------------------------- RXMAC寄存器接口 -------------------------------------------*/
+    // 寄存器写控制接口     
+    .o_rxmac_reg_bus_we             ( w_rxmac_reg_bus_we            )     , // 寄存器写使能
+    .o_rxmac_reg_bus_we_addr        ( w_rxmac_reg_bus_we_addr       )     , // 寄存器写地址
+    .o_rxmac_reg_bus_we_din         ( w_rxmac_reg_bus_we_din        )     , // 寄存器写数据
+    .o_rxmac_reg_bus_we_din_v       ( w_rxmac_reg_bus_we_din_v      )     , // 寄存器写数据使能
+    // 寄存器读控制接口 
+    .o_rxmac_reg_bus_rd             ( w_rxmac_reg_bus_rd            )     , // 寄存器读使能
+    .o_rxmac_reg_bus_rd_addr        ( w_rxmac_reg_bus_rd_addr       )     , // 寄存器读地址
+    .i_rxmac_reg_bus_rd_dout        ( w_rxmac_reg_bus_rd_dout       )     , // 读出寄存器数据
+    .i_rxmac_reg_bus_rd_dout_v      ( w_rxmac_reg_bus_rd_dout_v     )     , // 读数据有效使能
+    /*----------------------------------- TXMAC寄存器接口 -------------------------------------------*/
+    // 寄存器写控制接口     
+    .o_txmac_reg_bus_we             ( w_txmac_reg_bus_we            )     , // 寄存器写使能
+    .o_txmac_reg_bus_we_addr        ( w_txmac_reg_bus_we_addr       )     , // 寄存器写地址
+    .o_txmac_reg_bus_we_din         ( w_txmac_reg_bus_we_din        )     , // 寄存器写数据
+    .o_txmac_reg_bus_we_din_v       ( w_txmac_reg_bus_we_din_v      )     , // 寄存器写数据使能
+    // 寄存器读控制接口 
+    .o_txmac_reg_bus_rd             ( w_txmac_reg_bus_rd            )     , // 寄存器读使能
+    .o_txmac_reg_bus_rd_addr        ( w_txmac_reg_bus_rd_addr       )     , // 寄存器读地址
+    .i_txmac_reg_bus_rd_dout        ( w_txmac_reg_bus_rd_dout       )     , // 读出寄存器数据
+    .i_txmac_reg_bus_rd_dout_v      ( w_txmac_reg_bus_rd_dout_v     )     , // 读数据有效使能
+    /*----------------------------------- Swlist寄存器接口 -------------------------------------------*/
+    // 寄存器写控制接口     
+    .o_swlist_reg_bus_we            ( w_swlist_reg_bus_we           )     , // 寄存器写使能
+    .o_swlist_reg_bus_we_addr       ( w_swlist_reg_bus_we_addr      )     , // 寄存器写地址
+    .o_swlist_reg_bus_we_din        ( w_swlist_reg_bus_we_din       )     , // 寄存器写数据
+    .o_swlist_reg_bus_we_din_v      ( w_swlist_reg_bus_we_din_v     )     , // 寄存器写数据使能
+    // 寄存器读控制接口
+    .o_swlist_reg_bus_rd            ( w_swlist_reg_bus_rd           )     , // 寄存器读使能
+    .o_swlist_reg_bus_rd_addr       ( w_swlist_reg_bus_rd_addr      )     , // 寄存器读地址
+    .i_swlist_reg_bus_rd_dout       ( w_swlist_reg_bus_rd_dout      )     , // 读出寄存器数据
+    .i_swlist_reg_bus_rd_dout_v     ( w_swlist_reg_bus_rd_dout_v    )      // 读数据有效使能
 );
 
 
