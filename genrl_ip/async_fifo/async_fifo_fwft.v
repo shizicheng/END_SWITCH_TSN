@@ -100,7 +100,7 @@ always @(posedge RD_CLK) begin
 	else if (RD_EN == 1'b1 || RD_EMPTY == 1'b1) begin
 		rCacheVlaid <= #1 1'b0;
 	end
-	else if (rFifoDataValid == 1'b1 && RD_EN == 1'b0 || RD_EMPTY == 1'b0) begin
+	else if (rFifoDataValid == 1'b1 && (RD_EN == 1'b0 || RD_EMPTY == 1'b0)) begin
 		rCacheVlaid <= #1 1'b1;
 	end
 end

@@ -308,8 +308,8 @@ assign              o_port_diag_state                   =      w_port_diag_state
 /* ------------------------------ 帧抢占接收通路 ------------------------------- */
 /* ------------------------------ 帧抢占接收通路 ------------------------------- */
 qbu_rec #(
-    .DWIDTH                           (PORT_MNG_DATA_WIDTH                  ),
-    .P_SOURCE_MAC                     ({8'h00,8'h00,8'h00,8'hff,8'hff,8'hff})
+    .DWIDTH                           (PORT_MNG_DATA_WIDTH                  )
+    
 ) qbu_rec_inst (          
     .i_clk                            (i_clk                        ),
     .i_rst                            (i_rst                        ),
