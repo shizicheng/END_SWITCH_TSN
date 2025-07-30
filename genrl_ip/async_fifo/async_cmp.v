@@ -30,14 +30,14 @@ module async_cmp  #(
 wire 		wDirSet,wDirClr;
 reg 		rDir=0;
 wire 		wATBEmpty;
-reg 		rRdValid ;
+reg 		rRdValid =0;
 wire 		wEmpty;
-reg 		rEmpty;
+reg 		rEmpty=1;
 
 wire 		wATBFull;
-reg 		rWrVlaid;
+reg 		rWrVlaid=0;
 wire 		wFull;
-reg 		rFull;
+reg 		rFull=0;
 
 //empty
 assign  wDirSet = (WR_PTR[N]^RD_PTR[N-1]) & (~(WR_PTR[N-1]^RD_PTR[N]));

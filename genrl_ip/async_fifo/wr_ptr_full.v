@@ -24,9 +24,9 @@ module wr_ptr_full #(
 
 reg 					rFull=0;
 reg 					rFull2=0;
-reg	[C_DEPTH_BITS-1:0] rBin ;
-reg [C_DEPTH_BITS-1:0] rBinP1;
-reg [C_DEPTH_BITS-1:0] rPtr,rPtrP1;
+reg	[C_DEPTH_BITS-1:0] rBin = 0 ;
+reg [C_DEPTH_BITS-1:0] rBinP1 = 0 ;
+reg [C_DEPTH_BITS-1:0] rPtr = 0 ,rPtrP1 = 0 ;
 wire [C_DEPTH_BITS-1:0]	wBinNext;
 wire [C_DEPTH_BITS-1:0]	wBinNextP1;
 wire [C_DEPTH_BITS-1:0]	wGrayNext,wGrayNextP1;
@@ -39,10 +39,10 @@ always @(posedge WR_CLK or posedge WR_RST) begin
 		rPtrP1<='d0;
 	end
 	else begin 
-		rBin <= #1 wBinNext;
-		rBinP1 <= #1 wBinNextP1;
-		rPtr <= #1 wGrayNext;
-		rPtrP1 <= #1 wGrayNextP1;
+		rBin <=  wBinNext;
+		rBinP1 <=  wBinNextP1;
+		rPtr <=  wGrayNext;
+		rPtrP1 <=  wGrayNextP1;
 	end
 end
 
@@ -57,13 +57,13 @@ assign WR_PTR_P1 = rPtrP1; //wGrayNextP1;
 
 always @(posedge WR_CLK) begin 
 	if (WR_RST == 1'b1) begin
-		{rFull,rFull2} <= #1 'd0;
+		{rFull,rFull2} <=  'd0;
 	end
 	else if (CMP_FULL == 1'b1) begin
-		{rFull,rFull2} <= #1 2'b11;
+		{rFull,rFull2} <=  2'b11;
 	end
 	else begin 
-		{rFull,rFull2} <= #1 {rFull2,CMP_FULL};
+		{rFull,rFull2} <=  {rFull2,CMP_FULL};
 	end
 end
 

@@ -9,7 +9,6 @@
 // Editor : sublime text3, tab size (4)
 // -----------------------------------------------------------------------------
 `timescale  1ns/1ps
-
 module ram_2clk_1w_1r #(
 		parameter C_RAM_WIDTH = 32,
 		parameter C_RAM_DEPTH = 1024
@@ -18,6 +17,7 @@ module ram_2clk_1w_1r #(
 		input 	wire 		CLKA,
 		input	wire		CLKB,
 		input 	wire 		WEA,
+		input 	wire 		REA,
 		input	wire 	[clog2s(C_RAM_DEPTH)-1:0]	ADDRA,
 		input 	wire 	[clog2s(C_RAM_DEPTH)-1:0]	ADDRB,
 		input 	wire 	[C_RAM_WIDTH -1:0]			DINA,
@@ -33,12 +33,13 @@ reg [C_RAM_WIDTH-1:0] rDout;
 
 always @(posedge CLKA) begin 
 	if (WEA == 1'b1) begin
-		rRAM[ADDRA] <= #1 DINA;
+		rRAM[ADDRA] <=  DINA;
 	end
 end
 
 always @(posedge CLKB) begin 
-	rDout <= #1 rRAM[ADDRB] ;
+	if(REA)
+	rDout <=  rRAM[ADDRB] ;
 end
 
 assign DOUTB = rDout;

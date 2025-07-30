@@ -26,9 +26,9 @@ module rd_ptr_empty #(
 
 reg 					rEmpty=1;
 reg 					rEmpty2=1;
-reg	[C_DEPTH_BITS-1:0] rBin ;
-reg [C_DEPTH_BITS-1:0] rBinP1;
-reg [C_DEPTH_BITS-1:0] rPtr,rPtrP1;
+reg	[C_DEPTH_BITS-1:0] rBin =0 ;
+reg [C_DEPTH_BITS-1:0] rBinP1 = 0;
+reg [C_DEPTH_BITS-1:0] rPtr = 0,rPtrP1 = 0;
 wire [C_DEPTH_BITS-1:0]	wBinNext;
 wire [C_DEPTH_BITS-1:0]	wBinNextP1;
 wire [C_DEPTH_BITS-1:0]	wGrayNext,wGrayNextP1;
@@ -41,10 +41,10 @@ always @(posedge RD_CLK or posedge RD_RST) begin
 		rPtrP1<='d0;
 	end
 	else begin 
-		rBin <= #1 wBinNext;
-		rBinP1 <= #1 wBinNextP1;
-		rPtr <= #1 wGrayNext;
-		rPtrP1 <= #1 wGrayNextP1;
+		rBin <=  wBinNext;
+		rBinP1 <=  wBinNextP1;
+		rPtr <=  wGrayNext;
+		rPtrP1 <=  wGrayNextP1;
 	end
 end
 
@@ -59,13 +59,13 @@ assign RD_PTR_P1 =rPtrP1; //wGrayNextP1;
 
 always @(posedge RD_CLK) begin 
 	if (RD_RST == 1'b1) begin
-		{rEmpty,rEmpty2} <= #1 2'b11;
+		{rEmpty,rEmpty2} <=  2'b11;
 	end
 	else if (CMP_EMPTY == 1'b1) begin
-		{rEmpty,rEmpty2} <= #1 2'b11;
+		{rEmpty,rEmpty2} <=  2'b11;
 	end
 	else begin 
-		{rEmpty,rEmpty2} <= #1 {rEmpty2,CMP_EMPTY};
+		{rEmpty,rEmpty2} <=  {rEmpty2,CMP_EMPTY};
 	end
 end
 

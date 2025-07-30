@@ -47,6 +47,7 @@ ram_2clk_1w_1r #(.C_RAM_WIDTH(C_WIDTH), .C_RAM_DEPTH(C_REAL_DEPTH)) mem (
 	.CLKA(WR_CLK),
 	.ADDRA(wWrPtr),
 	.WEA(WR_EN & !WR_FULL),
+	.REA(RD_EN & !RD_EMPTY),
 	.DINA(WR_DATA),
 	.CLKB(RD_CLK),
 	.ADDRB(wRdPtr),
