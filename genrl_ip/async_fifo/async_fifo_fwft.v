@@ -1,13 +1,4 @@
-// -----------------------------------------------------------------------------
-// Copyright (c) 2014-2023 All rights reserved
-// -----------------------------------------------------------------------------
-// Author : youkaiyuan v3eduyky@126.com
-// Wechat : 15921999232
-// File   : async_fifo_fwft.v
-// Create : 2023-08-20 17:41:28
-// Revise : 2023-08-20 18:45:28
-// Editor : sublime text3, tab size (4)
-// -----------------------------------------------------------------------------
+
 `timescale  1ns/1ps
 module async_fifo_fwft #(
 	parameter C_WIDTH = 32,	// Data bus width

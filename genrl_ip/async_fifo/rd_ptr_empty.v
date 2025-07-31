@@ -1,13 +1,4 @@
-// -----------------------------------------------------------------------------
-// Copyright (c) 2014-2023 All rights reserved
-// -----------------------------------------------------------------------------
-// Author : youkaiyuan v3eduyky@126.com
-// Wechat : 15921999232
-// File   : rd_ptr_empty.v
-// Create : 2023-08-16 14:55:04
-// Revise : 2023-08-16 15:00:50
-// Editor : sublime text3, tab size (4)
-// -----------------------------------------------------------------------------
+
 `timescale  1ns/1ps
 module rd_ptr_empty #(
 		parameter C_DEPTH_BITS = 10
