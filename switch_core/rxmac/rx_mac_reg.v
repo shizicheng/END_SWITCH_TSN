@@ -41,6 +41,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_0                 , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_0                ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_0                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_0                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_0             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_0                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_0                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_0                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_0                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_0                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_0                        , // 帧序号
+    
 `endif
 `ifdef MAC1
     output              wire   [15:0]                           o_hash_ploy_regs_1                  , // 哈希多项式
@@ -78,6 +90,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_1                 , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_1                , // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_1                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_1                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_1             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_1                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_1                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_1                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_1                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_1                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_1                        , // 帧序号
+    
 `endif
 `ifdef MAC2
     output              wire   [15:0]                           o_hash_ploy_regs_2                  , // 哈希多项式
@@ -115,6 +139,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_2                 , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_2                ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_2                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_2                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_2             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_2                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_2                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_2                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_2                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_2                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_2                        , // 帧序号
+    
 `endif
 `ifdef MAC3
     output              wire   [15:0]                           o_hash_ploy_regs_3                 , // 哈希多项式
@@ -152,6 +188,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_3                , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_3               ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_3                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_3                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_3             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_3                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_3                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_3                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_3                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_3                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_3                        , // 帧序号
+    
 `endif
 `ifdef MAC4
     output              wire   [15:0]                           o_hash_ploy_regs_4                 , // 哈希多项式
@@ -189,6 +237,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_4                , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_4               ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_4                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_4                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_4             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_4                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_4                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_4                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_4                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_4                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_4                        , // 帧序号
+    
 `endif
 `ifdef MAC5
     output              wire   [15:0]                           o_hash_ploy_regs_5                 , // 哈希多项式
@@ -226,6 +286,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_5                , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_5               ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_5                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_5                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_5             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_5                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_5                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_5                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_5                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_5                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_5                        , // 帧序号
+    
 `endif
 `ifdef MAC6
     output              wire   [15:0]                           o_hash_ploy_regs_6                 , // 哈希多项式
@@ -263,6 +335,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_6                , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_6               ,  // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_6                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_6                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_6             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_6                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_6                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_6                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_6                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_6                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_6                        , // 帧序号
+    
 `endif
 `ifdef MAC7
     output              wire   [15:0]                           o_hash_ploy_regs_7                , // 哈希多项式
@@ -300,6 +384,18 @@ module rx_port_reg#(
     // 流量统计寄存器
     input              wire  [15:0]                             i_port_rx_byte_cnt_7               , // 端口0接收字节个数计数器值
     input              wire  [15:0]                             i_port_rx_frame_cnt_7              , // 端口0接收帧个数计数器值  
+
+    //qbu_rx寄存器  
+    input              wire                                     i_rx_busy_7                          , // 接收忙信号
+    input              wire  [15:0]                             i_rx_fragment_cnt_7                  , // 接收分片计数
+    input              wire                                     i_rx_fragment_mismatch_7             , // 分片不匹配
+    input              wire  [15:0]                             i_err_rx_crc_cnt_7                   , // CRC错误计数
+    input              wire  [15:0]                             i_err_rx_frame_cnt_7                 , // 帧错误计数
+    input              wire  [15:0]                             i_err_fragment_cnt_7                 , // 分片错误计数
+    input              wire  [15:0]                             i_rx_frames_cnt_7                    , // 接收帧计数
+    input              wire  [7:0]                              i_frag_next_rx_7                     , // 下一个分片号
+    input              wire  [7:0]                              i_frame_seq_7                        , // 帧序号
+    
 `endif
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     

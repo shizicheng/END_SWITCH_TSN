@@ -92,28 +92,28 @@ module qbu_reg_list (
 
     // Read-only fields for trs_busy
     input             i_rx_busy,
-    input             i_tx_busy,
-
-    // Read-only fields for preempt_state
-    input             i_preemptable_frame,
-    input             i_preempt_active,
-
-    // Read-only registers from external IP
-    input             i_preempt_enable,       // 1-bit, bit0 of 8-bit register
-    input   [15:0]    i_tx_fragment_cnt,
     input   [15:0]    i_rx_fragment_cnt,
     input             i_rx_fragment_mismatch, // 1-bit, bit0 of 8-bit register
     input   [15:0]    i_err_rx_crc_cnt,
     input   [15:0]    i_err_rx_frame_cnt,
     input   [15:0]    i_err_fragment_cnt,
+    input   [15:0]    i_rx_frames_cnt,
+    input   [7:0]     i_frag_next_rx,
+    input   [7:0]     i_frame_seq,
+
+    // Read-only fields for preempt_state
+    input             i_tx_busy,
+    input             i_preemptable_frame,
+    input             i_preempt_active,
+    input             i_preempt_enable,       // 1-bit, bit0 of 8-bit register
+    input   [15:0]    i_tx_fragment_cnt,
     input   [15:0]    i_err_verify_cnt,
     input   [15:0]    i_tx_frames_cnt,
-    input   [15:0]    i_rx_frames_cnt,
     input   [15:0]    i_preempt_success_cnt,
     input             i_tx_timeout,
-    input   [7:0]     i_frag_next_rx,
     input   [7:0]     i_frag_next_tx,
-    input   [7:0]     i_frame_seq,
+
+    // Read-only registers from external IP
 
     // Read-write outputs (wired, driven by internal regs)
     output            o_verify_enabled,
