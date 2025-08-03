@@ -121,7 +121,7 @@ reg                 ro_mac_axi_data_valid ;
 // reg  [15:0]         ro_mac_axi_data_user  ;
 reg                 ri_mac_axi_data_ready ;
 reg                 ro_mac_axi_data_last  ;
-
+reg   [15:0]        r_fifo_len_dout     ;
 
 /***************wire******************/
 wire [7 :0]         w_fifo_mac_dout     ;
@@ -150,20 +150,40 @@ assign o_mac_axi_data_keep = 1'b1;
 assign o_mac_axi_data_user = r_w_fifo_len_dout;
 assign o_mac_axi_data_last = ro_mac_axi_data_last;
 /***************component*************/
-async_fifo_fwft #(
-    .C_WIDTH (AXIS_DATA_WIDTH),
-    .C_DEPTH ('d1024        )
-) inst_FIFO_MAC_8X1024_U0 (
-    .RD_CLK   (i_clk              ),
-    .RD_RST   (i_rst              ),
-    .WR_CLK   (i_clk              ),
-    .WR_RST   (i_rst              ),
-    .WR_DATA  (ri_send_data       ),
-    .WR_EN    (ri_send_valid      ),
-    .RD_DATA  (w_fifo_mac_dout    ),
-    .RD_EN    (r_fifo_mac_rd_en   ),
-    .WR_FULL  (w_fifo_mac_full    ),
-    .RD_EMPTY (w_fifo_mac_empty   )
+// async_fifo_fwft #(
+//     .C_WIDTH (AXIS_DATA_WIDTH),
+//     .C_DEPTH ('d1024        )
+// ) inst_FIFO_MAC_8X1024_U0 (
+//     .RD_CLK   (i_clk              ),
+//     .RD_RST   (i_rst              ),
+//     .WR_CLK   (i_clk              ),
+//     .WR_RST   (i_rst              ),
+//     .WR_DATA  (ri_send_data       ),
+//     .WR_EN    (ri_send_valid      ),
+//     .RD_DATA  (w_fifo_mac_dout    ),
+//     .RD_EN    (r_fifo_mac_rd_en   ),
+//     .WR_FULL  (w_fifo_mac_full    ),
+//     .RD_EMPTY (w_fifo_mac_empty   )
+// );
+
+sync_fifo #(
+    .DEPTH                  (1024                ),
+    .WIDTH                  (AXIS_DATA_WIDTH     ),
+    .ALMOST_FULL_THRESHOLD  (0                   ),
+    .ALMOST_EMPTY_THRESHOLD (0                   ),
+    .FLOP_DATA_OUT          (1                   ) // 1为fwft，0为standard
+) inst_SYNC_FIFO_MAC_8X1024_U0 (
+    .CLK        (i_clk             ),
+    .RST        (i_rst             ),
+    .WR_EN      (ri_send_valid     ),
+    .DIN        (ri_send_data      ),
+    .RD_EN      (r_fifo_mac_rd_en  ),
+    .DOUT       (w_fifo_mac_dout   ),
+    .FULL       (w_fifo_mac_full   ),
+    .EMPTY      (w_fifo_mac_empty  ),
+    .ALMOST_FULL(                  ),
+    .ALMOST_EMPTY(                 ),
+    .DATA_CNT   (                  )
 );
 //     my_xpm_fifo_sync #(
 //             .DATAWIDTH(AXIS_DATA_WIDTH),
@@ -198,21 +218,41 @@ async_fifo_fwft #(
 //   .empty            (w_fifo_mac_empty   )   // output wire empty
 // );
 
-async_fifo_fwft #(
-    .C_WIDTH  ('d16               ),
-    .C_DEPTH  ('d32               )
-) inst_FIFO_16X64_LEN (
-    .RD_CLK   (i_clk              ),
-    .RD_RST   (i_rst              ),
-    .WR_CLK   (i_clk              ),
-    .WR_RST   (i_rst              ),
-    .WR_DATA  (i_send_len         ),
-    .WR_EN    (write_fifo_len_en  ),
-    .RD_DATA  (w_fifo_len_dout    ),
-    .RD_EN    (read_fifo_len_en   ),
-    .WR_FULL  (w_fifo_len_full    ),
-    .RD_EMPTY (w_fifo_len_empty   )
+sync_fifo #(
+    .DEPTH                  (32                ),
+    .WIDTH                  (16                ),
+    .ALMOST_FULL_THRESHOLD  (0                 ),
+    .ALMOST_EMPTY_THRESHOLD (0                 ),
+    .FLOP_DATA_OUT          (1                 ) // 1为fwft，0为standard
+) inst_SYNC_FIFO_16X32_LEN (
+    .CLK        (i_clk             ),
+    .RST        (i_rst             ),
+    .WR_EN      (write_fifo_len_en ),
+    .DIN        (i_send_len        ),
+    .RD_EN      (read_fifo_len_en  ),
+    .DOUT       (w_fifo_len_dout   ),
+    .FULL       (w_fifo_len_full   ),
+    .EMPTY      (w_fifo_len_empty  ),
+    .ALMOST_FULL(                 ),
+    .ALMOST_EMPTY(                ),
+    .DATA_CNT   (                 )
 );
+
+// async_fifo_fwft #(
+//     .C_WIDTH  ('d16               ),
+//     .C_DEPTH  ('d32               )
+// ) inst_FIFO_16X64_LEN (
+//     .RD_CLK   (i_clk              ),
+//     .RD_RST   (i_rst              ),
+//     .WR_CLK   (i_clk              ),
+//     .WR_RST   (i_rst              ),
+//     .WR_DATA  (i_send_len         ),
+//     .WR_EN    (write_fifo_len_en  ),
+//     .RD_DATA  (w_fifo_len_dout    ),
+//     .RD_EN    (read_fifo_len_en   ),
+//     .WR_FULL  (w_fifo_len_full    ),
+//     .RD_EMPTY (w_fifo_len_empty   )
+// );
 
     // my_xpm_fifo_sync #(
     //         .DATAWIDTH('d16),
@@ -326,11 +366,20 @@ begin
         w_smd <= w_smd;
 end
 
+
+
+always@(posedge i_clk) begin
+    r_fifo_len_dout <= w_fifo_len_dout ;
+end
+
+
 //assign r_w_fifo_len_dout =  read_fifo_len_en ? w_fifo_len_dout :i_pmac_send_len_val ? i_pmac_send_len :r_w_fifo_len_dout;
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
         r_w_fifo_len_dout <= 'd1500;
+    else if(o_mac_axi_data_last & o_mac_axi_data_valid)
+        r_w_fifo_len_dout <= 'd0;
     else if(read_fifo_len_en)
         r_w_fifo_len_dout <= w_fifo_len_dout;
     else if(i_pmac_send_len_val)
@@ -447,9 +496,9 @@ begin
     if(i_rst)
         r_tx_fragment_cnt <= 'd0;
     else if(r_mac_pkg_cnt == 'd7 && (w_smd==SMD_C0||w_smd==SMD_C1||w_smd==SMD_C2||w_smd==SMD_C3))
-        r_tx_fragment_cnt <= r_tx_fragment_cnt + 1;
+        r_tx_fragment_cnt <= r_tx_fragment_cnt + 'd1;
     else 
-        r_tx_fragment_cnt <= r_mac_data_valid;
+        r_tx_fragment_cnt <= r_tx_fragment_cnt;
 end
 //r_mac_data_valid，从组帧开始到FIFO数据都出来这一段数据有效信号
 always@(posedge i_clk,posedge i_rst)
@@ -472,7 +521,7 @@ begin
     else if(r_mac_data_cnt == r_w_fifo_len_dout && r_w_fifo_len_dout!='d0)
         r_mac_data_cnt <= 'd0;
     else if(r_fifo_mac_rd_en | r_mac_data_cnt)
-        r_mac_data_cnt <= r_mac_data_cnt + 1;
+        r_mac_data_cnt <= r_mac_data_cnt + 'd1;
     else 
         r_mac_data_cnt <= r_mac_data_cnt;
 end
@@ -524,7 +573,7 @@ begin
     else if(r_crc_out_cnt == 3)   
         r_crc_out_cnt <= 'd0;
     else if((!r_mac_data_valid && r_mac_data_valid_1d) || r_crc_out_cnt)
-        r_crc_out_cnt <= r_crc_out_cnt + 1;
+        r_crc_out_cnt <= r_crc_out_cnt + 'd1;
     else 
         r_crc_out_cnt <= r_crc_out_cnt;
 end

@@ -65,6 +65,7 @@ parameter           S0_SMD        =        8'he6;
 parameter           S1_SMD        =        8'h4c;
 parameter           S2_SMD        =        8'h7f;
 parameter           S3_SMD        =        8'hb3;
+
 parameter           C0_SMD        =        8'h61;
 parameter           C1_SMD        =        8'h52;
 parameter           C2_SMD        =        8'h9E;
@@ -121,6 +122,7 @@ reg                                      rr_post_data_vld            ;
 
 reg    [7:0]                             r_SMD_type                  ;
 reg    [1:0]                             r_frag_cnt                  ;
+reg    [7:0]                             ri_frag_cnt                 ;
 reg    [1:0]                             r_crc_vld                   ;
 reg    [47:0]                            r_target_mac                ;
 
@@ -136,20 +138,20 @@ wire    [DWIDTH - 1:0]                   read_ram_data               ;
 reg                                      write_ram_en                ;
 reg                                      read_ram_en                 ;
 
-reg     [11:0]                           addr_begin;
-reg     [11:0]                           addr_end;
-reg     [11:0]                           r_read_addr_end;//寄存fifo读出的地址
+reg     [11:0]                           addr_begin                  ;
+reg     [11:0]                           addr_end                    ;
+reg     [11:0]                           r_read_addr_end             ;//寄存fifo读出的地址
 
-reg                                      read_ram_en_r;
+reg                                      read_ram_en_r               ;
 /***************wire******************/
 
 
 //fifo
-wire  [24:0]   write_fifo_data;//(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,addr_end)
-reg            write_fifo_en;
-wire  [24:0]   read_fifo_data;
-reg            read_fifo_en;
-wire           empty;
+wire  [24:0]   write_fifo_data         ;//(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,addr_end)
+reg            write_fifo_en           ;
+wire  [24:0]   read_fifo_data          ;
+reg            read_fifo_en            ;
+wire           empty                   ;
 
 /***************component*************/
 ram_simple2port #(
@@ -170,22 +172,40 @@ ram_simple2port #(
     .doutb            (read_ram_data  )  // RAM output data
 );
 
-async_fifo_fwft #(
-    .C_WIDTH          (DATAWIDTH      ),
-    .C_DEPTH          (DEPT_W         )
-) u_async_fifo_fwft (
-    .RD_CLK           (i_clk          ),
-    .RD_RST           (i_rst          ),
-    .WR_CLK           (i_clk          ),
-    .WR_RST           (i_rst          ),
-    .WR_DATA          (write_fifo_data),
-    .WR_EN            (write_fifo_en  ),
-    .RD_DATA          (read_fifo_data ),
-    .RD_EN            (read_fifo_en   ),
-    .WR_FULL          (               ),
-    .RD_EMPTY         (empty          )
+// async_fifo_fwft #(
+//     .C_WIDTH          (DATAWIDTH      ),
+//     .C_DEPTH          (DEPT_W         )
+// ) u_async_fifo_fwft (
+//     .RD_CLK           (i_clk          ),
+//     .RD_RST           (i_rst          ),
+//     .WR_CLK           (i_clk          ),
+//     .WR_RST           (i_rst          ),
+//     .WR_DATA          (write_fifo_data),
+//     .WR_EN            (write_fifo_en  ),
+//     .RD_DATA          (read_fifo_data ),
+//     .RD_EN            (read_fifo_en   ),
+//     .WR_FULL          (               ),
+//     .RD_EMPTY         (empty          )
+// );
+sync_fifo #(
+    .DEPTH                  (DEPT_W                ),
+    .WIDTH                  (DATAWIDTH             ),
+    .ALMOST_FULL_THRESHOLD  (0                     ),
+    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
+) inst_sync_fifo (
+    .CLK                    (i_clk                 ),
+    .RST                    (i_rst                 ),
+    .WR_EN                  (write_fifo_en         ),
+    .DIN                    (write_fifo_data       ),
+    .RD_EN                  (read_fifo_en          ),
+    .DOUT                   (read_fifo_data        ),
+    .FULL                   (                      ),
+    .EMPTY                  (empty                 ),
+    .ALMOST_FULL            (                      ),
+    .ALMOST_EMPTY           (                      ),
+    .DATA_CNT               (                      )
 );
-
   
     // my_xpm_fifo_sync #(
     //         .DATAWIDTH(DATAWIDTH),
@@ -328,8 +348,12 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
+
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
+        r_frag_cnt<='b0;
+    end
+    else if(i_SMD_type_vld & (i_SMD_type  == S0_SMD || i_SMD_type  == S1_SMD || i_SMD_type  == S2_SMD || i_SMD_type  == S3_SMD)) begin
         r_frag_cnt<='b0;
     end
     else if (i_frag_cnt_vld&&i_frag_cnt==8'he6) begin
@@ -406,7 +430,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         addr_end<='b0;
     end
-    else if (i_post_data_vld) begin//
+    else if (i_post_data_vld) begin 
         addr_end<=write_ram_addr;
     end
     else begin
@@ -422,7 +446,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         read_fifo_en<='b0;
     end
-    else if (read_fifo_en==0&&read_ram_en==0&&read_ram_en_r==0&&empty==0) begin//
+    else if (read_fifo_en==0&&read_ram_en==0&&read_ram_en_r==0&&empty==0) begin 
         read_fifo_en<=1'b1;
     end
     else begin
@@ -440,6 +464,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_post_data_len         <= 'b0;
         r_post_data_len_vld     <= 'b0;
         r_post_data_vld         <= 'b0;
+        ri_frag_cnt             <= 'd0;
     end
     else  begin
         r_post_data             <= i_post_data              ;
@@ -447,6 +472,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_post_data_len         <= i_post_data_len          ;
         r_post_data_len_vld     <= i_post_data_len_vld      ;
         r_post_data_vld         <= i_post_data_vld          ;
+        ri_frag_cnt             <= i_frag_cnt               ;
     end
 
 end

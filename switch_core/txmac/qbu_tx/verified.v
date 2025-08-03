@@ -253,7 +253,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if(i_rst) begin 
         ri_verify_timer <= 'd10;
     end     
-    if(ri_verify_timer_vld) begin
+    else if(ri_verify_timer_vld) begin
         ri_verify_timer <= i_verify_timer;
     end
 end

@@ -142,22 +142,40 @@ wire           empty;
             .doutb  (read_ram_keep)     // RAM output data
         );
 
-async_fifo_fwft #(
-    .C_WIDTH          (DATAWIDTH      ),
-    .C_DEPTH          (DEPT_W         )
-) u_async_fifo_fwft (
-    .RD_CLK           (i_clk          ),
-    .RD_RST           (i_rst          ),
-    .WR_CLK           (i_clk          ),
-    .WR_RST           (i_rst          ),
-    .WR_DATA          (write_fifo_data),
-    .WR_EN            (write_fifo_en  ),
-    .RD_DATA          (read_fifo_data ),
-    .RD_EN            (read_fifo_en   ),
-    .WR_FULL          (               ),
-    .RD_EMPTY         (empty          )
+// async_fifo_fwft #(
+//     .C_WIDTH          (DATAWIDTH      ),
+//     .C_DEPTH          (DEPT_W         )
+// ) u_async_fifo_fwft (
+//     .RD_CLK           (i_clk          ),
+//     .RD_RST           (i_rst          ),
+//     .WR_CLK           (i_clk          ),
+//     .WR_RST           (i_rst          ),
+//     .WR_DATA          (write_fifo_data),
+//     .WR_EN            (write_fifo_en  ),
+//     .RD_DATA          (read_fifo_data ),
+//     .RD_EN            (read_fifo_en   ),
+//     .WR_FULL          (               ),
+//     .RD_EMPTY         (empty          )
+// );
+sync_fifo #(
+    .DEPTH                  (DEPT_W                ),
+    .WIDTH                  (DATAWIDTH             ),
+    .ALMOST_FULL_THRESHOLD  (0                     ),
+    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
+) inst_sync_fifo (
+    .CLK                    (i_clk                 ),
+    .RST                    (i_rst                 ),
+    .WR_EN                  (write_fifo_en         ),
+    .DIN                    (write_fifo_data       ),
+    .RD_EN                  (read_fifo_en          ),
+    .DOUT                   (read_fifo_data        ),
+    .FULL                   (                      ),
+    .EMPTY                  (empty                 ),
+    .ALMOST_FULL            (                      ),
+    .ALMOST_EMPTY           (                      ),
+    .DATA_CNT               (                      )
 );
-
 
 
     // my_xpm_fifo_sync #(

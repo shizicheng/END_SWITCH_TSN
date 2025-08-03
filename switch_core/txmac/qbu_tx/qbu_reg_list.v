@@ -1,3 +1,87 @@
+// -----------------------------------------------------------------------------
+// Copyright (c) 2014-2025 All rights reserved
+// -----------------------------------------------------------------------------
+// Author : szc 2817798213@qq.com
+// File   : qbu_reg_list.v
+// Create : 2025-05-19 21:06:22
+// Revise : 2025-06-05 12:15:10
+// Editor : sublime text4, tab size (4)
+// -----------------------------------------------------------------------------
+
+
+// module qbu_reg_list(
+//     input                           i_clk                   ,
+//     input                           i_rst                   ,
+
+//     input                           i_qbu_bus_we            ,
+//     input       [ 7:0]              i_qbu_bus_addr          ,
+//     input       [15:0]              i_qbu_bus_din           ,
+//     input                           i_qbu_bus_rd            ,
+//     output      [15:0]              o_qbu_bus_dout          ,
+
+//     //通用状态寄存器General Status Register    
+//     output                          o_preempt_enabled       ,
+//     output                          o_verify_enabled        ,
+//     input                           i_rx_busy               ,
+//     input                           i_tx_busy               ,
+//     // output      [ 3:0]              o_GSR                   ,
+    
+//     //发送状态寄存器Transmit Status Register   
+//     input       [15:0]              i_tx_fragment_cnt       ,
+//     // output      [15:0]              o_TSR                   ,
+    
+//     //接收状态寄存器Receive Status Register    
+//     input       [15:0]              i_rx_fragment_cnt       ,
+//     input                           i_rx_fragment_mismatch  ,
+//     // output      [31:0]              o_RSR                   ,
+
+//     //预占状态寄存器Preoccupied Status Register
+//     input                           i_preempt_active        ,
+//     input                           i_preemptable_frame     ,
+//     // output      [ 7:0]              o_PSR                   ,   
+
+//     //错误计数器error counter
+//     input       [15:0]              i_err_rx_crc_cnt        ,
+//     input       [15:0]              i_err_rx_frame_cnt      ,
+//     input       [15:0]              i_err_fragment_cnt      ,
+//     input       [15:0]              i_err_verify_cnt        ,
+//     // output      [63:0]              o_ERR_CNT               ,
+
+//     //配置寄存器 configuration register
+//     output      [ 7:0]              o_min_frag_size         ,
+//     output      [15:0]              o_verify_timer          ,
+//     output      [ 7:0]              o_ipg_timer             ,
+//     // output      [31:0]              o_CONFR                 ,
+// // 
+//     //控制寄存器 control register
+//     output      [ 0:0]              o_reset                 ,                
+//     output      [ 0:0]              o_start_verify          ,            
+//     output      [ 0:0]              o_clear_verify          ,   
+//     // output      [ 7:0]              o_CR                    , 
+
+//     //调试与诊断寄存器 Debug and Diagnostic Registers
+//     input       [15:0]              i_tx_frames_cnt         ,
+//     input       [15:0]              i_rx_frames_cnt         ,
+//     input       [15:0]              i_preempt_success_cnt   ,
+//     // output      [47:0]              o_DDR                   ,
+
+//     //看门狗与超时寄存器 Watchdog and Timeout Registers
+//     output      [31:0]              o_watchdog_timer        ,     
+//     input       [ 0:0]              i_tx_timeout            ,   
+//     // output      [31:0]              o_WTR                   ,
+
+//     //片段与帧控制寄存器  Segment and Frame Control Registers
+//     input       [ 7:0]              i_frag_next_rx          ,       
+//     input       [ 7:0]              i_frag_next_tx          ,        
+//     input       [ 7:0]              i_frame_seq             
+//     // output      [23:0]              o_SFCR                                
+
+//     );
+
+
+
+// endmodule
+
 module qbu_reg_list (
     input             i_clk,
     input             i_rst_n,
@@ -33,7 +117,7 @@ module qbu_reg_list (
 
     // Read-write outputs (wired, driven by internal regs)
     output            o_verify_enabled,
-    output            o_verify_enabled_valid,
+    // output            o_verify_enabled_valid,
     output  [7:0]     o_min_frag_size,
     output            o_min_frag_size_valid,
     output  [7:0]     o_verify_timer,
@@ -112,7 +196,7 @@ module qbu_reg_list (
     // assign o_watchdog_timer_h       = ro_watchdog_timer_h;
     // assign o_watchdog_timer_h_valid = ro_watchdog_timer_h_valid;
     assign o_watchdog_timer       = {ro_watchdog_timer_h,ro_watchdog_timer_l};
-    assign o_watchdog_timer_valid = ro_watchdog_timer_l_valid;
+    assign o_watchdog_timer_valid = ro_watchdog_timer_l_valid  ;
     assign o_qbu_bus_dout           = ro_qbu_bus_dout;
 
     // Synchronous process: register inputs & handle writes
@@ -147,7 +231,7 @@ module qbu_reg_list (
             ro_watchdog_timer_l      <= 16'he848;
             ro_watchdog_timer_h      <= 8'd1;
             ro_reset                 <= 1'b0;
-            ro_start_verify          <= 1'b0;
+            ro_start_verify          <= 1'b1;
             ro_clear_verify          <= 1'b0;
 
             // Initialize valid flags low

@@ -16,7 +16,7 @@
 // Revision 0.01 - File Created
 // Additional Comments:
 // 
-//BUG Posible ï¼š1.è€ƒè™‘ä¸Šå±‚æ•°æ®è¿‡æ¥æ˜¯å¦å­˜åœ¨é—´éš”ï¼Œè‹¥ä¸å­˜é—´éš”fifoå­˜ä¿¡æ¯å¯èƒ½ä¼šæœ‰bugï¼›
+//BUG Posible £º1.¿¼ÂÇÉÏ²ãÊı¾İ¹ıÀ´ÊÇ·ñ´æÔÚ¼ä¸ô£¬Èô²»´æ¼ä¸ôfifo´æĞÅÏ¢¿ÉÄÜ»áÓĞbug£»
 //////////////////////////////////////////////////////////////////////////////////
 
 module FAST_qbu_Pmac_tx#(
@@ -30,7 +30,7 @@ module FAST_qbu_Pmac_tx#(
     input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_top_Pmac_tx_axis_keep     ,
     input           wire                                i_top_Pmac_tx_axis_last     ,
     input           wire                                i_top_Pmac_tx_axis_valid    ,
-    input           wire    [15:0]                      i_top_Pmac_tx_axis_type     ,  //ä½å®½ä¸º16ä½ 
+    input           wire    [15:0]                      i_top_Pmac_tx_axis_type     ,  //Î»¿íÎª16Î» 
     output          wire                                o_top_Pmac_tx_axis_ready    ,
     //PMAC2EMAC
     output          wire                                o_pamc_send_busy            ,
@@ -39,7 +39,7 @@ module FAST_qbu_Pmac_tx#(
     input           wire                                i_emac_send_apply           ,
     // output          reg                                 occupy_succ,
     //PMAC2NEXT
-    input                                               i_rx_ready                  ,//ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†
+    input                                               i_rx_ready                  ,//×éÖ¡Ä£¿é×¼±¸ºÃÁË
     output          reg     [15:0]                      o_send_type  = 'd0          ,
     output                  [AXIS_DATA_WIDTH-1 :0]      o_send_data                 ,
     output          reg                                 o_send_last                 ,
@@ -51,18 +51,18 @@ module FAST_qbu_Pmac_tx#(
     output          reg     [7:0]                       o_fra = 'd0                 ,
     output          reg                                 o_smd_vld                   ,
     output          reg                                 o_fra_vld                   ,
-    output          reg                                 o_crc                       ,//ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrcã€‚
+    output          reg                                 o_crc                       ,//Îª1ÔòÎªcrc·ñÔòÎªmcrc¡£
 
     output          wire    [7:0]                       o_frag_next_tx              ,
     input           wire    [19:0]                      i_watchdog_timer            ,
     input           wire                                i_watchdog_timer_vld        ,
     output          wire                                o_tx_timeout                ,
     output          wire    [15:0]                      o_preempt_success_cnt       ,
-    input           wire    [ 7:0]                      i_min_frag_size             ,//æœ€å°ç‰‡æ®µå¤§å°
+    input           wire    [ 7:0]                      i_min_frag_size             ,//×îĞ¡Æ¬¶Î´óĞ¡
     input           wire                                i_min_frag_size_vld         ,
     output          wire                                o_preempt_active            ,
     output          wire                                o_preemptable_frame            
-    // input           wire    [ 7:0]                      i_add_frag_size          ,     //éæœ€ç»ˆç‰‡æ®µçš„æœ€å°é•¿åº¦æ§åˆ¶
+    // input           wire    [ 7:0]                      i_add_frag_size          ,     //·Ç×îÖÕÆ¬¶ÎµÄ×îĞ¡³¤¶È¿ØÖÆ
           
 ); 
 
@@ -71,7 +71,7 @@ module FAST_qbu_Pmac_tx#(
 
 /***************parameter*************/
 /*
-//çŠ¶æ€æœºå‚æ•°
+//×´Ì¬»ú²ÎÊı
 localparam              IDLE            =           5'b00001;
 localparam              SEND            =           5'b00010;
 localparam              STOP            =           5'b00100;
@@ -79,21 +79,21 @@ localparam              KEEP            =           5'b01000;
 localparam              END             =           5'b10000;
 */
 
-//ramå®šä¹‰å‚æ•°
+//ram¶¨Òå²ÎÊı
 localparam           RAM_DEPTH           = 'd2048 ; //4096
 localparam           RAM_PERFORMANCE     = "LOW_LATENCY" ;
 localparam           INIT_FILE           = ""    ; 
 
-//fifoå‚æ•°
-localparam           DATAWIDTH           = 'd32  ; //å†™ä½å®½
-localparam           DEPT_W              = 'd16  ; //å†™æ·±åº¦
+//fifo²ÎÊı
+localparam           DATAWIDTH           = 'd32  ; //Ğ´Î»¿í
+localparam           DEPT_W              = 'd16  ; //Ğ´Éî¶È
 localparam           AL_FUL              = DEPT_W - 10 ;
-localparam           AL_EMP              = 10    ; //ç©ºä¿¡å·    
+localparam           AL_EMP              = 10    ; //¿ÕĞÅºÅ    
 localparam           READ_MODE           = "fwft" ;
 localparam           FIFO_READ_LATENCY   = 'd0   ; 
 
 
-//ç¼–å·
+//±àºÅ
 localparam           SMD_S0     =       8'he6;
 localparam           SMD_S1     =       8'h4c;
 localparam           SMD_S2     =       8'h7f;
@@ -129,17 +129,17 @@ reg                           ri_watchdog_timer_vld     ;
 reg     [7:0]                 ri_min_frag_size          ;
 reg                           ri_min_frag_size_vld      ;
 reg                           ro_preempt_active         ;
-reg     [11:0]                write_ram_addr            ; // 12ä½
-reg     [11:0]                read_ram_addr             ; // 12ä½
+reg     [11:0]                write_ram_addr            ; // 12Î»
+reg     [11:0]                read_ram_addr             ; // 12Î»
 reg                           read_ram_en               ;
 reg                           r_read_ram_en             ;
-reg     [15:0]                ram_data_suppy            ; // ramå‰©ä½™çš„æœ‰æ•ˆæ•°æ®
-reg     [2:0]                 smd_s_cnt                 ; // smd_sç¼–ç è®¡æ•°
-reg     [2:0]                 fre_cnt                   ; // å¸§è®¡æ•°å™¨ç¼–ç è®¡æ•°
+reg     [15:0]                ram_data_suppy            ; // ramÊ£ÓàµÄÓĞĞ§Êı¾İ
+reg     [2:0]                 smd_s_cnt                 ; // smd_s±àÂë¼ÆÊı
+reg     [2:0]                 fre_cnt                   ; // Ö¡¼ÆÊıÆ÷±àÂë¼ÆÊı
 reg     [7:0]                 r_smd                     ;
 reg     [7:0]                 r_fra                     ;
-reg                           r_occupy                  ; // è¢«æŠ¢å æ ‡å¿—åªè¦è¢«æŠ¢å å°±ä¸€ç›´æ‹‰é«˜
-reg                           r_last_frag               ; // è‹¥ä¸ºä¸€ç»„æ•°æ®æœ€åä¸€å¸§åˆ™æ‹‰é«˜
+reg                           r_occupy                  ; // ±»ÇÀÕ¼±êÖ¾Ö»Òª±»ÇÀÕ¼¾ÍÒ»Ö±À­¸ß
+reg                           r_last_frag               ; // ÈôÎªÒ»×éÊı¾İ×îºóÒ»Ö¡ÔòÀ­¸ß
 reg                           r_o_pamc_send_apply       ;
 reg     [15:0]                r_preempt_success_cnt     ;
 reg                           r_occupy_ban_flag         ;
@@ -149,20 +149,20 @@ reg     [7:0]                 r_frag_next_tx            ;
 reg                           r_read_ram_en_1d          ;
 reg                           r_pmac_timeout_flag       ;
 reg                           read_fifo_en              ;
-reg                           write_fifo_en_flag        ; // å†™FIFOæ ‡å¿—
-reg                           last_flag                 ; // æ¥æ”¶åˆ°æœ€åä¸€ä¸ªæ•°æ®æ ‡å¿—
-reg     [10:0]                data_len = 'd0            ; // data_len æ€»çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦
-reg     [10:0]                data_len_supply           ; // å‰©ä½™æ²¡æœ‰å‘çš„æ•°æ®çš„æ•°é‡
+reg                           write_fifo_en_flag        ; // Ğ´FIFO±êÖ¾
+reg                           last_flag                 ; // ½ÓÊÕµ½×îºóÒ»¸öÊı¾İ±êÖ¾
+reg     [10:0]                data_len = 'd0            ; // data_len ×ÜµÄÒ»×éÊı¾İµÄ³¤¶È
+reg     [10:0]                data_len_supply           ; // Ê£ÓàÃ»ÓĞ·¢µÄÊı¾İµÄÊıÁ¿
 reg                           r_occupy_succ             ;
-reg     [10:0]                send_data_cnt             ; // å·²ç»å‘é€çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦
-reg     [10:0]                r_send_data_cnt           ; // å·²ç»å‘é€çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦
+reg     [10:0]                send_data_cnt             ; // ÒÑ¾­·¢ËÍµÄÒ»×éÊı¾İµÄ³¤¶È
+reg     [10:0]                r_send_data_cnt           ; // ÒÑ¾­·¢ËÍµÄÒ»×éÊı¾İµÄ³¤¶È
 reg                           result_send_apply         ;
 reg     [19:0]                r_occupy_succ_cnt         ;
 reg                           r_occupy_succ_flag        ;
 reg                           ri_emac_send_busy         ;
 
 /***************component*************/
-// ramå­˜å‚¨æ•°æ®ï¼Œfifoå­˜å‚¨é•¿åº¦ä¿¡æ¯å’Œåè®®ç±»å‹ä¿¡æ¯
+// ram´æ´¢Êı¾İ£¬fifo´æ´¢³¤¶ÈĞÅÏ¢ºÍĞ­ÒéÀàĞÍĞÅÏ¢
 ram_simple2port #(
     .RAM_WIDTH        (AXIS_DATA_WIDTH   ), // Specify RAM data width
     .RAM_DEPTH        (RAM_DEPTH         ), // Specify RAM depth (number of entries)
@@ -180,23 +180,41 @@ ram_simple2port #(
     .regceb           (1'b1              ), // Output register enable
     .doutb            (read_ram_data     )  // RAM output data
 );
-
-    
-async_fifo_fwft #(
-    .C_WIDTH          (DATAWIDTH      ),
-    .C_DEPTH          (DEPT_W         )
-) u_async_fifo_fwft (
-    .RD_CLK           (i_clk          ),
-    .RD_RST           (i_rst          ),
-    .WR_CLK           (i_clk          ),
-    .WR_RST           (i_rst          ),
-    .WR_DATA          (write_fifo_data),
-    .WR_EN            (write_fifo_en  ),
-    .RD_DATA          (read_fifo_data ),
-    .RD_EN            (read_fifo_en   ),
-    .WR_FULL          (               ),
-    .RD_EMPTY         (empty          )
+sync_fifo #(
+    .DEPTH                  (DEPT_W                ),
+    .WIDTH                  (DATAWIDTH             ),
+    .ALMOST_FULL_THRESHOLD  (0                     ),
+    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .FLOP_DATA_OUT          (1                     ) // 1Îªfwft£¬0Îªstandard
+) inst_sync_fifo (
+    .CLK                    (i_clk                 ),
+    .RST                    (i_rst                 ),
+    .WR_EN                  (write_fifo_en         ),
+    .DIN                    (write_fifo_data       ),
+    .RD_EN                  (read_fifo_en          ),
+    .DOUT                   (read_fifo_data        ),
+    .FULL                   (                      ),
+    .EMPTY                  (empty                 ),
+    .ALMOST_FULL            (                      ),
+    .ALMOST_EMPTY           (                      ),
+    .DATA_CNT               (                      )
 );
+    
+// async_fifo_fwft #(
+//     .C_WIDTH          (DATAWIDTH      ),
+//     .C_DEPTH          (DEPT_W         )
+// ) u_async_fifo_fwft (
+//     .RD_CLK           (i_clk          ),
+//     .RD_RST           (i_rst          ),
+//     .WR_CLK           (i_clk          ),
+//     .WR_RST           (i_rst          ),
+//     .WR_DATA          (write_fifo_data),
+//     .WR_EN            (write_fifo_en  ),
+//     .RD_DATA          (read_fifo_data ),
+//     .RD_EN            (read_fifo_en   ),
+//     .WR_FULL          (               ),
+//     .RD_EMPTY         (empty          )
+// );
 
 
 // my_xpm_fifo_sync #(
@@ -208,7 +226,7 @@ async_fifo_fwft #(
 //     .FIFO_READ_LATENCY (FIFO_READ_LATENCY )
 // ) inst_my_xpm_fifo_sync (
 //     .wr_clk            (i_clk             ),
-//     .din               (write_fifo_data   ), // é•¿åº¦ä¿¡æ¯ä¸åè®®ç±»å‹ä¿¡æ¯
+//     .din               (write_fifo_data   ), // ³¤¶ÈĞÅÏ¢ÓëĞ­ÒéÀàĞÍĞÅÏ¢
 //     .wr_en             (write_fifo_en     ),
 //     .dout              (read_fifo_data    ),
 //     .data_valid        (                  ),
@@ -229,35 +247,35 @@ async_fifo_fwft #(
 
 assign write_ram_en     = i_top_Pmac_tx_axis_valid  ;
 assign write_ram_data   = i_top_Pmac_tx_axis_data   ;
-assign write_fifo_en    = i_top_Pmac_tx_axis_valid&&ri_top_Pmac_tx_axis_valid==0&&(write_fifo_en_flag==0||last_flag==1);   //è€ƒè™‘ä¸Šå±‚æ•°æ®è¿‡æ¥æ˜¯å¦å­˜åœ¨é—´éš”ï¼Œè‹¥ä¸å­˜åœ¨æ­¤å¤„å¤„åœ¨bug
-assign write_fifo_data  = {i_top_Pmac_tx_axis_user,i_top_Pmac_tx_axis_type}   ;     //é•¿åº¦ä¿¡æ¯ä¸åè®®ç±»å‹ä¿¡æ¯
+assign write_fifo_en    = i_top_Pmac_tx_axis_valid && ri_top_Pmac_tx_axis_valid==0 &&(write_fifo_en_flag==0||last_flag==1);   //¿¼ÂÇÉÏ²ãÊı¾İ¹ıÀ´ÊÇ·ñ´æÔÚ¼ä¸ô£¬Èô²»´æÔÚ´Ë´¦´¦ÔÚbug
+assign write_fifo_data  = {i_top_Pmac_tx_axis_user,i_top_Pmac_tx_axis_type}   ;     //³¤¶ÈĞÅÏ¢ÓëĞ­ÒéÀàĞÍĞÅÏ¢
 
 
-//è¾“å‡º
+//Êä³ö
 
 assign o_top_Pmac_tx_axis_ready     = ram_data_suppy <= 1500              ;
 assign o_pamc_send_busy             = read_ram_en                       ;
-//assign o_send_type                = read_fifo_en? read_fifo_data[15:0]:o_send_type    ;  //æ²¡è¯»å®Œåˆæ¥äº†ä¸€ç»„æ•°æ®ï¼Œæ²¡ç»™enæå‰æœ‰æ•ˆ
+//assign o_send_type                = read_fifo_en? read_fifo_data[15:0]:o_send_type    ;  //Ã»¶ÁÍêÓÖÀ´ÁËÒ»×éÊı¾İ£¬Ã»¸øenÌáÇ°ÓĞĞ§
 assign o_send_data                  = r_read_ram_en ? read_ram_data : 'd0                     ;
-//assign o_send_last                = occupy_succ && r_occupy_succ==0   ;    //ä¿®æ”¹ï¼Œè¿™ä¸ªåªæœ‰æŠ¢å çš„æ—¶å€™æ‰æœ‰æ•ˆ
-//assign o_send_last                = (occupy_succ && r_occupy_succ==0)||data_len_supply==1;  //æ”¹æˆäº†æ—¶åºé€»è¾‘
+//assign o_send_last                = occupy_succ && r_occupy_succ==0   ;    //ĞŞ¸Ä£¬Õâ¸öÖ»ÓĞÇÀÕ¼µÄÊ±ºò²ÅÓĞĞ§
+//assign o_send_last                = (occupy_succ && r_occupy_succ==0)||data_len_supply==1;  //¸Ä³ÉÁËÊ±ĞòÂß¼­
 assign o_send_valid                 = r_read_ram_en                     ;
-//assign o_pmac_send_len              =read_fifo_en ? r_read_fifo_data[31:16] : o_send_last ? r_send_data_cnt+1 : o_pmac_send_len;//è¢«æŠ¢å æ—¶ä¼ è¾“çš„æ•°æ®è¦æ—¶æ—¶æ›´æ–°
+//assign o_pmac_send_len              =read_fifo_en ? r_read_fifo_data[31:16] : o_send_last ? r_send_data_cnt+1 : o_pmac_send_len;//±»ÇÀÕ¼Ê±´«ÊäµÄÊı¾İÒªÊ±Ê±¸üĞÂ
 //assign o_pmac_send_len_val          = o_send_last;  //read_fifo_en || o_send_last && data_len_supply > 2;
 //assign o_smd                      = r_read_ram_en ? r_smd : o_smd     ;               
 //assign o_fra                      = r_read_ram_en ? r_fra : o_fra     ;       
-//assign o_crc                       = r_last_frag   ? 1'b1  : 0;   //å¦‚æœæ˜¯è¢«æ‰“æ–­çš„æœ€åä¸€ä¸ªç‰‡æ®µï¼Œo_crcæ‹‰é«˜ã€‚å…¶ä»–æƒ…å†µo_crcæ˜¯è¢«æŠ¢å ä¿¡å·å–åï¼Œä½†æ˜¯ç¬¬ä¸€æ¬¡è¢«æ‰“æ–­ä¹‹å‰r_occupy=0ï¼Œ
-                                                                            //è¿™æ ·çš„è¯ç¬¬ä¸€ä¸ªç‰‡æ®µæ•°æ®crcä¼šä¸º1è€Œä¸æ˜¯0 ï¼Œæ‰€ä»¥æˆ‘æƒ³å…¶ä»–çš„éƒ½ç­‰äº0    
-                                                                            //æ‰€ä»¥æˆ‘æƒ³æ”¹æˆo_crc  = r_last_frag   ? 1'b1  : 0;
-                                                                          //æ”¹æˆäº†æ—¶åºé€»è¾‘
-//assign data_len = read_fifo_en ? read_fifo_data[31:16]: data_len;//data_len æ€»çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦ï¼Œä»fifoä¸­éƒ½å‡ºæ¥åä¿å­˜åœ¨å¯„å­˜å™¨ä¸­ã€‚ä¿®æ”¹ï¼Œæˆ‘è§‰å¾—åŠ ä¸ªæ¸…é›¶æ¡ä»¶ä¼šæ›´å¥½
-assign occupy_succ = (send_data_cnt> (ri_min_frag_size - 1) && data_len_supply >= (ri_min_frag_size + 1)) && i_emac_send_apply & !r_occupy_ban_flag;//æ˜¯å¦è¢«æŠ¢å ä¿¡å·ï¼Œå½“å·²ç»å‘é€çš„æ•°æ®å¤§äº64ä¸”è¿˜æ²¡æœ‰å‘é€çš„æ•°æ®ä¹Ÿå¤§äº64è¡¨æ˜å¯ä»¥æŠ¢å (ç”±äºread_ram_enæ˜¯æ—¶åºé€»è¾‘ä¿¡å·ï¼ˆæ»åä¸€æ‹ï¼‰ï¼Œå› æ­¤è¦æå‰ä¸€æ’æ•°æ®)
-                                                                                   //o_emac_send_apply = read_ram_en ? 1'b0 : empty==0&&i_pmac_send_busy==1; emacæœ‰æ•°æ®ä¸”pmacæ­£åœ¨å‘é€æ—¶emacå‘å‡ºç”³è¯·
+//assign o_crc                       = r_last_frag   ? 1'b1  : 0;   //Èç¹ûÊÇ±»´ò¶ÏµÄ×îºóÒ»¸öÆ¬¶Î£¬o_crcÀ­¸ß¡£ÆäËûÇé¿öo_crcÊÇ±»ÇÀÕ¼ĞÅºÅÈ¡·´£¬µ«ÊÇµÚÒ»´Î±»´ò¶ÏÖ®Ç°r_occupy=0£¬
+                                                                            //ÕâÑùµÄ»°µÚÒ»¸öÆ¬¶ÎÊı¾İcrc»áÎª1¶ø²»ÊÇ0 £¬ËùÒÔÎÒÏëÆäËûµÄ¶¼µÈÓÚ0    
+                                                                            //ËùÒÔÎÒÏë¸Ä³Éo_crc  = r_last_frag   ? 1'b1  : 0;
+                                                                          //¸Ä³ÉÁËÊ±ĞòÂß¼­
+//assign data_len = read_fifo_en ? read_fifo_data[31:16]: data_len;//data_len ×ÜµÄÒ»×éÊı¾İµÄ³¤¶È£¬´ÓfifoÖĞ¶¼³öÀ´ºó±£´æÔÚ¼Ä´æÆ÷ÖĞ¡£ĞŞ¸Ä£¬ÎÒ¾õµÃ¼Ó¸öÇåÁãÌõ¼ş»á¸üºÃ
+assign occupy_succ = (send_data_cnt> (ri_min_frag_size - 1) && data_len_supply >= (ri_min_frag_size + 1)) && i_emac_send_apply & !r_occupy_ban_flag;//ÊÇ·ñ±»ÇÀÕ¼ĞÅºÅ£¬µ±ÒÑ¾­·¢ËÍµÄÊı¾İ´óÓÚ64ÇÒ»¹Ã»ÓĞ·¢ËÍµÄÊı¾İÒ²´óÓÚ64±íÃ÷¿ÉÒÔÇÀÕ¼(ÓÉÓÚread_ram_enÊÇÊ±ĞòÂß¼­ĞÅºÅ£¨ÖÍºóÒ»ÅÄ£©£¬Òò´ËÒªÌáÇ°Ò»ÅÅÊı¾İ)
+                                                                                   //o_emac_send_apply = read_ram_en ? 1'b0 : empty==0&&i_pmac_send_busy==1; emacÓĞÊı¾İÇÒpmacÕıÔÚ·¢ËÍÊ±emac·¢³öÉêÇë
                                                                                    // read_ram_en=1 -> (empty==0||send_data_cnt<(data_len-1))&&i_pmac_send_busy==0   
-                                                                                   //è‹¥occupy_succ=1ï¼Œåˆ™read_ram_en=0ï¼ˆo_pamc_send_busy=0ï¼‰                                                                     
-assign o_pamc_send_apply=r_o_pamc_send_apply;  //pMACæœ‰æ•°æ®è¦å‘å°±æ‹‰é«˜
+                                                                                   //Èôoccupy_succ=1£¬Ôòread_ram_en=0£¨o_pamc_send_busy=0£©                                                                     
+assign o_pamc_send_apply=r_o_pamc_send_apply;  //pMACÓĞÊı¾İÒª·¢¾ÍÀ­¸ß
 
-//æ–°å¢r_mux_readyï¼Œå½“ç»„å¸§æ¨¡å—ç©ºé—²æ—¶æˆ–è€…emacæ­£åœ¨å‘é€æ•°æ®å°±æ˜¯æ‹‰é«˜ï¼Œç”¨æ­¤ä¿¡å·æŒ‡ç¤ºèƒ½ä¸èƒ½å‘ä¸‹å±‚ä¼ é€’æ•°æ®
+//ĞÂÔör_mux_ready£¬µ±×éÖ¡Ä£¿é¿ÕÏĞÊ±»òÕßemacÕıÔÚ·¢ËÍÊı¾İ¾ÍÊÇÀ­¸ß£¬ÓÃ´ËĞÅºÅÖ¸Ê¾ÄÜ²»ÄÜÏòÏÂ²ã´«µİÊı¾İ
 assign r_mux_ready = i_rx_ready || read_ram_en;
 
 assign o_sned_valid_pos = !r_read_ram_en&&read_ram_en;
@@ -266,8 +284,8 @@ assign o_sned_valid_pos = !r_read_ram_en&&read_ram_en;
 assign o_frag_next_tx = r_frag_next_tx;
 assign o_tx_timeout = r_pmac_timeout_flag;
 assign o_preempt_success_cnt = r_preempt_success_cnt;        
-assign o_preempt_active    = ro_preempt_active   ; //æ˜¯å¦å¤„äºæŠ¢å çŠ¶æ€
-assign o_preemptable_frame = !r_occupy_ban_flag ? read_ram_en : 'd0; //å½“å‰ä¼ è¾“æ˜¯å¦ä¸ºå¯æŠ¢å å¸§                       
+assign o_preempt_active    = ro_preempt_active   ; //ÊÇ·ñ´¦ÓÚÇÀÕ¼×´Ì¬
+assign o_preemptable_frame = !r_occupy_ban_flag ? read_ram_en : 'd0; //µ±Ç°´«ÊäÊÇ·ñÎª¿ÉÇÀÕ¼Ö¡                       
 /***************always****************/
 
 
@@ -387,7 +405,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-                //æ›´æ”¹ç‚¹ç”±äºå­˜åœ¨ç»„åˆé€»è¾‘å¾ªç¯å› æ­¤æ”¹æˆregç±»å‹//
+                //¸ü¸ÄµãÓÉÓÚ´æÔÚ×éºÏÂß¼­Ñ­»·Òò´Ë¸Ä³ÉregÀàĞÍ//
 
 
 
@@ -403,8 +421,8 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//data_len æ€»çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦ï¼Œä»fifoä¸­éƒ½å‡ºæ¥åä¿å­˜åœ¨å¯„å­˜å™¨ä¸­ã€‚ä¿®æ”¹ï¼Œæˆ‘è§‰å¾—åŠ ä¸ªæ¸…é›¶æ¡ä»¶ä¼šæ›´å¥½
-//ä¸read_fifo_en ä¿æŒæ—¶åºç›¸åŒ
+//data_len ×ÜµÄÒ»×éÊı¾İµÄ³¤¶È£¬´ÓfifoÖĞ¶¼³öÀ´ºó±£´æÔÚ¼Ä´æÆ÷ÖĞ¡£ĞŞ¸Ä£¬ÎÒ¾õµÃ¼Ó¸öÇåÁãÌõ¼ş»á¸üºÃ
+//Óëread_fifo_en ±£³ÖÊ±ĞòÏàÍ¬
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
          data_len <= 'b0;
@@ -420,8 +438,8 @@ always @(posedge i_clk or posedge i_rst) begin
     else data_len <= data_len ;
 end
 
-//assign o_send_type = r_read_fifo_en? read_fifo_data[15:0]:o_send_type;  //æ²¡è¯»å®Œåˆæ¥äº†ä¸€ç»„æ•°æ®ï¼Œæ²¡ç»™enæå‰æœ‰æ•ˆ
-//ä¸read_fifo_en ä¿æŒæ—¶åºç›¸åŒ
+//assign o_send_type = r_read_fifo_en? read_fifo_data[15:0]:o_send_type;  //Ã»¶ÁÍêÓÖÀ´ÁËÒ»×éÊı¾İ£¬Ã»¸øenÌáÇ°ÓĞĞ§
+//Óëread_fifo_en ±£³ÖÊ±ĞòÏàÍ¬
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
          o_send_type <= 'b0;
@@ -437,8 +455,8 @@ always @(posedge i_clk or posedge i_rst) begin
     else o_send_type <= o_send_type ;
 end
 
-//assign o_pmac_send_len =r_read_fifo_en ? r_read_fifo_data[31:16] : o_send_last ? r_send_data_cnt+1 : o_pmac_send_len;//è¢«æŠ¢å æ—¶ä¼ è¾“çš„æ•°æ®è¦æ—¶æ—¶æ›´æ–°
-//è¢«æŠ¢å åé‡æ–°å‘é€æ—¶è¦æ›´æ–°æ–°çš„é•¿åº¦ä¿¡æ¯ã€‚
+//assign o_pmac_send_len =r_read_fifo_en ? r_read_fifo_data[31:16] : o_send_last ? r_send_data_cnt+1 : o_pmac_send_len;//±»ÇÀÕ¼Ê±´«ÊäµÄÊı¾İÒªÊ±Ê±¸üĞÂ
+//±»ÇÀÕ¼ºóÖØĞÂ·¢ËÍÊ±Òª¸üĞÂĞÂµÄ³¤¶ÈĞÅÏ¢¡£
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
          o_pmac_send_len <= 'b0;
@@ -501,7 +519,7 @@ always @(posedge i_clk) begin
     else o_crc = o_crc ;
 end
 
-//assign o_send_last                = (occupy_succ && r_occupy_succ==0)||data_len_supply==1;  //æ”¹æˆäº†æ—¶åºé€»è¾‘
+//assign o_send_last                = (occupy_succ && r_occupy_succ==0)||data_len_supply==1;  //¸Ä³ÉÁËÊ±ĞòÂß¼­
 always @(posedge i_clk) begin
     if (i_rst) begin
          o_send_last <= 'b0;
@@ -533,7 +551,7 @@ always @(posedge i_clk) begin
         o_smd_vld<= 'b0;
      end
 end
-//data_len_supplyå‰©ä½™æ²¡æœ‰å‘çš„æ•°æ®çš„æ•°é‡
+//data_len_supplyÊ£ÓàÃ»ÓĞ·¢µÄÊı¾İµÄÊıÁ¿
 always @(posedge i_clk) begin
     if (i_rst) begin
         data_len_supply <= 'b0;
@@ -550,7 +568,7 @@ always @(posedge i_clk) begin
     else data_len_supply <=data_len_supply;
 end
 
-//ram_data_suppy,ramä¸­å‰©ä½™çš„æœ‰æ•ˆæ•°æ®ï¼Œå½“å†™FIFOæœ‰æ•ˆçš„æ—¶å€™å°±åŠ ä¸Šå†™å…¥çš„æ•°æ®é•¿åº¦ï¼Œå½“æ¯æ¬¡è¯»å‡ºæ•°æ®è¯»çš„æ—¶å€™å°±å‡ä¸€    è¿™ä¸ªä»£è¡¨ramé‡Œé¢æœ‰æ•ˆçš„æ•°æ®ï¼Ÿ
+//ram_data_suppy,ramÖĞÊ£ÓàµÄÓĞĞ§Êı¾İ£¬µ±Ğ´FIFOÓĞĞ§µÄÊ±ºò¾Í¼ÓÉÏĞ´ÈëµÄÊı¾İ³¤¶È£¬µ±Ã¿´Î¶Á³öÊı¾İ¶ÁµÄÊ±ºò¾Í¼õÒ»    Õâ¸ö´ú±íramÀïÃæÓĞĞ§µÄÊı¾İ£¿
 always @(posedge i_clk) begin
     if (i_rst) begin
         ram_data_suppy <= 'b0;
@@ -573,7 +591,7 @@ always @(posedge i_clk) begin
 end
         /***************************
 
-            ramè¯»å†™åœ°å€
+            ram¶ÁĞ´µØÖ·
 
         ***************************/
 
@@ -588,12 +606,12 @@ always @(posedge i_clk) begin
     end
 end
 
-//å†™ä½¿èƒ½æœ‰æ•ˆåœ°å€å°±åŠ ä¸€
+//Ğ´Ê¹ÄÜÓĞĞ§µØÖ·¾Í¼ÓÒ»
 always @(posedge i_clk) begin
     if (i_rst) begin
         write_ram_addr <= 'b0;
     end
-    else if(write_ram_addr=='d4090) //åŠ äº†è¿™ä¸ªé¿å…å†™å…¥4095çš„æ•°æ®è¯»ä¸å‡ºæ¥
+    else if(write_ram_addr=='d4090) //¼ÓÁËÕâ¸ö±ÜÃâĞ´Èë4095µÄÊı¾İ¶Á²»³öÀ´
         write_ram_addr <= 'b0;   
     else if (write_ram_en) begin
         write_ram_addr <= write_ram_addr + 1'b1;
@@ -603,7 +621,7 @@ always @(posedge i_clk) begin
     end
 end
 
-//è¯»ä½¿èƒ½æœ‰æ•ˆåœ°å€å°±åŠ ä¸€
+//¶ÁÊ¹ÄÜÓĞĞ§µØÖ·¾Í¼ÓÒ»
 always @(posedge i_clk) begin
     if (i_rst) begin
         read_ram_addr <= 'b0;
@@ -611,7 +629,7 @@ always @(posedge i_clk) begin
     else if(r_occupy_succ_cnt == (ri_watchdog_timer - 1) && r_occupy_succ_flag) begin
         read_ram_addr <= read_ram_addr + data_len_supply ;
     end
-    else if( read_ram_addr =='d4090) //åŠ äº†è¿™ä¸ªé¿å…å†™å…¥4095çš„æ•°æ®è¯»ä¸å‡ºæ¥  ramä¸fifoå°½é‡ä¸è¦å†™æ»¡åº”è¯¥ç•™å‡º5-10ä¸ªä½ç½®ï¼Œå¦åˆ™ä¼šå‡ºç°å¥‡æ€ªçš„é—®é¢˜
+    else if( read_ram_addr =='d4090) //¼ÓÁËÕâ¸ö±ÜÃâĞ´Èë4095µÄÊı¾İ¶Á²»³öÀ´  ramÓëfifo¾¡Á¿²»ÒªĞ´ÂúÓ¦¸ÃÁô³ö5-10¸öÎ»ÖÃ£¬·ñÔò»á³öÏÖÆæ¹ÖµÄÎÊÌâ
         read_ram_addr <= 'b0;
     else if (read_ram_en) begin
         read_ram_addr <= read_ram_addr + 1'b1;
@@ -622,10 +640,10 @@ always @(posedge i_clk) begin
 end
         /***************************
 
-            è¯»FIFOä¸è¯»ramä½¿èƒ½
+            ¶ÁFIFOÓë¶ÁramÊ¹ÄÜ
 
         ***************************/
-//write_fifo_en_flagå†™FIFOæ ‡å¿—,åªè¦fifoå†™è¿‡ä¸€æ¬¡å°±ä¼šä¸€ç›´æ‹‰é«˜
+//write_fifo_en_flagĞ´FIFO±êÖ¾,Ö»ÒªfifoĞ´¹ıÒ»´Î¾Í»áÒ»Ö±À­¸ß
 always @(posedge i_clk) begin
     if (i_rst) begin
         write_fifo_en_flag <= 'b0;
@@ -638,7 +656,7 @@ always @(posedge i_clk) begin
     end
 end
 
-//last_flagï¼Œæ”¶åˆ°i_top_Pmac_tx_axis_lastä¿¡å·å°±ä¼šæ‹‰é«˜ï¼Œå½“æ”¶åˆ°å†™FIFOä½¿èƒ½å°±ä¼šæ‹‰ä½
+//last_flag£¬ÊÕµ½i_top_Pmac_tx_axis_lastĞÅºÅ¾Í»áÀ­¸ß£¬µ±ÊÕµ½Ğ´FIFOÊ¹ÄÜ¾Í»áÀ­µÍ
 always @(posedge i_clk) begin
     if (i_rst) begin
         last_flag <= 'b0;
@@ -654,14 +672,14 @@ always @(posedge i_clk) begin
     end
 end
 
-//o_pamc_send_apply é˜²æ­¢emacä¸pmacæ•°æ®åŒæ—¶å‡ºç°ï¼Œå› æ­¤å‘é€pamcæ•°æ®å‰å…ˆå‘é€ä¸€ä¸ªç”³è¯·åˆ°emac.   åªè¦æœ‰æ•°æ®ï¼Œå°±å‘é€ç”³è¯·
+//o_pamc_send_apply ·ÀÖ¹emacÓëpmacÊı¾İÍ¬Ê±³öÏÖ£¬Òò´Ë·¢ËÍpamcÊı¾İÇ°ÏÈ·¢ËÍÒ»¸öÉêÇëµ½emac.   Ö»ÒªÓĞÊı¾İ£¬¾Í·¢ËÍÉêÇë
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_o_pamc_send_apply <= 1'b0;
     end                 //send_data_cnt<data_len-1
-    else if ((empty==0||data_len_supply)&&i_emac_send_busy==0&&read_ram_en==0&&r_mux_ready==1) begin  //pmacä¸emacéƒ½æ²¡åœ¨å‘æ•°æ®ã€‚è€Œpmcæœ‰æ•°æ®è¦å‘æˆ–è€…è¢«æ‰“æ–­äº†éœ€è¦å†æ¬¡å‘ï¼Œéƒ½ä¼šå‘emacå‘é€è¯·æ±‚
-                                                                                                              //æ˜¯å¦åŠ ä¸€ä¸ªr_o_pamc_send_apply <= 1'b0ï¼Œå› ä¸ºåªæ‹‰é«˜1ä¸ªå‘¨æœŸ
-                                                                                                              //æ‰€æœ‰æ•°æ®éƒ½å‘å®Œï¼Œå­˜åœ¨send_data_cnt<data_len-1ä¸”read_ram_en==0çš„æƒ…å†µï¼Œè¿™ä¸ªæ—¶å€™ä¸éœ€è¦å‘é€ç”³è¯·
+    else if ((empty==0 || data_len_supply) && i_emac_send_busy==0 && read_ram_en==0 && r_mux_ready==1) begin  //pmacÓëemac¶¼Ã»ÔÚ·¢Êı¾İ¡£¶øpmcÓĞÊı¾İÒª·¢»òÕß±»´ò¶ÏÁËĞèÒªÔÙ´Î·¢£¬¶¼»áÏòemac·¢ËÍÇëÇó
+                                                                                                              //ÊÇ·ñ¼ÓÒ»¸ör_o_pamc_send_apply <= 1'b0£¬ÒòÎªÖ»À­¸ß1¸öÖÜÆÚ
+                                                                                                              //ËùÓĞÊı¾İ¶¼·¢Íê£¬´æÔÚsend_data_cnt<data_len-1ÇÒread_ram_en==0µÄÇé¿ö£¬Õâ¸öÊ±ºò²»ĞèÒª·¢ËÍÉêÇë
         r_o_pamc_send_apply <= 1'b1;
     end
     else begin
@@ -669,7 +687,7 @@ always @(posedge i_clk) begin
     end
 end
 
-//result_send_apply å½“o_pamc_send_applyå‘é€å®Œç”³è¯·åè‹¥emacä¹Ÿæœ‰æ•°æ®å‘å°±ä¼ši_emac_send_busy==1,æ­¤æ—¶pmacå°±ä¸ä¼šå‘äº†   å›åº”æ˜¯i_emac_send_busyï¼Ÿï¼Ÿé‚£ä¸ç”³è¯·ä¸æ˜¯å°±å¯ä»¥ç›´æ¥çœ‹åˆ°
+//result_send_apply µ±o_pamc_send_apply·¢ËÍÍêÉêÇëºóÈôemacÒ²ÓĞÊı¾İ·¢¾Í»ái_emac_send_busy==1,´ËÊ±pmac¾Í²»»á·¢ÁË   »ØÓ¦ÊÇi_emac_send_busy£¿£¿ÄÇ²»ÉêÇë²»ÊÇ¾Í¿ÉÒÔÖ±½Ó¿´µ½
 
 always @(posedge i_clk) begin
     if (i_rst) begin
@@ -678,7 +696,7 @@ always @(posedge i_clk) begin
     else if(o_pamc_send_apply) begin
         result_send_apply <= ~i_emac_send_busy;
     end
-  //  else if(read_ram_en==0) begin             //ä¸€ç»„æ•°æ®å‘é€å®Œå°±æ‹‰ä½ ä¿®æ”¹åŸå› ï¼šresult_send_applyæ¯”read_ram_en==0æ™šä¸€æ‹ï¼Œå½“empty=0,result_send_apply=1,emac_busy=0æ—¶read_ram_en=1
+  //  else if(read_ram_en==0) begin             //Ò»×éÊı¾İ·¢ËÍÍê¾ÍÀ­µÍ ĞŞ¸ÄÔ­Òò£ºresult_send_apply±Èread_ram_en==0ÍíÒ»ÅÄ£¬µ±empty=0,result_send_apply=1,emac_busy=0Ê±read_ram_en=1
  //   else if((data_len_supply==1)||(send_data_cnt==0&&empty==1&&!r_occupy)) begin
       else if((data_len_supply==1)||(send_data_cnt==0)) begin
         result_send_apply <= 1'b0;
@@ -688,8 +706,8 @@ always @(posedge i_clk) begin
     end
 end
 
-//è¯»ramä½¿èƒ½ï¼Œè¯»å‡ºæ¥çš„æ•°æ®ç›´æ¥ä¼ è¾“åˆ°ä¸‹ä¸€å±‚ï¼Œå½“fifoé‡Œæœ‰æ•°æ®ï¼ˆä¿¡æ¯ä¸æ•°æ®å¹¶å­˜ï¼‰æˆ–è€…ä¸Šä¸€ç»„æ•°æ®æ²¡æœ‰è¯»å®Œ ä¸”æ²¡æœ‰æ²¡æœ‰è¢«æŠ¢å ï¼Œä¸”æ»¡è¶³å¸§é—´éš”æ—¶é—´æ—¶å¯ä»¥å¼€å§‹è¯»æ•°æ®,åŒæ—¶ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†ç»„å¸§ã€‚
-//ä¸Šè¾¹æœ‰ä¸è¿™ä¸ªæ—¶åºå¯¹å…¶çš„æ•°æ®æ›´æ”¹è¿™ä¸ªä¸Šè¾¹çš„ä¹Ÿåº”è¯¥æ›´æ”¹å¦‚data_len
+//¶ÁramÊ¹ÄÜ£¬¶Á³öÀ´µÄÊı¾İÖ±½Ó´«Êäµ½ÏÂÒ»²ã£¬µ±fifoÀïÓĞÊı¾İ£¨ĞÅÏ¢ÓëÊı¾İ²¢´æ£©»òÕßÉÏÒ»×éÊı¾İÃ»ÓĞ¶ÁÍê ÇÒÃ»ÓĞÃ»ÓĞ±»ÇÀÕ¼£¬ÇÒÂú×ãÖ¡¼ä¸ôÊ±¼äÊ±¿ÉÒÔ¿ªÊ¼¶ÁÊı¾İ,Í¬Ê±×éÖ¡Ä£¿é×¼±¸ºÃÁË×éÖ¡¡£
+//ÉÏ±ßÓĞÓëÕâ¸öÊ±Ğò¶ÔÆäµÄÊı¾İ¸ü¸ÄÕâ¸öÉÏ±ßµÄÒ²Ó¦¸Ã¸ü¸ÄÈçdata_len
 always @(posedge i_clk) begin
     if (i_rst) begin
         read_ram_en <= 1'b0;
@@ -698,13 +716,13 @@ always @(posedge i_clk) begin
         read_ram_en <= 1'b0;
     end
      else if(data_len_supply==1)
-           read_ram_en <= 1'b0;       //åŠ äº†è¿™ä¸ªå› ä¸ºè¢«æ‰“æ–­åsend_data_cntä¼šæ¸…é›¶ä¸€æ¬¡ï¼Œåªèƒ½é€šè¿‡data_len_supplyä»£è¡¨ä¸€ç»„æ•°æ®è¯»å®Œ
-     else if (send_data_cnt==(data_len-1)) //åŠ äº†è¿™ä¸ªå› ä¸ºä¸€ç»„æ•°æ®è¯»å®Œåread_ram_enè¦æ‹‰ä½
+           read_ram_en <= 1'b0;       //¼ÓÁËÕâ¸öÒòÎª±»´ò¶Ïºósend_data_cnt»áÇåÁãÒ»´Î£¬Ö»ÄÜÍ¨¹ıdata_len_supply´ú±íÒ»×éÊı¾İ¶ÁÍê
+     else if (send_data_cnt==(data_len-1)) //¼ÓÁËÕâ¸öÒòÎªÒ»×éÊı¾İ¶ÁÍêºóread_ram_enÒªÀ­µÍ
            read_ram_en <= 1'b0;
-     else if (send_data_cnt==0&&empty==1&&!r_occupy) begin //åŠ äº†è¿™ä¸ªé¿å…ä¸€ç»„æ•°æ®è¯»å®Œåï¼Œsend_data_cnt=0ï¼Œä¸”empty==1ä¸”éæŠ¢å ç»„ æ—¶å†æ¬¡è¯»     
+     else if (send_data_cnt==0&&empty==1&&!r_occupy) begin //¼ÓÁËÕâ¸ö±ÜÃâÒ»×éÊı¾İ¶ÁÍêºó£¬send_data_cnt=0£¬ÇÒempty==1ÇÒ·ÇÇÀÕ¼×é Ê±ÔÙ´Î¶Á     
            read_ram_en <= 1'b0;     
      end    // send_data_cnt<(data_len-1)
-     else if ((empty==0||data_len_supply)&&result_send_apply&&i_emac_send_busy==0&&r_mux_ready) begin    //å½“fifoæœ‰æ•°æ®æˆ–è€…å‘é€çš„æ•°æ®é‡å°äºæ€»é•¿åº¦    
+     else if ((empty == 0 || data_len_supply) && result_send_apply && i_emac_send_busy==0 && r_mux_ready) begin    //µ±fifoÓĞÊı¾İ»òÕß·¢ËÍµÄÊı¾İÁ¿Ğ¡ÓÚ×Ü³¤¶È    
            read_ram_en <= 1'b1;
     end
     else begin
@@ -712,7 +730,7 @@ always @(posedge i_clk) begin
     end
 end
 
-//è¯»fifoä½¿èƒ½ï¼Œè¯»å‡ºæ¥çš„æ•°æ®ä¸ºå½“å‰çš„é•¿åº¦ä¿¡æ¯ï¼Œå½“fifoé‡Œæœ‰æ•°æ®ä¸”æ²¡æœ‰æ²¡æœ‰è¢«æŠ¢å ï¼Œä¸”æ»¡è¶³å¸§é—´éš”æ—¶é—´æ—¶å¯ä»¥å¼€å§‹è¯»æ•°æ®æ³¨æ„æ¯æ¬¡åªèƒ½è¯»å–ä¸€ä¸ªfifoæ•°æ®ã€‚
+//¶ÁfifoÊ¹ÄÜ£¬¶Á³öÀ´µÄÊı¾İÎªµ±Ç°µÄ³¤¶ÈĞÅÏ¢£¬µ±fifoÀïÓĞÊı¾İÇÒÃ»ÓĞÃ»ÓĞ±»ÇÀÕ¼£¬ÇÒÂú×ãÖ¡¼ä¸ôÊ±¼äÊ±¿ÉÒÔ¿ªÊ¼¶ÁÊı¾İ×¢ÒâÃ¿´ÎÖ»ÄÜ¶ÁÈ¡Ò»¸öfifoÊı¾İ¡£
 always @(posedge i_clk) begin
     if (i_rst) begin
         read_fifo_en  <= 1'b0;
@@ -722,8 +740,8 @@ always @(posedge i_clk) begin
     end
     // else if (r_occupy_succ_cnt == TIME_OUT - 1 && r_occupy_succ_flag) begin 
     //     read_fifo_en  <= 1'b1;
-    // end                                                                                                     //åŠ ä¸Šfre_cntä¸ºäº†é˜²æ­¢è¢«æŠ¢å åä¸Šä¸€ç»„æ•°æ®è¿˜æ²¡å‘å®Œå°±å‘ä¸‹ä¸€ç»„
-    else if (empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1) begin//åŠ äº†result_send_apply
+    // end                                                                                                     //¼ÓÉÏfre_cntÎªÁË·ÀÖ¹±»ÇÀÕ¼ºóÉÏÒ»×éÊı¾İ»¹Ã»·¢Íê¾Í·¢ÏÂÒ»×é
+    else if (empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1) begin//¼ÓÁËresult_send_apply
         read_fifo_en  <= 1'b1;
     end
     else begin
@@ -741,16 +759,16 @@ always @(posedge i_clk) begin
 end
 
 
-//send_data_cnt å·²ç»å‘é€çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦(è®¡æ•°å™¨)å½“ramè¯»ä½¿èƒ½æœ‰æ•ˆçš„æ—¶å€™å¼€å§‹è‡ªåŠ ï¼Œå½“åŠ åˆ°æœ€å¤§é•¿åº¦æ˜¯å½’é›¶ï¼Œæˆ–è€…åŠ åˆ°è¢«æŠ¢å æ—¶ä¹Ÿå½’é›¶ã€‚
+//send_data_cnt ÒÑ¾­·¢ËÍµÄÒ»×éÊı¾İµÄ³¤¶È(¼ÆÊıÆ÷)µ±ram¶ÁÊ¹ÄÜÓĞĞ§µÄÊ±ºò¿ªÊ¼×Ô¼Ó£¬µ±¼Óµ½×î´ó³¤¶ÈÊÇ¹éÁã£¬»òÕß¼Óµ½±»ÇÀÕ¼Ê±Ò²¹éÁã¡£
 
 always @(posedge i_clk) begin
     if (i_rst) begin
        send_data_cnt  <= 10'b0;
     end
-    else if (occupy_succ&&r_occupy_succ== 0 || r_pmac_timeout_flag) begin  //è‹¥å¼ºå æˆåŠŸï¼Œsend_data_cntå°±æ¸…é›¶æ˜¯ä¸æ˜¯data_lenä¹Ÿè¦æ¢ä¸€ä¸‹ï¼Œè¦ä¸ç„¶æ€ä¹ˆçŸ¥é“å‰©ä½™çš„æ•°æ®å‘é€å®Œæ¯•
+    else if (occupy_succ&&r_occupy_succ== 0 || r_pmac_timeout_flag) begin  //ÈôÇ¿Õ¼³É¹¦£¬send_data_cnt¾ÍÇåÁãÊÇ²»ÊÇdata_lenÒ²Òª»»Ò»ÏÂ£¬Òª²»È»ÔõÃ´ÖªµÀÊ£ÓàµÄÊı¾İ·¢ËÍÍê±Ï
         send_data_cnt <= 1'b0;
     end
-    //else if (read_ram_en&&data_len_supply== 0) begin //data_len_supplyèµ‹å€¼å»¶è¿Ÿread_ram_enä¸€æ‹ï¼Œå½“data_len_supply=0æ—¶ï¼Œread_ram_enç­‰äº0ï¼Œæ‰€ä»¥è¿™ä¸ªæ¡ä»¶æ— æ³•æ»¡è¶³
+    //else if (read_ram_en&&data_len_supply== 0) begin //data_len_supply¸³ÖµÑÓ³Ùread_ram_enÒ»ÅÄ£¬µ±data_len_supply=0Ê±£¬read_ram_enµÈÓÚ0£¬ËùÒÔÕâ¸öÌõ¼şÎŞ·¨Âú×ã
     else if (r_read_ram_en&&data_len_supply== 0) begin 
         send_data_cnt <= 1'b0;
     end
@@ -773,12 +791,12 @@ end
 
         /***************************
 
-            SMDç­‰ç¼–ç çš„ç”Ÿæˆ
+            SMDµÈ±àÂëµÄÉú³É
 
         ***************************/
 
 
-//smd_s_cnt æ¯å½“data_len_supplyä¸º1æ—¶åŠ ä¸€ï¼Œå½“åŠ åˆ°3æ—¶æ¸…é›¶ã€‚æ—¢æ¯å½“ä¸€ç»„æ•°æ®å‘é€å®Œæˆæ—¶åŠ ä¸€
+//smd_s_cnt Ã¿µ±data_len_supplyÎª1Ê±¼ÓÒ»£¬µ±¼Óµ½3Ê±ÇåÁã¡£¼ÈÃ¿µ±Ò»×éÊı¾İ·¢ËÍÍê³ÉÊ±¼ÓÒ»
 always @(posedge i_clk) begin
     if (i_rst) begin
        smd_s_cnt  <= 'b0;
@@ -795,7 +813,7 @@ always @(posedge i_clk) begin
 end
 
 
-//smdç¼–ç ï¼šå½“è®¡æ•°å™¨ä¸º0123å¾—æŸä¸€ä¸ªæ•°æ—¶å¯¹åº”ä¸ºS0S1S2S3,åŒæ—¶åˆ¤æ–­æœ‰æ²¡æœ‰è¢«æŠ¢å ï¼Œè‹¥æ˜¯è¢«æŠ¢å äº†å°±æ˜¯å¯¹åº”çš„Cäº†ã€‚
+//smd±àÂë£ºµ±¼ÆÊıÆ÷Îª0123µÃÄ³Ò»¸öÊıÊ±¶ÔÓ¦ÎªS0S1S2S3,Í¬Ê±ÅĞ¶ÏÓĞÃ»ÓĞ±»ÇÀÕ¼£¬ÈôÊÇ±»ÇÀÕ¼ÁË¾ÍÊÇ¶ÔÓ¦µÄCÁË¡£
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_smd <= 'b0;
@@ -834,15 +852,15 @@ always @(posedge i_clk) begin
 end
 
 
-//fre_cnt å½“æ¯æ¬¡è¢«æ‰“æ–­æ—¶åŠ ä¸€æœ€å¤§åŠ åˆ°5ï¼Œç¬¬ä¸€è¢«æ‰“æ–­æ•°å€¼å˜ä¸º1æ­¤æ—¶æ²¡æœ‰å¸§è®¡æ•°å™¨ï¼Œç¬¬äºŒæ¬¡è¢«æ‰“æ–­æ•°å€¼å˜ä¸º2æ­¤æ—¶å¸§è®¡æ•°å™¨ä¸º0    
-//ç¬¬ä¸‰æ¬¡æ‰“æ–­æ•°å€¼ä¸º3ï¼Œå¸§è®¡æ•°å™¨ä¸º1ï¼›ç¬¬å››æ¬¡æ‰“æ–­æ•°å€¼ä¸º4ï¼Œå¸§è®¡æ•°å™¨ä¸º2ï¼›ç¬¬äº”æ¬¡æ‰“æ–­æ•°å€¼ä¸º5ï¼Œå¸§è®¡æ•°å™¨ä¸º3ï¼›
-//ç¬¬å…­æ¬¡æ‰“æ–­æ­¤æ—¶å¸§è®¡æ•°å™¨åº”ä¸º0ï¼Œå› æ­¤ä½¿å¾—fre_cntæ•°å€¼ä¸º2ï¼›
-//æ¯å½“è¯»ä¸€æ¬¡fifoæ—¶è¡¨æ˜æ–°çš„ä¸€ç»„æ•°æ®æ¥äº†ï¼Œå°±ä¼šé‡æ–°å¼€å§‹ä¸€æ¬¡è®¡æ•°ç»™fre_cntç½®é›¶ã€‚
+//fre_cnt µ±Ã¿´Î±»´ò¶ÏÊ±¼ÓÒ»×î´ó¼Óµ½5£¬µÚÒ»±»´ò¶ÏÊıÖµ±äÎª1´ËÊ±Ã»ÓĞÖ¡¼ÆÊıÆ÷£¬µÚ¶ş´Î±»´ò¶ÏÊıÖµ±äÎª2´ËÊ±Ö¡¼ÆÊıÆ÷Îª0    
+//µÚÈı´Î´ò¶ÏÊıÖµÎª3£¬Ö¡¼ÆÊıÆ÷Îª1£»µÚËÄ´Î´ò¶ÏÊıÖµÎª4£¬Ö¡¼ÆÊıÆ÷Îª2£»µÚÎå´Î´ò¶ÏÊıÖµÎª5£¬Ö¡¼ÆÊıÆ÷Îª3£»
+//µÚÁù´Î´ò¶Ï´ËÊ±Ö¡¼ÆÊıÆ÷Ó¦Îª0£¬Òò´ËÊ¹µÃfre_cntÊıÖµÎª2£»
+//Ã¿µ±¶ÁÒ»´ÎfifoÊ±±íÃ÷ĞÂµÄÒ»×éÊı¾İÀ´ÁË£¬¾Í»áÖØĞÂ¿ªÊ¼Ò»´Î¼ÆÊı¸øfre_cntÖÃÁã¡£
 always @(posedge i_clk) begin
     if (i_rst) begin
         fre_cnt <= 'b0;
     end
-  // else if (read_fifo_en) begin   //ä¿®æ”¹åŸå› ï¼šread_fifo_en=1æ—¶æ‰æ¸…é›¶ï¼Œä¼šå¯¼è‡´ä¸Šä¸€ç»„æ•°æ®çš„fre_cntå»¶ç»­åˆ°ä¸‹ä¸€ç»„æ•°æ®å‘é€è¿‡ç¨‹ï¼Œä»è€Œå¯¼è‡´smdå‡ºé”™
+  // else if (read_fifo_en) begin   //ĞŞ¸ÄÔ­Òò£ºread_fifo_en=1Ê±²ÅÇåÁã£¬»áµ¼ÖÂÉÏÒ»×éÊı¾İµÄfre_cntÑÓĞøµ½ÏÂÒ»×éÊı¾İ·¢ËÍ¹ı³Ì£¬´Ó¶øµ¼ÖÂsmd³ö´í
     else if (r_pmac_timeout_flag) begin     
         fre_cnt <= 'b0;
     end
@@ -851,11 +869,11 @@ always @(posedge i_clk) begin
     end
     
   //  else if (occupy_succ && r_occupy_succ&&fre_cnt==5) begin
-    else if (occupy_succ && r_occupy_succ==0&&fre_cnt==4) begin //ä¿®æ”¹äº†æœ‰æ˜æ˜¾é”™è¯¯
+    else if (occupy_succ && r_occupy_succ==0&&fre_cnt==4) begin //ĞŞ¸ÄÁËÓĞÃ÷ÏÔ´íÎó
         fre_cnt <= 'd1;
     end
    // else if (occupy_succ && r_occupy_succ) begin
-    else if (occupy_succ && r_occupy_succ==0) begin //ä¿®æ”¹äº†æœ‰æ˜æ˜¾é”™è¯¯
+    else if (occupy_succ && r_occupy_succ==0) begin //ĞŞ¸ÄÁËÓĞÃ÷ÏÔ´íÎó
         fre_cnt <= fre_cnt + 1'b1;
     end
     else begin
@@ -863,31 +881,50 @@ always @(posedge i_clk) begin
     end
 end
 
-//åŒä¸Š
-
+//Í¬ÉÏ
+// r_fra ¸³Öµ
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_fra <= 'b0;
-        r_frag_next_tx <= FRA_0;
     end
     else if (fre_cnt==1) begin
         r_fra <= FRA_0;
-        r_frag_next_tx <= FRA_1;
     end
     else if (fre_cnt==2) begin
         r_fra <= FRA_1;
-        r_frag_next_tx <= FRA_2;
     end
     else if (fre_cnt==3) begin
         r_fra <= FRA_2;
-        r_frag_next_tx <= FRA_3;
     end
     else if (fre_cnt==4) begin
         r_fra <= FRA_3;
+    end
+    else begin
+        r_fra <= r_fra;
+    end
+end
+
+// r_frag_next_tx ¸³Öµ
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        r_frag_next_tx <= FRA_0;
+    end
+    else if(data_len_supply==1 ) begin
+        r_frag_next_tx <= FRA_0;
+    end
+    else if (fre_cnt==1 & read_ram_en) begin
+        r_frag_next_tx <= FRA_1;
+    end
+    else if (fre_cnt==2 & read_ram_en) begin
+        r_frag_next_tx <= FRA_2;
+    end
+    else if (fre_cnt==3 & read_ram_en) begin
+        r_frag_next_tx <= FRA_3;
+    end
+    else if (fre_cnt==4 & read_ram_en) begin
         r_frag_next_tx <= FRA_0;
     end
     else begin
-        r_fra<=r_fra;
         r_frag_next_tx <= r_frag_next_tx;
     end
 end
@@ -899,7 +936,7 @@ end
 //        r_fra_vld <= 'b0;
 //    end
 //  //  else if (occupy_succ && r_occupy_succ) begin
-//    else if (occupy_succ && r_occupy_succ==0) begin //ä¿®æ”¹ 
+//    else if (occupy_succ && r_occupy_succ==0) begin //ĞŞ¸Ä 
 //        r_fra_vld <= 'b1;
 //    end
 //    else begin
@@ -907,7 +944,7 @@ end
 //       r_fra_vld <= r_fra_vld;
 //    end
 //end
-//æ·»åŠ äº†è¿™ä¸ªåˆ¤æ–­
+//Ìí¼ÓÁËÕâ¸öÅĞ¶Ï
 always @(posedge i_clk) begin
     if (i_rst) begin
         o_fra_vld <= 'b0;
@@ -915,8 +952,8 @@ always @(posedge i_clk) begin
     else if(r_pmac_timeout_flag) begin
         o_fra_vld <= 'b0;
     end
-    //else if (occupy_succ && r_occupy_succ==0) begin //ä¿®æ”¹
-    else if (r_occupy && read_ram_en && !r_read_ram_en) begin //ä¿®æ”¹ï¼Œå¼€å§‹è¯»fifoï¼Œä¸”æ˜¯å¼ºå çš„ç»„
+    //else if (occupy_succ && r_occupy_succ==0) begin //ĞŞ¸Ä
+    else if (r_occupy && read_ram_en && !r_read_ram_en) begin //ĞŞ¸Ä£¬¿ªÊ¼¶Áfifo£¬ÇÒÊÇÇ¿Õ¼µÄ×é
         o_fra_vld <= 'b1;
     end
     else begin
@@ -924,7 +961,7 @@ always @(posedge i_clk) begin
     end
 end
 
-////ç¬¬ä¸€æ¬¡ç”¨write_fifo_en_flagåˆ¤æ–­å‰©ä¸‹çš„ç”¨data_len_supplyåˆ¤æ–­  ï¼Œä¸æ˜¯å’Œè¾“å‡ºçš„ç¬¬ä¸€ä¸ªæ•°æ®å¯¹é½äº†å—ï¼Ÿä¸ºä»€ä¹ˆä¸æ£€æµ‹fifo_en=1
+////µÚÒ»´ÎÓÃwrite_fifo_en_flagÅĞ¶ÏÊ£ÏÂµÄÓÃdata_len_supplyÅĞ¶Ï  £¬²»ÊÇºÍÊä³öµÄµÚÒ»¸öÊı¾İ¶ÔÆëÁËÂğ£¿ÎªÊ²Ã´²»¼ì²âfifo_en=1
 //always @(posedge i_clk) begin
 //    if (i_rst) begin
 //         o_smd_vld <= 'b0;
@@ -937,7 +974,7 @@ end
 //    end
 //end
 
-//r_occupyå½“æŠ¢å æˆåŠŸäº†å°±ä¼šæ‹‰é«˜ï¼Œç›´åˆ°ä¸‹æ¬¡è¯»å–æ–°çš„ä¸€ç»„æ•°æ®æ‹‰ä½
+//r_occupyµ±ÇÀÕ¼³É¹¦ÁË¾Í»áÀ­¸ß£¬Ö±µ½ÏÂ´Î¶ÁÈ¡ĞÂµÄÒ»×éÊı¾İÀ­µÍ
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_occupy <= 'b0;
@@ -948,7 +985,7 @@ always @(posedge i_clk) begin
     else if (occupy_succ) begin
         r_occupy <= 'b1;
     end
-   //else if (read_fifo_en) begin  //ä¿®æ”¹åŸå› ï¼šr_occupyæŒç»­åˆ°ä¸‹ä¸€æ¬¡å‘é€æ•°æ®ï¼Œå¯èƒ½ä¼šæœ‰bug
+   //else if (read_fifo_en) begin  //ĞŞ¸ÄÔ­Òò£ºr_occupy³ÖĞøµ½ÏÂÒ»´Î·¢ËÍÊı¾İ£¬¿ÉÄÜ»áÓĞbug
      else if (data_len_supply==1) begin
         r_occupy <= 'b0;
     end
@@ -958,12 +995,12 @@ always @(posedge i_clk) begin
 end
 
 
-//r_last_fragæœ€åä¸€å¸§æ•°æ®æ ‡å¿—ï¼Œè‹¥å‰©ä½™çš„æ•°æ®uå°äº64äº†è‚¯å®šå°±æ˜¯æœ€åä¸€å¸§çš„æ•°æ®äº†ï¼Œç›´åˆ°ä¸‹æ¬¡è¯»å–æ–°çš„ä¸€ç»„æ•°æ®æ‹‰ä½ã€‚ ä¸ºä»€ä¹ˆè¿™é‡Œå†™çš„60
+//r_last_frag×îºóÒ»Ö¡Êı¾İ±êÖ¾£¬ÈôÊ£ÓàµÄÊı¾İuĞ¡ÓÚ64ÁË¿Ï¶¨¾ÍÊÇ×îºóÒ»Ö¡µÄÊı¾İÁË£¬Ö±µ½ÏÂ´Î¶ÁÈ¡ĞÂµÄÒ»×éÊı¾İÀ­µÍ¡£ ÎªÊ²Ã´ÕâÀïĞ´µÄ60
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_last_frag <= 'b0;
     end
-    else if (data_len_supply==0) begin //é¿å…å½±å“ä¸‹ä¸€æ¬¡ ï¼Œä¸ä¸‹é¢çš„æ¢äº†ä¸ªé¡ºåº
+    else if (data_len_supply==0) begin //±ÜÃâÓ°ÏìÏÂÒ»´Î £¬ÓëÏÂÃæµÄ»»ÁË¸öË³Ğò
         r_last_frag <= 'b0;
     end
     else if (read_ram_en && data_len_supply < ri_min_frag_size) begin

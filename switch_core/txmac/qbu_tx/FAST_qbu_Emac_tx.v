@@ -16,10 +16,10 @@
 // Revision 0.01 - File Created
 // Additional Comments:
 // 
-//BUG Posible ï¼š1.è€ƒè™‘ä¸Šå±‚æ•°æ®è¿‡æ¥æ˜¯å¦å­˜åœ¨é—´éš”ï¼Œè‹¥ä¸å­˜é—´éš”fifoå­˜ä¿¡æ¯å¯èƒ½ä¼šæœ‰bugï¼›
-//Emacæ¥æ”¶åˆ°æ•°æ®å°±ç›´æ¥å­˜åœ¨ramä¸­ï¼ŒåŒæ—¶ä¿¡æ¯å­˜åœ¨fifoä¸­ï¼Œå½“æ£€æµ‹åˆ°FIFOä¸­æœ‰æ•°æ®åï¼Œemacæ‹‰é«˜å¿™ä¿¡å·ï¼ŒåŒæ—¶emacæ£€æµ‹pmacæ˜¯å¦åœ¨å‘æ•°æ®ï¼Œ
-//è‹¥æ²¡æœ‰å‘é€ï¼Œåˆ™æ£€æµ‹ç»„å¸§æ¨¡å—èƒ½å¦å‘é€æ•°æ®ï¼Œè‹¥å¯ä»¥å‘ï¼Œåˆ™ç›´æ¥å‘é€æ•°æ®ï¼Œè‹¥ä¸èƒ½å‘ç­‰å¾…ï¼Œ
-//Emac ramå­˜å‚¨çš„æœ€å¤§æ•°æ®é‡ä¸pmacä¸€æ ·ã€‚
+//BUG Posible £º1.¿¼ÂÇÉÏ²ãÊı¾İ¹ıÀ´ÊÇ·ñ´æÔÚ¼ä¸ô£¬Èô²»´æ¼ä¸ôfifo´æĞÅÏ¢¿ÉÄÜ»áÓĞbug£»
+//Emac½ÓÊÕµ½Êı¾İ¾ÍÖ±½Ó´æÔÚramÖĞ£¬Í¬Ê±ĞÅÏ¢´æÔÚfifoÖĞ£¬µ±¼ì²âµ½FIFOÖĞÓĞÊı¾İºó£¬emacÀ­¸ßÃ¦ĞÅºÅ£¬Í¬Ê±emac¼ì²âpmacÊÇ·ñÔÚ·¢Êı¾İ£¬
+//ÈôÃ»ÓĞ·¢ËÍ£¬Ôò¼ì²â×éÖ¡Ä£¿éÄÜ·ñ·¢ËÍÊı¾İ£¬Èô¿ÉÒÔ·¢£¬ÔòÖ±½Ó·¢ËÍÊı¾İ£¬Èô²»ÄÜ·¢µÈ´ı£¬
+//Emac ram´æ´¢µÄ×î´óÊı¾İÁ¿ÓëpmacÒ»Ñù¡£
 //////////////////////////////////////////////////////////////////////////////////
 
 module FAST_qbu_Emac_tx#(
@@ -29,27 +29,27 @@ module FAST_qbu_Emac_tx#(
     input           wire                                i_rst                       ,
     // TOP2PMAC
     input           wire    [AXIS_DATA_WIDTH - 1:0]     i_top_Emac_tx_axis_data     ,
-    input           wire    [15:0]                      i_top_Emac_tx_axis_user     , //userï¼šæ•°æ®é•¿åº¦ä¿¡æ¯
-    input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_top_Emac_tx_axis_keep     , //keepæ•°æ®æ©ç 
+    input           wire    [15:0]                      i_top_Emac_tx_axis_user     , //user£ºÊı¾İ³¤¶ÈĞÅÏ¢
+    input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_top_Emac_tx_axis_keep     , //keepÊı¾İÑÚÂë
     input           wire                                i_top_Emac_tx_axis_last     ,
     input           wire                                i_top_Emac_tx_axis_valid    ,
-    input           wire    [15:0]                      i_top_Emac_tx_axis_type     ,   //typeæ•°æ®ç±»å‹
-    output          wire                                o_top_Emac_tx_axis_ready    ,//å½“æ£€æµ‹åˆ°æœ‰æ•ˆæ•°æ®å¤§äº1500æ—¶ä¼šæ‹‰ä½ï¼Œä½†æ˜¯å¦‚æœæœ‰æ•°æ®è¿›æ¥ä¾ç„¶å¯ä»¥å­˜å‚¨
+    input           wire    [15:0]                      i_top_Emac_tx_axis_type     ,   //typeÊı¾İÀàĞÍ
+    output          wire                                o_top_Emac_tx_axis_ready    ,//µ±¼ì²âµ½ÓĞĞ§Êı¾İ´óÓÚ1500Ê±»áÀ­µÍ£¬µ«ÊÇÈç¹ûÓĞÊı¾İ½øÀ´ÒÀÈ»¿ÉÒÔ´æ´¢
     //PMAC2EMAC
-    input           wire                                i_pmac_send_busy            ,//pamcå¿™ä¿¡å·ï¼Œè¡¨ç¤ºPmacæ­£åœ¨å‘æ•°æ®
-    input           wire                                i_pmac_send_apply           ,//Pmacæ•°æ®å‘é€ç”³è¯·
-    output          wire                                o_emac_send_busy            ,//eamcå¿™ä¿¡å·ï¼Œè¡¨ç¤ºemacæ­£åœ¨å‘æ•°æ®
-    output 		    wire 								o_emac_send_apply           ,//emacæ•°æ®å‘é€ç”³è¯·
+    input           wire                                i_pmac_send_busy            ,//pamcÃ¦ĞÅºÅ£¬±íÊ¾PmacÕıÔÚ·¢Êı¾İ
+    input           wire                                i_pmac_send_apply           ,//PmacÊı¾İ·¢ËÍÉêÇë
+    output          wire                                o_emac_send_busy            ,//eamcÃ¦ĞÅºÅ£¬±íÊ¾emacÕıÔÚ·¢Êı¾İ
+    output 		    wire 								o_emac_send_apply           ,//emacÊı¾İ·¢ËÍÉêÇë
     //PMAC2NEXT
-    input   				         					i_rx_ready                  ,//ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†ä¿¡å·
-    output  				[15:0]   					o_send_type                 ,//åè®®ç±»å‹ï¼ˆå‚ç…§macå¸§æ ¼å¼ï¼‰
-    output  				[AXIS_DATA_WIDTH-1 :0]   	o_send_data                 ,//æ•°æ®ä¿¡å·
-    output  		wire	         					o_send_last                 ,//æœ€åä¸€ä¸ªæ•°æ®ä¿¡å·
-    output  				         					o_send_valid                ,//æ•°æ®æœ‰æ•ˆä¿¡å·
-    output          reg     [15:0]                      o_send_len     = 'd0        ,//æ•°æ®é•¿åº¦
+    input   				         					i_rx_ready                  ,//×éÖ¡Ä£¿é×¼±¸ºÃÁËĞÅºÅ
+    output  				[15:0]   					o_send_type                 ,//Ğ­ÒéÀàĞÍ£¨²ÎÕÕmacÖ¡¸ñÊ½£©
+    output  				[AXIS_DATA_WIDTH-1 :0]   	o_send_data                 ,//Êı¾İĞÅºÅ
+    output  		wire	         					o_send_last                 ,//×îºóÒ»¸öÊı¾İĞÅºÅ
+    output  				         					o_send_valid                ,//Êı¾İÓĞĞ§ĞÅºÅ
+    output          reg     [15:0]                      o_send_len     = 'd0        ,//Êı¾İ³¤¶È
     //PMAC2NEXT_type
     output          wire                                o_smd_val                   ,
-    output 	 		wire 	[7:0]						o_smd                        //SMDç¼–ç  
+    output 	 		wire 	[7:0]						o_smd                        //SMD±àÂë 
     // input                                               i_occupy_succ
 
 );
@@ -59,22 +59,22 @@ module FAST_qbu_Emac_tx#(
 /***************parameter*************/
 //(*mark_debug="true"*)
 
-//ramå®šä¹‰å‚æ•°
+//ram¶¨Òå²ÎÊı
 localparam           RAM_DEPTH          = 'd2048                                ;//4096
 localparam           RAM_PERFORMANCE    = "LOW_LATENCY"                         ;
 localparam           INIT_FILE          = ""                                    ; 
 
 
-//fifoå‚æ•°
-localparam           DATAWIDTH = 'd32                                           ;//å†™ä½å®½
-localparam           DEPT_W = 'd32                                              ;//å†™æ·±åº¦
-localparam           AL_FUL =  DEPT_W - 10                                      ;//æ»¡ä¿¡å·
-localparam           AL_EMP =  10                                               ;  //ç©ºä¿¡å·    
+//fifo²ÎÊı
+localparam           DATAWIDTH = 'd32                                           ;//Ğ´Î»¿í
+localparam           DEPT_W = 'd32                                              ;//Ğ´Éî¶È
+localparam           AL_FUL =  DEPT_W - 10                                      ;//ÂúĞÅºÅ
+localparam           AL_EMP =  10                                               ;  //¿ÕĞÅºÅ    
 localparam           READ_MODE = "fwft"                                         ;
 localparam           FIFO_READ_LATENCY = 'd0                                    ; 
 
 
-//ç¼–å·
+//±àºÅ
 localparam			 SMD_E 	=		8'hD5                                       ;
 
 
@@ -87,17 +87,17 @@ localparam			 SMD_E 	=		8'hD5                                       ;
 reg    										ri_top_Emac_tx_axis_valid           ;
 
 //ram
-reg     [11:0]  							write_ram_addr                      ;//12ä½
-reg     [11:0]  							read_ram_addr                       ;//12ä½
+reg     [11:0]  							write_ram_addr                      ;//12Î»
+reg     [11:0]  							read_ram_addr                       ;//12Î»
 wire    [AXIS_DATA_WIDTH - 1:0] 			write_ram_data                      ;
 wire    [AXIS_DATA_WIDTH - 1:0] 			read_ram_data                       ;
 wire    									write_ram_en                        ;
 reg     									read_ram_en                         ;
 reg     									r_read_ram_en                       ;
-reg     [15:0]  							ram_data_suppy                      ;//ramå‰©ä½™çš„æœ‰æ•ˆæ•°æ®
+reg     [15:0]  							ram_data_suppy                      ;//ramÊ£ÓàµÄÓĞĞ§Êı¾İ
 wire    									o_send_last_q                       ;
 reg     									r_o_send_last                       ;
-//smdæ•°å€¼
+//smdÊıÖµ
 reg 	[7:0] 								r_o_smd                             ;
 reg     									r_o_smd_val                         ;
 reg     [10:0] 								data_len_supply                     ;
@@ -113,8 +113,8 @@ wire    									write_fifo_en                       ;
 wire  [31:0]  								read_fifo_data                      ;
 reg     									read_fifo_en                        ;
 wire    									empty                               ;
-reg     									write_fifo_en_flag                  ;//ç¬¬ä¸€æ¬¡å†™FIFOåè¯¥æ ‡å¿—ä¸€ç›´æ‹‰é«˜
-reg     									last_flag                           ;//æ¥æ”¶åˆ°æœ€åä¸€ä¸ªæ•°æ®æ ‡å¿—
+reg     									write_fifo_en_flag                  ;//µÚÒ»´ÎĞ´FIFOºó¸Ã±êÖ¾Ò»Ö±À­¸ß
+reg     									last_flag                           ;//½ÓÊÕµ½×îºóÒ»¸öÊı¾İ±êÖ¾
 
 
 /***************component*************/
@@ -136,23 +136,40 @@ ram_simple2port #(
     .doutb            (read_ram_data  )      // RAM output data
 );
     
-async_fifo_fwft #(
-    .C_WIDTH          (DATAWIDTH      ),
-    .C_DEPTH          (DEPT_W         )
-) u_async_fifo_fwft (
-    .RD_CLK           (i_clk          ),
-    .RD_RST           (i_rst          ),
-    .WR_CLK           (i_clk          ),
-    .WR_RST           (i_rst          ),
-    .WR_DATA          (write_fifo_data),
-    .WR_EN            (write_fifo_en  ),
-    .RD_DATA          (read_fifo_data ),
-    .RD_EN            (read_fifo_en   ),
-    .WR_FULL          (               ),
-    .RD_EMPTY         (empty          )
+// async_fifo_fwft #(
+//     .C_WIDTH          (DATAWIDTH      ),
+//     .C_DEPTH          (DEPT_W         )
+// ) u_async_fifo_fwft (
+//     .RD_CLK           (i_clk          ),
+//     .RD_RST           (i_rst          ),
+//     .WR_CLK           (i_clk          ),
+//     .WR_RST           (i_rst          ),
+//     .WR_DATA          (write_fifo_data),
+//     .WR_EN            (write_fifo_en  ),
+//     .RD_DATA          (read_fifo_data ),
+//     .RD_EN            (read_fifo_en   ),
+//     .WR_FULL          (               ),
+//     .RD_EMPTY         (empty          )
+// );
+sync_fifo #(
+    .DEPTH                  (DEPT_W                ),
+    .WIDTH                  (DATAWIDTH             ),
+    .ALMOST_FULL_THRESHOLD  (0                     ),
+    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .FLOP_DATA_OUT          (1                     ) // 1Îªfwft£¬0Îªstandard
+) inst_sync_fifo (
+    .CLK                    (i_clk                 ),
+    .RST                    (i_rst                 ),
+    .WR_EN                  (write_fifo_en         ),
+    .DIN                    (write_fifo_data       ),
+    .RD_EN                  (read_fifo_en          ),
+    .DOUT                   (read_fifo_data        ),
+    .FULL                   (                      ),
+    .EMPTY                  (empty                 ),
+    .ALMOST_FULL            (                      ),
+    .ALMOST_EMPTY           (                      ),
+    .DATA_CNT               (                      )
 );
-
-
 
     // my_xpm_fifo_sync #(
     //         .DATAWIDTH(DATAWIDTH),
@@ -184,32 +201,32 @@ async_fifo_fwft #(
 
 assign write_ram_en     = i_top_Emac_tx_axis_valid  ;
 assign write_ram_data   = i_top_Emac_tx_axis_data   ;
-assign write_fifo_en    = i_top_Emac_tx_axis_valid && ri_top_Emac_tx_axis_valid==0 && (write_fifo_en_flag==0||last_flag==1);   //è€ƒè™‘ä¸Šå±‚æ•°æ®è¿‡æ¥æ˜¯å¦å­˜åœ¨é—´éš”ï¼Œè‹¥ä¸å­˜åœ¨æ­¤å¤„å¤„åœ¨bug
-assign write_fifo_data  = {i_top_Emac_tx_axis_user,i_top_Emac_tx_axis_type}   ; 	//é•¿åº¦ä¿¡æ¯ä¸åè®®ç±»å‹ä¿¡æ¯
+assign write_fifo_en    = i_top_Emac_tx_axis_valid && ri_top_Emac_tx_axis_valid==0 && (write_fifo_en_flag==0||last_flag==1);   //¿¼ÂÇÉÏ²ãÊı¾İ¹ıÀ´ÊÇ·ñ´æÔÚ¼ä¸ô£¬Èô²»´æÔÚ´Ë´¦´¦ÔÚbug
+assign write_fifo_data  = {i_top_Emac_tx_axis_user,i_top_Emac_tx_axis_type}   ; 	//³¤¶ÈĞÅÏ¢ÓëĞ­ÒéÀàĞÍĞÅÏ¢
 
-//æ–°å¢r_mux_readyï¼Œå½“ç»„å¸§æ¨¡å—ç©ºé—²æ—¶æˆ–è€…emacæ­£åœ¨å‘é€æ•°æ®å°±æ˜¯æ‹‰é«˜ï¼Œç”¨æ­¤ä¿¡å·æŒ‡ç¤ºèƒ½ä¸èƒ½å‘ä¸‹å±‚ä¼ é€’æ•°æ®
+//ĞÂÔör_mux_ready£¬µ±×éÖ¡Ä£¿é¿ÕÏĞÊ±»òÕßemacÕıÔÚ·¢ËÍÊı¾İ¾ÍÊÇÀ­¸ß£¬ÓÃ´ËĞÅºÅÖ¸Ê¾ÄÜ²»ÄÜÏòÏÂ²ã´«µİÊı¾İ
 assign r_mux_ready = i_rx_ready || read_ram_en;
 
 
-//è¾“å‡º//å‰©ä½™æ²¡æœ‰å‘çš„æ•°æ®çš„æ•°é‡
-//assign data_len_supply = read_fifo_en ? data_len : (read_ram_en ? data_len_supply-1 : data_len_supply); //åµŒå¥—çš„å¤ªå¤šï¼Œæ”¹æˆæ—¶åºé€»è¾‘äº†
-assign o_top_Emac_tx_axis_ready 	=ram_data_suppy<=1500 	     	    ;  //ramæ²¡æœ‰è¾¾åˆ°æœ€å¤§çš„é‡æ‰€ä»¥å¯ä»¥æ¥æ”¶
-//assign o_top_Emac_tx_axis_ready 	=write_ram_addr<=4095 	   ;//æ”¹æˆäº†åœ°å€æ²¡æœ‰è¾¾åˆ°æœ€å¤§çš„é‡æ‰€ä»¥å¯ä»¥æ¥æ”¶
+//Êä³ö//Ê£ÓàÃ»ÓĞ·¢µÄÊı¾İµÄÊıÁ¿
+//assign data_len_supply = read_fifo_en ? data_len : (read_ram_en ? data_len_supply-1 : data_len_supply); //Ç¶Ì×µÄÌ«¶à£¬¸Ä³ÉÊ±ĞòÂß¼­ÁË
+assign o_top_Emac_tx_axis_ready 	=ram_data_suppy<=1500 	     	    ;  //ramÃ»ÓĞ´ïµ½×î´óµÄÁ¿ËùÒÔ¿ÉÒÔ½ÓÊÕ
+//assign o_top_Emac_tx_axis_ready 	=write_ram_addr<=4095 	   ;//¸Ä³ÉÁËµØÖ·Ã»ÓĞ´ïµ½×î´óµÄÁ¿ËùÒÔ¿ÉÒÔ½ÓÊÕ
 assign o_send_type   				= read_fifo_data[15:0]			 	;
 assign o_send_data   				= read_ram_data					 	;
 assign o_send_last_q   				= data_len_supply==1                ;    
 assign o_send_valid  				= r_read_ram_en					 	;
 assign o_emac_send_busy             = read_ram_en                       ;
-//è‹¥æ•°æ®æ­£åœ¨å‘åˆ™ä¸ç”³è¯·å‘é€ï¼Œå½“fifoä¸­æœ‰æ•°æ®ä¸”pmacæ­£åœ¨å‘é€æ—¶ç”³è¯·å‘é€
+//ÈôÊı¾İÕıÔÚ·¢Ôò²»ÉêÇë·¢ËÍ£¬µ±fifoÖĞÓĞÊı¾İÇÒpmacÕıÔÚ·¢ËÍÊ±ÉêÇë·¢ËÍ
 assign o_emac_send_apply = read_ram_en ? 1'b0 : empty==0&&i_pmac_send_busy==1;		
-//data_len æ€»çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦ï¼Œä»fifoä¸­éƒ½å‡ºæ¥åä¿å­˜åœ¨å¯„å­˜å™¨ä¸­ã€‚
+//data_len ×ÜµÄÒ»×éÊı¾İµÄ³¤¶È£¬´ÓfifoÖĞ¶¼³öÀ´ºó±£´æÔÚ¼Ä´æÆ÷ÖĞ¡£
 //assign data_len = read_fifo_en ? (read_fifo_data[31:16]) : data_len;
 assign o_send_last                  =r_o_send_last                      ;
 assign o_smd                        =r_o_smd                            ;
 assign o_smd_val                    =r_o_smd_val                        ;
 /***************always****************/
 
-        //æ›´æ”¹ç‚¹ç”±äºå­˜åœ¨ç»„åˆé€»è¾‘å¾ªç¯å› æ­¤æ”¹æˆregç±»å‹//
+        //¸ü¸ÄµãÓÉÓÚ´æÔÚ×éºÏÂß¼­Ñ­»·Òò´Ë¸Ä³ÉregÀàĞÍ//
 //assign o_send_len = read_fifo_en ? read_fifo_data[31:16]  : o_send_len ;
 
 always @(posedge i_clk or posedge i_rst) begin
@@ -224,7 +241,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//data_len æ€»çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦ï¼Œä»fifoä¸­éƒ½å‡ºæ¥åä¿å­˜åœ¨å¯„å­˜å™¨ä¸­ã€‚
+//data_len ×ÜµÄÒ»×éÊı¾İµÄ³¤¶È£¬´ÓfifoÖĞ¶¼³öÀ´ºó±£´æÔÚ¼Ä´æÆ÷ÖĞ¡£
 //assign data_len = read_fifo_en ? (read_fifo_data[31:16]) : data_len;
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
@@ -239,7 +256,7 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//SMDç¼–ç æ˜¯å›ºå®šçš„
+//SMD±àÂëÊÇ¹Ì¶¨µÄ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_o_smd <= 'b0;
@@ -270,7 +287,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_o_send_last <= o_send_last_q;
     end
 end
-//data_len_supplyå‰©ä½™æ²¡æœ‰å‘çš„æ•°æ®çš„æ•°é‡
+//data_len_supplyÊ£ÓàÃ»ÓĞ·¢µÄÊı¾İµÄÊıÁ¿
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         data_len_supply <= 'b0;
@@ -295,7 +312,7 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//ram_data_suppy,ramä¸­å‰©ä½™çš„æœ‰æ•ˆæ•°æ®ï¼Œå½“å†™ramæœ‰æ•ˆçš„æ—¶å€™å°±åŠ ä¸Šå†™å…¥çš„æ•°æ®é•¿åº¦ï¼Œå½“æ¯æ¬¡è¯»å‡ºæ•°æ®è¯»çš„æ—¶å€™å°±å‡ä¸€
+//ram_data_suppy,ramÖĞÊ£ÓàµÄÓĞĞ§Êı¾İ£¬µ±Ğ´ramÓĞĞ§µÄÊ±ºò¾Í¼ÓÉÏĞ´ÈëµÄÊı¾İ³¤¶È£¬µ±Ã¿´Î¶Á³öÊı¾İ¶ÁµÄÊ±ºò¾Í¼õÒ»
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
@@ -318,7 +335,7 @@ end
 
         /***************************
 
-            ramè¯»å†™åœ°å€
+            ram¶ÁĞ´µØÖ·
 
         ***************************/
 
@@ -332,12 +349,12 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//å†™ä½¿èƒ½æœ‰æ•ˆåœ°å€å°±åŠ ä¸€
+//Ğ´Ê¹ÄÜÓĞĞ§µØÖ·¾Í¼ÓÒ»
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         write_ram_addr <= 'b0;
     end
-    else if(write_ram_addr=='d4094) //åŠ äº†è¿™ä¸ªé¿å…å†™å…¥4095çš„æ•°æ®è¯»ä¸å‡ºæ¥
+    else if(write_ram_addr=='d4094) //¼ÓÁËÕâ¸ö±ÜÃâĞ´Èë4095µÄÊı¾İ¶Á²»³öÀ´
         write_ram_addr <= 'b0;
     else if (write_ram_en) begin
         write_ram_addr <= write_ram_addr + 1'b1;
@@ -347,12 +364,12 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//è¯»ä½¿èƒ½æœ‰æ•ˆåœ°å€å°±åŠ ä¸€
+//¶ÁÊ¹ÄÜÓĞĞ§µØÖ·¾Í¼ÓÒ»
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         read_ram_addr <= 'b0;
     end
-    else if( read_ram_addr =='d4094) //åŠ äº†è¿™ä¸ªé¿å…å†™å…¥4095çš„æ•°æ®è¯»ä¸å‡ºæ¥
+    else if( read_ram_addr =='d4094) //¼ÓÁËÕâ¸ö±ÜÃâĞ´Èë4095µÄÊı¾İ¶Á²»³öÀ´
          read_ram_addr <= 'b0;
     else if (read_ram_en) begin
         read_ram_addr <= read_ram_addr + 1'b1;
@@ -364,10 +381,10 @@ end
 
         /***************************
 
-            è¯»FIFOä¸è¯»ramä½¿èƒ½
+            ¶ÁFIFOÓë¶ÁramÊ¹ÄÜ
 
         ***************************/
-//write_fifo_en_flagå†™FIFOæ ‡å¿—,åªè¦fifoå†™è¿‡ä¸€æ¬¡å°±ä¼šä¸€ç›´æ‹‰é«˜
+//write_fifo_en_flagĞ´FIFO±êÖ¾,Ö»ÒªfifoĞ´¹ıÒ»´Î¾Í»áÒ»Ö±À­¸ß
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         write_fifo_en_flag <= 'b0;
@@ -380,7 +397,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//last_flagï¼Œæ”¶åˆ°i_top_Emac_tx_axis_lastä¿¡å·å°±ä¼šæ‹‰é«˜ï¼Œå½“æ”¶åˆ°å†™FIFOä½¿èƒ½å°±ä¼šæ‹‰ä½
+//last_flag£¬ÊÕµ½i_top_Emac_tx_axis_lastĞÅºÅ¾Í»áÀ­¸ß£¬µ±ÊÕµ½Ğ´FIFOÊ¹ÄÜ¾Í»áÀ­µÍ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         last_flag <= 'b0;
@@ -396,18 +413,18 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//è¯»ramä½¿èƒ½ï¼Œè¯»å‡ºæ¥çš„æ•°æ®ç›´æ¥ä¼ è¾“åˆ°ä¸‹ä¸€å±‚ï¼Œå½“fifoé‡Œæœ‰æ•°æ®ï¼ˆä¿¡æ¯ä¸æ•°æ®å¹¶å­˜ï¼‰æˆ–è€…ä¸Šä¸€ç»„æ•°æ®(ä¸ºä»€ä¹ˆä¸æ˜¯å½“å‰ç»„æ•°æ®)æ²¡æœ‰è¯»å®Œ ä¸”pmacæ²¡æœ‰å‘é€æ•°æ®ã€‚
+//¶ÁramÊ¹ÄÜ£¬¶Á³öÀ´µÄÊı¾İÖ±½Ó´«Êäµ½ÏÂÒ»²ã£¬µ±fifoÀïÓĞÊı¾İ£¨ĞÅÏ¢ÓëÊı¾İ²¢´æ£©»òÕßÉÏÒ»×éÊı¾İ(ÎªÊ²Ã´²»ÊÇµ±Ç°×éÊı¾İ)Ã»ÓĞ¶ÁÍê ÇÒpmacÃ»ÓĞ·¢ËÍÊı¾İ¡£
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         read_ram_en <= 1'b0;
-    end                                              //å¢åŠ i_pmac_send_apply
-    else if (read_ram_en&&send_data_cnt==(data_len-1)||(i_pmac_send_apply&&read_ram_en==0)) //åŠ äº†è¿™ä¸ª
+    end                                              //Ôö¼Ói_pmac_send_apply
+    else if (read_ram_en&&send_data_cnt==(data_len-1)||(i_pmac_send_apply&&read_ram_en==0)) //¼ÓÁËÕâ¸ö
         read_ram_en <= 1'b0;
-    /*else if (read_ram_en&&send_data_cnt==0&&empty==1) begin //åŠ äº†è¿™ä¸ªé¿å…ä¸€ç»„æ•°æ®è¯»å®Œåï¼Œsend_data_cnt=0ï¼Œä¸”empty==1æ—¶å†æ¬¡è¯»
+    /*else if (read_ram_en&&send_data_cnt==0&&empty==1) begin //¼ÓÁËÕâ¸ö±ÜÃâÒ»×éÊı¾İ¶ÁÍêºó£¬send_data_cnt=0£¬ÇÒempty==1Ê±ÔÙ´Î¶Á
         read_ram_en <= 1'b0;
         end*/
-                       // send_data_cnt<(data_len-1)                            //å¦‚æœfifoé‡Œé¢æœ‰æ•°æ®å°±ä¸€ç›´è¯»ramã€‚ ramä¸º0çš„æ¡ä»¶æ˜¯fifoä¸ºç©ºä¸”æœ¬æ¬¡å‘é€åˆ°æœ€åä¸€ä¸ªæ•°æ®ï¼Œå½“å¦‚æœè¾¹å†™è¾¹è¯»ï¼Œfifoå°±ä¸ä¸€å®šä¸ºç©º
-    else if ((empty==0||data_len_supply)&&i_pmac_send_busy==0 && r_mux_ready ) begin //å¦‚æœfifoé‡Œé¢æœ‰æ•°æ®å°±ä¸€ç›´è¯»ramã€‚ 
+                       // send_data_cnt<(data_len-1)                            //Èç¹ûfifoÀïÃæÓĞÊı¾İ¾ÍÒ»Ö±¶Áram¡£ ramÎª0µÄÌõ¼şÊÇfifoÎª¿ÕÇÒ±¾´Î·¢ËÍµ½×îºóÒ»¸öÊı¾İ£¬µ±Èç¹û±ßĞ´±ß¶Á£¬fifo¾Í²»Ò»¶¨Îª¿Õ
+    else if ((empty==0||data_len_supply)&&i_pmac_send_busy==0 && r_mux_ready ) begin //Èç¹ûfifoÀïÃæÓĞÊı¾İ¾ÍÒ»Ö±¶Áram¡£ 
         read_ram_en <= 1'b1;
         end
     else begin
@@ -415,7 +432,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//è¯»fifoä½¿èƒ½ï¼Œè¯»å‡ºæ¥çš„æ•°æ®ä¸ºå½“å‰çš„é•¿åº¦ä¿¡æ¯ï¼Œå½“fifoé‡Œæœ‰æ•°æ®ä¸”pmacæ²¡æœ‰å‘é€æ•°æ®ï¼Œä¸”ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†,æ—¶å¯ä»¥å¼€å§‹è¯»æ•°æ®æ³¨æ„æ¯æ¬¡åªèƒ½è¯»å–ä¸€ä¸ªfifoæ•°æ®ã€‚
+//¶ÁfifoÊ¹ÄÜ£¬¶Á³öÀ´µÄÊı¾İÎªµ±Ç°µÄ³¤¶ÈĞÅÏ¢£¬µ±fifoÀïÓĞÊı¾İÇÒpmacÃ»ÓĞ·¢ËÍÊı¾İ£¬ÇÒ×éÖ¡Ä£¿é×¼±¸ºÃÁË,Ê±¿ÉÒÔ¿ªÊ¼¶ÁÊı¾İ×¢ÒâÃ¿´ÎÖ»ÄÜ¶ÁÈ¡Ò»¸öfifoÊı¾İ¡£
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
        read_fifo_en  <= 1'b0;
@@ -428,13 +445,13 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//send_data_cnt å·²ç»å‘é€çš„ä¸€ç»„æ•°æ®çš„é•¿åº¦(è®¡æ•°å™¨)å½“ramè¯»ä½¿èƒ½æœ‰æ•ˆçš„æ—¶å€™å¼€å§‹è‡ªåŠ ï¼Œå½“åŠ åˆ°æœ€å¤§é•¿åº¦æ˜¯å½’é›¶ã€‚
+//send_data_cnt ÒÑ¾­·¢ËÍµÄÒ»×éÊı¾İµÄ³¤¶È(¼ÆÊıÆ÷)µ±ram¶ÁÊ¹ÄÜÓĞĞ§µÄÊ±ºò¿ªÊ¼×Ô¼Ó£¬µ±¼Óµ½×î´ó³¤¶ÈÊÇ¹éÁã¡£
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
        send_data_cnt  <= 10'b0;
     end
-    //else if (read_ram_en&&send_data_cnt== data_len) begin //è¿™ä¸ªæ¡ä»¶æ»¡è¶³ä¸äº†
+    //else if (read_ram_en&&send_data_cnt== data_len) begin //Õâ¸öÌõ¼şÂú×ã²»ÁË
     else if (r_read_ram_en&&send_data_cnt== data_len) begin
         send_data_cnt <= 1'b0;
     end

@@ -32,48 +32,42 @@ localparam           AL_FUL =  DEPT_W - 10;//满信号
 localparam           AL_EMP =  10;  //空信号    
 localparam           READ_MODE = "fwft";
 localparam           FIFO_READ_LATENCY = 'd0 ;   
+reg         [DWIDTH - 1:0]             r_emac_rx_axis_data        ;
+reg         [15:0]                     r_emac_rx_axis_user        ;
+reg         [(DWIDTH/8)-1:0]           r_emac_rx_axis_keep        ;
+reg                                    r_emac_rx_axis_last        ;
+reg                                    r_emac_rx_axis_valid       ;
 
-reg         [DWIDTH - 1:0]             r_emac_rx_axis_data      ;
-reg         [15:0]                     r_emac_rx_axis_user      ;
-reg         [(DWIDTH/8)-1:0]           r_emac_rx_axis_keep      ;
-reg                                    r_emac_rx_axis_last      ;
-reg                                    r_emac_rx_axis_valid     ;
+reg         [DWIDTH - 1:0]             rr_emac_rx_axis_data       ;
+reg         [15:0]                     rr_emac_rx_axis_user       ;
+reg         [(DWIDTH/8)-1:0]           rr_emac_rx_axis_keep       ;
+reg                                    rr_emac_rx_axis_last       ;
+reg                                    rr_emac_rx_axis_valid      ;
 
-
-reg         [DWIDTH - 1:0]             rr_emac_rx_axis_data     ;
-reg         [15:0]                     rr_emac_rx_axis_user     ;
-reg         [(DWIDTH/8)-1:0]           rr_emac_rx_axis_keep     ;
-reg                                    rr_emac_rx_axis_last     ;
-reg                                    rr_emac_rx_axis_valid    ;
-
-
-reg         [15:0]                     ro_emac_rx_axis_user          ;
-
+reg         [15:0]                     ro_emac_rx_axis_user       ;
 
 //ram
-reg         [11:0]                      write_ram_addr          ;//13位
-reg         [11:0]                      read_ram_addr           ;//13位
-wire        [DWIDTH - 1:0]              write_ram_data          ;
-wire        [DWIDTH - 1:0]              read_ram_data           ;
-reg                                     write_ram_en            ;
-reg                                     read_ram_en             ;
-reg                                     r_read_ram_en           ;
-    
-wire        [(DWIDTH/8)-1:0]            write_ram_keep,read_ram_keep;   
- 
-reg ro_emac_rx_axis_valid;
+reg         [11:0]                     write_ram_addr             ; //13位
+reg         [11:0]                     read_ram_addr              ; //13位
+wire        [DWIDTH - 1:0]             write_ram_data             ;
+wire        [DWIDTH - 1:0]             read_ram_data              ;
+reg                                    write_ram_en               ;
+reg                                    read_ram_en                ;
+reg                                    r_read_ram_en              ;
 
+wire        [(DWIDTH/8)-1:0]           write_ram_keep,read_ram_keep;   
 
-reg         ro_emac_rx_axis_last;
+reg                                    ro_emac_rx_axis_valid      ;
+reg                                    ro_emac_rx_axis_last       ;
 
-reg [15:0] r_rd_data_cnt;
+reg         [15:0]                     r_rd_data_cnt              ;
 
-wire  [15:0]   write_fifo_data;
-reg            write_fifo_en;
-wire  [15:0]   read_fifo_data;
-reg            read_fifo_en;
-wire           empty;
-wire           full ;
+wire        [15:0]                     write_fifo_data            ;
+reg                                     write_fifo_en             ;
+wire        [15:0]                     read_fifo_data             ;
+reg                                     read_fifo_en              ;
+wire                                    empty                     ;
+wire                                    full                      ;
     
 /***************component*************/
 ram_simple2port #(
@@ -112,21 +106,41 @@ ram_simple2port #(
     .doutb          (read_ram_keep  )  // RAM output data
 );
 
-async_fifo_fwft #(
-    .C_WIDTH          (DATAWIDTH      ),
-    .C_DEPTH          (DEPT_W         )
-) u_async_fifo_fwft (
-    .RD_CLK           (i_clk          ),
-    .RD_RST           (i_rst          ),
-    .WR_CLK           (i_clk          ),
-    .WR_RST           (i_rst          ),
-    .WR_DATA          (write_fifo_data),
-    .WR_EN            (write_fifo_en  ),
-    .RD_DATA          (read_fifo_data ),
-    .RD_EN            (read_fifo_en   ),
-    .WR_FULL          (               ),
-    .RD_EMPTY         (empty          )
+sync_fifo #(
+    .DEPTH                  (DEPT_W                ),
+    .WIDTH                  (DATAWIDTH             ),
+    .ALMOST_FULL_THRESHOLD  (0                     ),
+    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
+) inst_sync_fifo (
+    .CLK                    (i_clk                 ),
+    .RST                    (i_rst                 ),
+    .WR_EN                  (write_fifo_en         ),
+    .DIN                    (write_fifo_data       ),
+    .RD_EN                  (read_fifo_en          ),
+    .DOUT                   (read_fifo_data        ),
+    .FULL                   (full                  ),
+    .EMPTY                  (empty                 ),
+    .ALMOST_FULL            (                      ),
+    .ALMOST_EMPTY           (                      ),
+    .DATA_CNT               (                      )
 );
+
+// async_fifo_fwft #(
+//     .C_WIDTH          (DATAWIDTH      ),
+//     .C_DEPTH          (DEPT_W         )
+// ) u_async_fifo_fwft (
+//     .RD_CLK           (i_clk          ),
+//     .RD_RST           (i_rst          ),
+//     .WR_CLK           (i_clk          ),
+//     .WR_RST           (i_rst          ),
+//     .WR_DATA          (write_fifo_data),
+//     .WR_EN            (write_fifo_en  ),
+//     .RD_DATA          (read_fifo_data ),
+//     .RD_EN            (read_fifo_en   ),
+//     .WR_FULL          (full           ),
+//     .RD_EMPTY         (empty          )
+// );
 
 // my_xpm_fifo_sync #(
 //         .DATAWIDTH(DATAWIDTH),

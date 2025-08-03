@@ -354,23 +354,23 @@ always @(posedge i_clk or posedge i_rst) begin //当前的SMD值
     end
 end
 
-always @(posedge i_clk or posedge i_rst) begin
+always @(*) begin
     if (i_rst == 1'b1) begin
         r_frag_next_rx <= FRAG_C_0;
     end
     else if(o_data_end & o_data_complete) begin
         r_frag_next_rx <= FRAG_C_0;
     end
-    else if(i_frag_cnt == 'd0 & i_info_vld & r_data_start_flag) begin
+    else if(i_frag_cnt == 'd0 & r_info_vld & r_data_start_flag) begin
         r_frag_next_rx <= FRAG_C_1;
     end
-    else if(i_frag_cnt == 'd1 & i_info_vld & r_data_start_flag)begin
+    else if(i_frag_cnt == 'd1 & r_info_vld & r_data_start_flag)begin
         r_frag_next_rx <= FRAG_C_2;
     end
-    else if(i_frag_cnt == 'd2 & i_info_vld & r_data_start_flag)begin
+    else if(i_frag_cnt == 'd2 & r_info_vld & r_data_start_flag)begin
         r_frag_next_rx <= FRAG_C_3;
     end
-    else if(i_frag_cnt == 'd3 & i_info_vld & r_data_start_flag)begin
+    else if(i_frag_cnt == 'd3 & r_info_vld & r_data_start_flag)begin
         r_frag_next_rx <= FRAG_C_0; 
     end
 end
@@ -380,7 +380,7 @@ always @(posedge i_clk or posedge i_rst) begin //当前的接收片段计数器
     if (i_rst == 1'b1) begin
         ro_rx_fragment_cnt <= 'd0;
     end
-    else if(r_data_start_flag && (i_frag_cnt == 'd0 || i_frag_cnt == 'd1 || i_frag_cnt == 'd2 || i_frag_cnt == 'd3) && i_info_vld)begin
+    else if(r_data_start_flag && (i_frag_cnt == 'd0 || i_frag_cnt == 'd1 || i_frag_cnt == 'd2 || i_frag_cnt == 'd3) && i_info_vld && !o_data_complete)begin
         ro_rx_fragment_cnt <= ro_rx_fragment_cnt + 1'b1; 
     end
 end
@@ -403,19 +403,19 @@ always @(posedge i_clk or posedge i_rst) begin
         ro_err_fragment_cnt <= 'd0;
         ro_rx_fragment_mismatch <= 'd0;
     end
-    else if(i_frag_cnt == 'd0 && r_frag_next_rx != FRAG_C_0 && w_rx_valid)begin
+    else if(i_frag_cnt == 'd0 && r_frag_next_rx != FRAG_C_0 &i_info_vld)begin
         ro_err_fragment_cnt <= ro_err_fragment_cnt + 1'b1;
         ro_rx_fragment_mismatch <= 1'b1; 
     end
-    else if(i_frag_cnt == 'd1 && r_frag_next_rx != FRAG_C_1 && w_rx_valid)begin
+    else if(i_frag_cnt == 'd1 && r_frag_next_rx != FRAG_C_1 &i_info_vld)begin
         ro_err_fragment_cnt <= ro_err_fragment_cnt + 1'b1; 
         ro_rx_fragment_mismatch <= 1'b1; 
     end
-    else if(i_frag_cnt == 'd2 && r_frag_next_rx != FRAG_C_2 && w_rx_valid)begin
+    else if(i_frag_cnt == 'd2 && r_frag_next_rx != FRAG_C_2 &i_info_vld)begin
         ro_err_fragment_cnt <= ro_err_fragment_cnt + 1'b1; 
         ro_rx_fragment_mismatch <= 1'b1; 
     end
-    else if(i_frag_cnt == 'd3 && r_frag_next_rx != FRAG_C_3 && w_rx_valid)begin
+    else if(i_frag_cnt == 'd3 && r_frag_next_rx != FRAG_C_3 &i_info_vld)begin
         ro_err_fragment_cnt <= ro_err_fragment_cnt + 1'b1; 
         ro_rx_fragment_mismatch <= 1'b1; 
     end

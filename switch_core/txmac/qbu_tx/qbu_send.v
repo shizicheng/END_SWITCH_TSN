@@ -54,6 +54,10 @@ module qbu_send#(
     output          wire    [15:0]                      o_mac_axi_data_user         ,
     input           wire                                i_mac_axi_data_ready        ,
     output          wire                                o_mac_axi_data_last         ,
+    //时间戳信号
+    output          wire                                o_mac_time_irq              , // 打时间戳中断信号
+    output          wire    [7:0]                       o_mac_frame_seq             , // 帧序列号
+    output          wire    [7:0]                       o_timestamp_addr            , // 打时间戳存储的 RAM 地址
     //寄存器接口
 
     output          wire    [7:0]                       o_frag_next_tx              ,
@@ -264,7 +268,7 @@ wire                                                    o_qbu_verify_smd_valid  
 
 //保证最小帧长
 frame_len_detect #(
-        .AXIS_DATA_WIDTH(AXIS_DATA_WIDTH)
+        .AXIS_DATA_WIDTH                    (AXIS_DATA_WIDTH          )
     ) inst_frame_len_detect (
         .i_clk                              (i_clk                    ),
         .i_rst                              (i_rst                    ),
@@ -300,8 +304,20 @@ frame_len_detect #(
         .o_top_Pmac_tx_axis_valid           (o_top_Pmac_tx_axis_valid ),
         .o_top_Pmac_tx_axis_type            (o_top_Pmac_tx_axis_type  ),
         .i_top_Pmac_tx_axis_ready           (o_top_Pmac_tx_axis_ready )
-    );          
-
+    );   
+    
+    
+qbu_tx_timestamp #(
+    .DWIDTH                                 (AXIS_DATA_WIDTH            )
+) inst_qbu_tx_timestamp(                        
+    .i_clk                                  (i_clk                      ),
+    .i_rst                                  (i_rst                      ),
+    .i_mac_axis_data                        (o_mac_axi_data             ),
+    .i_mac_axis_valid                       (o_mac_axi_data_valid       ),
+    .o_mac_time_irq                         (o_mac_time_irq             ), // 需要连接或留空
+    .o_mac_frame_seq                        (o_mac_frame_seq            ), // 需要连接或留空
+    .o_timestamp_addr                       (o_timestamp_addr           )  // 需要连接或留空
+);
 
 FAST_qbu_Emac_tx    #(
     .AXIS_DATA_WIDTH                        (AXIS_DATA_WIDTH            )

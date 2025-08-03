@@ -42,6 +42,10 @@ module qbu_rec#(
 	output 		wire 							o_qbu_rx_axis_last        ,
 	output 		wire 							o_qbu_rx_axis_valid       ,
     input       wire                            i_qbu_rx_axis_ready       ,
+	//时间戳信号
+	output     wire                             o_mac_time_irq            , // 打时间戳中断信号
+    output     wire     [7:0]                   o_mac_frame_seq           , // 帧序列号
+    output     wire     [7:0]                   o_timestamp_addr          , // 打时间戳存储的 RAM 地址
 
 	//寄存器接口
 	output 		wire 							o_rx_busy             	  ,
@@ -362,6 +366,26 @@ emac_rx_ram #(
 	.o_emac_rx_axis_last                    (o_emac_rx_axis_last           ),
 	.o_emac_rx_axis_valid                   (o_emac_rx_axis_valid          ),
 	.i_emac_rx_axis_ready                   (i_emac_rx_axis_ready          )
+);
+
+qbu_rx_timestamp #(
+	.DWIDTH                                 (DWIDTH                        )
+) inst_qbu_rx_timestamp (
+	.i_clk                                  (i_clk                         ),
+	.i_rst                                  (i_rst                         ),
+
+	.i_paket_ethertype                      (p_o_post_type                 ), // 需要根据实际信号连接
+	.i_paket_ethertype_valid                (p_o_post_type_valid           ), // 需要根据实际信号连接
+
+	.i_pmac_axis_data                       (fast_ram_o_rx_axis_data       ),
+	.i_pmac_axis_valid                      (fast_ram_o_rx_axis_valid      ),
+
+	.i_emac_axis_data                       (o_emac_rx_axis_data           ),
+	.i_emac_axis_valid                      (o_emac_rx_axis_valid          ),
+
+	.o_mac_time_irq                         (o_mac_time_irq                ),
+	.o_mac_frame_seq                        (o_mac_frame_seq               ),
+	.o_timestamp_addr                       (o_timestamp_addr              )
 );
 
 qbu_rx_output #(
