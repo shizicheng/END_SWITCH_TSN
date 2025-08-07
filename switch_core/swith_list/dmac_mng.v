@@ -15,7 +15,7 @@ module dmac_mng #(
         input               wire                                        i_item_mac_we         ,
         input               wire        [47:0]                          i_item_mac_in         ,
         input               wire        [PORT_NUM:0]                    i_rx_port_in          ,
-        /*----------------------------- 查表输出接口接口 ------------------------------*/     
+        /*----------------------------- 查表输出接口 ------------------------------*/     
         output              wire                                        o_dmac_find_out_en    ,
         output              wire        [PORT_NUM:0]                    o_dmac_find_rslt      ,
         output              wire                                        o_dmac_find_out_clash
