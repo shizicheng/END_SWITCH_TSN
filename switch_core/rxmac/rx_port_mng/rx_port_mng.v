@@ -3,7 +3,7 @@ module rx_port_mng#(
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng 数据位宽
     parameter                                                   HASH_DATA_WIDTH         =      12       ,  // 哈希计算的值的位宽 
     parameter                                                   METADATA_WIDTH          =      64       ,  // 信息流位宽
-    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH*PORT_NUM // 聚合总线输出
+    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // 聚合总线输出
 )(
     input               wire                                    i_clk                              ,   // 250MHz
     input               wire                                    i_rst                              ,
@@ -30,7 +30,7 @@ module rx_port_mng#(
     /*---------------------------------------- 查找的转发端口号 ---------------------------------------*/
     input               wire   [PORT_NUM-1:0]                   i_swlist_tx_port                   , // 交换发送端口信息
     input               wire                                    i_swlist_vld                       , // 发送端口信号有效信号
-    /*---------------------------------------- 单 PORT 聚合数据流 -------------------------------------------*/
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
     output              wire                                    o_mac_cross_port_link              , // 端口的连接状态
     output              wire   [1:0]                            o_mac_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
     output              wire   [CROSS_DATA_WIDTH:0]             o_mac_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
@@ -39,8 +39,8 @@ module rx_port_mng#(
     input               wire                                    i_mac_cross_axi_data_ready         , // 交叉总线聚合架构反压流水线信号
     output              wire                                    o_mac_cross_axi_data_last          , // 数据流结束标识
     /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_cross_metadata                   , // 聚合总线 metadata 数据
-    output             wire                                     o_cross_metadata_valid             , // 聚合总线 metadata 数据有效信号
+    output             wire   [METADATA_WIDTH-1:0]              o_cross_metadata                   , // 总线 metadata 数据
+    output             wire                                     o_cross_metadata_valid             , // 总线 metadata 数据有效信号
     output             wire                                     o_cross_metadata_last              , // 信息流结束标识
     input              wire                                     i_cross_metadata_ready             , // 下游模块反压流水线 
 
@@ -124,14 +124,6 @@ wire                                    w_qbu_mac_axi_data_valid            ;
 wire                                    w_qbu_mac_axi_data_ready            ;             
 wire                                    w_qbu_mac_axi_data_last             ; 
 
-// rx_data_stream_cross 的聚合数据流
-wire                                    w_mac_cross_port_link_1             ;
-wire   [1:0]                            w_mac_cross_port_speed_1            ;
-wire   [CROSS_DATA_WIDTH:0]             w_mac_cross_port_axi_data_1         ;
-wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac_cross_axi_data_keep_1         ;
-wire                                    w_mac_cross_axi_data_valid_1        ;
-wire                                    w_mac_cross_axi_data_ready_1        ;
-wire                                    w_mac_cross_axi_data_last_1         ;
 
 // 限流后输出的数据流
 wire                                    w_stream_port_link                  ; // 端口的连接状态
@@ -312,7 +304,6 @@ assign              o_port_multiflow_drop_cnt           =      w_port_multiflow_
 assign              o_port_diag_state                   =      w_port_diag_state            ;
 
 
-
 /* ------------------------------ 帧抢占接收通路 ------------------------------- */
 /* ------------------------------ 帧抢占接收通路 ------------------------------- */
 qbu_rec #(
@@ -335,7 +326,11 @@ qbu_rec #(
     .o_qbu_rx_axis_keep               (w_qbu_mac_axi_data_keep      ),
     .o_qbu_rx_axis_last               (w_qbu_mac_axi_data_last      ),
     .o_qbu_rx_axis_valid              (w_qbu_mac_axi_data_valid     ),
-    .i_qbu_rx_axis_ready              (w_qbu_mac_axi_data_ready     ),     
+    .i_qbu_rx_axis_ready              (w_qbu_mac_axi_data_ready     ),  
+    // 打时间戳信号
+    .o_mac_time_irq                   (w_mac_time_irq               ),  
+    .o_mac_frame_seq                  (w_mac_frame_seq              ),  
+    .o_timestamp_addr                 (w_timestamp_addr             ),    
     //qbu寄存器管理
     .o_rx_busy                        (w_rx_busy             	    ), 
     .o_rx_fragment_cnt                (w_rx_fragment_cnt     	    ), 
@@ -346,37 +341,6 @@ qbu_rec #(
     .o_rx_frames_cnt                  (w_rx_frames_cnt       	    ), 
     .o_frag_next_rx                   (w_frag_next_rx        	    ), 
     .o_frame_seq                      (w_frame_seq           	    )  
-);
-
-/* -------------- 数据流聚合模块（端口第一级先做数据流聚合，提升下游模块的处理带宽） ------------------ */
-rx_data_stream_cross#(
-    .PORT_NUM                        (PORT_NUM                      )   ,  // 交换机的端口数
-    .PORT_MNG_DATA_WIDTH             (PORT_MNG_DATA_WIDTH           )   ,  // Mac_port_mng 数据位宽
-    .CROSS_DATA_WIDTH                (CROSS_DATA_WIDTH              )      // 聚合总线输出
-)rx_data_stream_cross_inst (              
-    .i_clk                           (i_clk                         )   ,  // 250MHz
-    .i_rst                           (i_rst                         )   ,
-    /*---------------------------------------- 输入的 MAC 数据流 -------------------------------------------*/
-    .i_mac_port_link                 (w_qbu_mac_port_link           )   , // 端口的连接状态
-    .i_mac_port_speed                (w_qbu_mac_port_speed          )   , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G
-    .i_mac_port_filter_preamble_v    (w_mac_port_filter_preamble_v  )   , // 端口是否过滤前导码信息
-    .i_mac_axi_data                  (w_qbu_mac_axi_data            )   , // 端口数据流
-    .i_mac_axi_data_keep             (w_qbu_mac_axi_data_keep       )   , // 端口数据流掩码，有效字节指示
-    .i_mac_axi_data_valid            (w_qbu_mac_axi_data_valid      )   , // 端口数据有效
-    .o_mac_axi_data_ready            (w_qbu_mac_axi_data_ready      )   , // 端口数据就绪信号,表示当前模块准备好接收数据
-    .i_mac_axi_data_last             (w_qbu_mac_axi_data_last       )   , // 数据流结束标识
-    /*---------------------------------------- 打时间戳信号 -------------------------------------------*/
-    .o_mac_time_irq                  (w_mac_time_irq                )   ,
-    .o_mac_frame_seq                 (w_mac_frame_seq               )   ,
-    .o_timestamp_addr                (w_timestamp_addr              )   ,
-    /*---------------------------------------- 单 PORT 聚合数据流 -------------------------------------------*/
-    .o_mac_cross_port_link           (w_mac_cross_port_link_1       )   , // 端口的连接状态
-    .o_mac_cross_port_speed          (w_mac_cross_port_speed_1      )   , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .o_mac_cross_port_axi_data       (w_mac_cross_port_axi_data_1   )   , // 端口数据流，最高位表示crcerr
-    .o_mac_cross_axi_data_keep       (w_mac_cross_axi_data_keep_1   )   , // 端口数据流掩码，有效字节指示
-    .o_mac_cross_axi_data_valid      (w_mac_cross_axi_data_valid_1  )   , // 端口数据有效
-    .i_mac_cross_axi_data_ready      (w_mac_cross_axi_data_ready_1  )   , // 交叉总线聚合架构反压流水线信号
-    .o_mac_cross_axi_data_last       (w_mac_cross_axi_data_last_1   )     // 数据流结束标识 
 );
 
 /* -------------- 数据流控模块（用户可配置限流寄存器，使能端口限流） ------------------ */
@@ -392,14 +356,14 @@ rx_byte_stream_ctrl #(
     /*---------------------------------------- 统计寄存器输出 -------------------------------------------*/
     .o_port_rx_byte_cnt              ( w_port_rx_byte_cnt           )   , // 端口接收字节个数计数器值 
     .o_port_rx_frame_cnt             ( w_port_rx_frame_cnt          )   , // 接收帧个数计数器值
-    /*---------------------------------------- 单 PORT 聚合数据流 -------------------------------------------*/
-    .i_mac_cross_port_link           ( w_mac_cross_port_link_1      )  , // 端口的连接状态
-    .i_mac_cross_port_speed          ( w_mac_cross_port_speed_1     )  , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac_cross_port_axi_data       ( w_mac_cross_port_axi_data_1  )  , // 端口数据流，最高位表示crcerr
-    .i_mac_cross_axi_data_keep       ( w_mac_cross_axi_data_keep_1  )  , // 端口数据流掩码，有效字节指示
-    .i_mac_cross_axi_data_valid      ( w_mac_cross_axi_data_valid_1 )  , // 端口数据有效
-    .o_mac_cross_axi_data_ready      ( w_mac_cross_axi_data_ready_1 )  , // 交叉总线聚合架构反压流水线信号
-    .i_mac_cross_axi_data_last       ( w_mac_cross_axi_data_last_1  )  , // 数据流结束标识 
+    /*---------------------------------------- 经过qbu重组之后的数据流 -------------------------------------------*/
+    .i_mac_cross_port_link           ( w_qbu_mac_port_link          )  , // 端口的连接状态
+    .i_mac_cross_port_speed          ( w_qbu_mac_port_speed         )  , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac_cross_port_axi_data       ( w_qbu_mac_axi_data           )  , // 端口数据流，最高位表示crcerr
+    .i_mac_cross_axi_data_keep       ( w_qbu_mac_axi_data_keep      )  , // 端口数据流掩码，有效字节指示
+    .i_mac_cross_axi_data_valid      ( w_qbu_mac_axi_data_valid     )  , // 端口数据有效
+    .o_mac_cross_axi_data_ready      ( w_qbu_mac_axi_data_ready     )  , // 交叉总线聚合架构反压流水线信号
+    .i_mac_cross_axi_data_last       ( w_qbu_mac_axi_data_last      )  , // 数据流结束标识 
     /*---------------------------------------- 限流后的数据流输出 -------------------------------------------*/
     .o_stream_port_link              ( w_stream_port_link           )   , // 端口的连接状态
     .o_stream_port_speed             ( w_stream_port_speed          )   , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
@@ -409,24 +373,22 @@ rx_byte_stream_ctrl #(
     .o_stream_axi_data_last          ( w_stream_axi_data_last       )              
 );
 
-assign w_mac_cross_axi_data_ready_1 = w_mac_frm_info_cross_axi_data_ready | w_mac_frm_acl_axi_data_ready ;
-
 /* ----------------------------- 数据流基本信息提取（流水线操作） -------------------------------- */
 rx_frm_info_mng#(
-    .PORT_NUM                       (PORT_NUM                       )   ,
-    .PORT_MNG_DATA_WIDTH            (PORT_MNG_DATA_WIDTH            )   ,
-    .CROSS_DATA_WIDTH               (CROSS_DATA_WIDTH               )   
-)rx_frm_info_mng_inst (
-    .i_clk                          (i_clk                          )   , 
-    .i_rst                          (i_rst                          )   ,
+    .PORT_NUM                       (PORT_NUM                               )   ,
+    .PORT_MNG_DATA_WIDTH            (PORT_MNG_DATA_WIDTH                    )   ,
+    .CROSS_DATA_WIDTH               (CROSS_DATA_WIDTH                       )   
+)rx_frm_info_mng_inst (     
+    .i_clk                          (i_clk                                  )   , 
+    .i_rst                          (i_rst                                  )   ,
     /*---------------------------------------- 单 PORT 聚合数据流 ----------------------------------*/
-    .i_mac_port_link                (w_stream_port_link          )   , 
-    .i_mac_port_speed               (w_stream_port_speed         )   , 
-    .i_mac_port_axi_data            (w_stream_port_axi_data      )   , 
-    .i_mac_axi_data_keep            (w_stream_axi_data_keep      )   , 
-    .i_mac_axi_data_valid           (w_stream_axi_data_valid     )   , 
-    .o_mac_axi_data_ready           (w_mac_frm_info_cross_axi_data_ready     )   , 
-    .i_mac_axi_data_last            (w_stream_axi_data_last      )   , 
+    .i_mac_port_link                (w_stream_port_link                     )   , 
+    .i_mac_port_speed               (w_stream_port_speed                    )   , 
+    .i_mac_port_axi_data            (w_stream_port_axi_data                 )   , 
+    .i_mac_axi_data_keep            (w_stream_axi_data_keep                 )   , 
+    .i_mac_axi_data_valid           (w_stream_axi_data_valid                )   , 
+    .o_mac_axi_data_ready           (w_mac_frm_info_cross_axi_data_ready    )   , 
+    .i_mac_axi_data_last            (w_stream_axi_data_last                 )   , 
     /* 单 PORT 部分信息流（此模块无法解析出所有的信息，[26:19](8bit) : 输入端口，bitmap表示，[51:44](8bit) : acl_frmtype，[43:28](16bit): acl_fetchinfo）*/
     .o_port_speed                   (w_port_speed                   )   , 
     .o_vlan_pri                     (w_vlan_pri                     )   , 
@@ -550,15 +512,15 @@ rx_forward_mng#(
     .i_acl_find_match                   (w_acl_find_match               )   , // 是否匹配到正确的条目
     .i_acl_frmtype                      (w_acl_frmtype                  )   , // 匹配出来的帧类型
     .i_acl_fetch_info                   (w_acl_fetch_info               )   ,  // 待定保留 
-    /*---------------------------------------- 单 PORT 聚合数据流输入 -------------------------------------------*/
-    .i_mac_port_link                    (w_mac_cross_port_link_1        )    , // 端口的连接状态
-    .i_mac_port_speed                   (w_mac_cross_port_speed_1       )    , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac_port_axi_data                (w_mac_cross_port_axi_data_1    )    , // 端口数据流，最高位表示crcerr
-    .i_mac_axi_data_keep                (w_mac_cross_axi_data_keep_1    )    , // 端口数据流掩码，有效字节指示
-    .i_mac_axi_data_valid               (w_mac_cross_axi_data_valid_1   )    , // 端口数据有效
-    .o_mac_axi_data_ready               (w_mac_cross_axi_data_ready_1   )    , // 交叉总线聚合架构反压流水线信号
-    .i_mac_axi_data_last                (w_mac_cross_axi_data_last_1    )    , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合数据流输出 -------------------------------------------*/
+    /*---------------------------------------- 单 PORT 数据流输入 -------------------------------------------*/
+    .i_mac_port_link                    (w_qbu_mac_port_link           )    , // 端口的连接状态
+    .i_mac_port_speed                   (w_qbu_mac_port_speed          )    , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac_port_axi_data                (w_qbu_mac_axi_data            )    , // 端口数据流，最高位表示crcerr
+    .i_mac_axi_data_keep                (w_qbu_mac_axi_data_keep       )    , // 端口数据流掩码，有效字节指示
+    .i_mac_axi_data_valid               (w_qbu_mac_axi_data_valid      )    , // 端口数据有效
+    .o_mac_axi_data_ready               (      )    , // 交叉总线聚合架构反压流水线信号
+    .i_mac_axi_data_last                (w_qbu_mac_axi_data_last       )    , // 数据流结束标识
+    /*---------------------------------------- 单 PORT 数据流输出 -------------------------------------------*/
     .o_mac_port_link                    (w_mac_cross_port_link          )    , // 端口的连接状态
     .o_mac_port_speed                   (w_mac_cross_port_speed         )    , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
     .o_mac_port_axi_data                (w_mac_cross_port_axi_data      )    , // 端口数据流，最高位表示crcerr

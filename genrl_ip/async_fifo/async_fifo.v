@@ -1,89 +1,147 @@
+module async_fifo#(
+    parameter   DATA_WIDTH      = 8,
+    parameter   FIFO_DEPTH      = 16,
+    parameter   PTR_WIDTH       = clog2s(FIFO_DEPTH),
+    parameter   DATA_FLOAT_OUT  = 1'b0 
 
-`timescale  1ns/1ps
-
-module async_fifo #(
-	parameter C_WIDTH = 32,	// Data bus width
-	parameter C_DEPTH = 1024,	// Depth of the FIFO
-	// Local parameters
-	parameter C_REAL_DEPTH = 2**clog2(C_DEPTH),
-	parameter C_DEPTH_BITS = clog2(C_REAL_DEPTH),
-	parameter C_DEPTH_P1_BITS = clog2(C_REAL_DEPTH+1)
-)
-(
-	input RD_CLK,							// Read clock
-	input RD_RST,							// Read synchronous reset
-	input WR_CLK,						 	// Write clock
-	input WR_RST,							// Write synchronous reset
-	input [C_WIDTH-1:0] WR_DATA, 			// Write data input (WR_CLK)
-	input WR_EN, 							// Write enable, high active (WR_CLK)
-	output [C_WIDTH-1:0] RD_DATA, 			// Read data output (RD_CLK)
-	input RD_EN,							// Read enable, high active (RD_CLK)
-	output WR_FULL, 						// Full condition (WR_CLK)
-	output RD_EMPTY 						// Empty condition (RD_CLK)
+)(
+    input                       WR_RST,
+    input                       WR_CLK,
+    input                       WR_EN,
+    input   [DATA_WIDTH-1:0]    WR_DATA,
+    output                      WR_FULL,
+    output  [PTR_WIDTH:0]       WR_CNT,
+    
+    input                       RD_RST,
+    input                       RD_CLK,
+    input                       RD_EN,
+    output  [DATA_WIDTH-1:0]    RD_DATA,
+    output                      RD_EMPTY,
+    output  [PTR_WIDTH:0]       RD_CNT 
 );
-
 `include "functions.vh"
 
-wire						wCmpEmpty;
-wire						wCmpFull;
-wire	[C_DEPTH_BITS-1:0]	wWrPtr;
-wire	[C_DEPTH_BITS-1:0]	wRdPtr;
-wire	[C_DEPTH_BITS-1:0]	wWrPtrP1;
-wire	[C_DEPTH_BITS-1:0]	wRdPtrP1;
+
+//例化模板
+// async_fifo #(
+//     .DATA_WIDTH     (32                        ),
+//     .FIFO_DEPTH     (64                        ),
+//     .DATA_FLOAT_OUT (1'b0                      )  //1为fwft ， 0为stander
+// ) u_async_fifo (
+//     .WR_RST         (wr_rst                    ),
+//     .WR_CLK         (wr_clk                    ),
+//     .WR_EN          (wr_en                     ),
+//     .WR_DATA        (wr_data                   ),
+//     .WR_FULL        (wr_full                   ),
+//     .WR_CNT         (wr_cnt                    ),
+    
+//     .RD_RST         (rd_rst                    ),
+//     .RD_CLK         (rd_clk                    ),
+//     .RD_EN          (rd_en                     ),
+//     .RD_DATA        (rd_data                   ),
+//     .RD_EMPTY       (rd_empty                  ),
+//     .RD_CNT         (rd_cnt                    )
+// );
+
+                                                                       
+wire    [PTR_WIDTH-1:0]     wr_addr;
+wire    [PTR_WIDTH-1:0]     rd_addr;
+wire    [PTR_WIDTH:0]       wptr_gray;
+wire    [PTR_WIDTH:0]       wptr_bin;
+wire    [PTR_WIDTH:0]       rptr_gray;
+wire    [PTR_WIDTH:0]       rptr_bin;
+wire    [PTR_WIDTH:0]       wp2rp_syn;
+wire    [PTR_WIDTH:0]       rp2wp_syn;
+
+wire                        wr_en;
+wire                        rd_en;
 
 
-// Memory block (synthesis attributes applied to this module will
-// determine the memory option).
-ram_2clk_1w_1r #(.C_RAM_WIDTH(C_WIDTH), .C_RAM_DEPTH(C_REAL_DEPTH)) mem (
-	.CLKA(WR_CLK),
-	.ADDRA(wWrPtr),
-	.WEA(WR_EN & !WR_FULL),
-	.REA(RD_EN & !RD_EMPTY),
-	.DINA(WR_DATA),
-	.CLKB(RD_CLK),
-	.ADDRB(wRdPtr),
-	.DOUTB(RD_DATA)
+assign  wr_en = WR_EN && ~WR_FULL;
+
+assign  rd_en = RD_EN && ~RD_EMPTY;
+
+fifomem #(
+    .DATA_WIDTH(DATA_WIDTH),
+    .FIFO_DEPTH(FIFO_DEPTH),
+    .DATA_FLOAT_OUT(DATA_FLOAT_OUT)
+)
+x_fifomem(
+    .rstn_wr_i(!WR_RST),
+    .wr_clk_i(WR_CLK),
+    .wr_en_i(wr_en),
+    .wr_addr_i(wr_addr),
+    .wr_data_i(WR_DATA),
+    .rstn_rd_i(!RD_RST),
+    .rd_clk_i(RD_CLK),
+    .rd_en_i(rd_en),
+    .rd_addr_i(rd_addr),
+    .rd_data_o(RD_DATA)
+);
+
+rp2wp #(.PTR_WIDTH(PTR_WIDTH))
+x_rp2wp(
+    .wr_clk_i(WR_CLK),
+    .rstn_i(!WR_RST),
+    .rptr_gray_i(rptr_gray),
+    .rp2wp_gray_o(rp2wp_syn)
+);
+
+wp2rp #(.PTR_WIDTH(PTR_WIDTH))
+x_wp2rp(
+    .rd_clk_i(RD_CLK),
+    .rstn_i(!RD_RST),
+    .wptr_gray_i(wptr_gray),
+    .wp2rp_gray_o(wp2rp_syn)
+);
+
+rptr_empty #(.PTR_WIDTH(PTR_WIDTH),
+             .DATA_FLOAT_OUT(DATA_FLOAT_OUT)
+)           
+x_rptr_empty(
+    .rd_clk_i(RD_CLK),
+    .rstn_i(!RD_RST),
+    .rd_en_i(RD_EN),
+    .wptr_gray_i(wp2rp_syn),   
+    .rd_empty_o(RD_EMPTY),
+    .rd_addr_o(rd_addr),
+    .rptr_gray_o(rptr_gray),
+    .rptr_bin_o(rptr_bin)
+);
+
+wptr_full #(.PTR_WIDTH(PTR_WIDTH))
+x_wptr_full(
+    .wr_clk_i(WR_CLK),
+    .rstn_i(!WR_RST),
+    .wr_en_i(WR_EN),
+    .rptr_gray_i(rp2wp_syn),
+    .wptr_gray_o(wptr_gray),
+    .wr_addr_o(wr_addr),
+    .wr_full_o(WR_FULL),
+    .wptr_bin_o(wptr_bin)
+);
+
+wr_cnt #(.PTR_WIDTH(PTR_WIDTH))
+x_wr_cnt(
+  .rstn_i(!WR_RST),
+
+  .wr_clk_i(WR_CLK),
+  .wptr_bin_i(wptr_bin),
+  .rp2wp_gray_i(rp2wp_syn),
+  .wr_cnt_o(WR_CNT)
+
+);
+
+rd_cnt #(.PTR_WIDTH(PTR_WIDTH))
+x_rd_cnt(
+  .rstn_i(!RD_RST),
+
+  .rd_clk_i(RD_CLK),
+  .rptr_bin_i(rptr_bin),
+  .wp2rp_gray_i(wp2rp_syn),
+  .rd_cnt_o(RD_CNT)
 );
 
 
-// Compare the pointers.
-async_cmp #(.C_DEPTH_BITS(C_DEPTH_BITS)) asyncCompare (
-	.WR_RST(WR_RST),
-	.WR_CLK(WR_CLK),
-	.RD_RST(RD_RST),
-	.RD_CLK(RD_CLK),
-	.RD_VALID(RD_EN & !RD_EMPTY),
-	.WR_VALID(WR_EN & !WR_FULL),
-	.EMPTY(wCmpEmpty), 
-	.FULL(wCmpFull),
-	.WR_PTR(wWrPtr), 
-	.WR_PTR_P1(wWrPtrP1), 
-	.RD_PTR(wRdPtr), 
-	.RD_PTR_P1(wRdPtrP1)
-);
 
-
-// Calculate empty
-rd_ptr_empty #(.C_DEPTH_BITS(C_DEPTH_BITS)) rdPtrEmpty (
-	.RD_EMPTY(RD_EMPTY), 
-	.RD_PTR(wRdPtr),
-	.RD_PTR_P1(wRdPtrP1),
-	.CMP_EMPTY(wCmpEmpty), 
-	.RD_EN(RD_EN),
-	.RD_CLK(RD_CLK), 
-	.RD_RST(RD_RST)
-);
-
-
-// Calculate full
-wr_ptr_full #(.C_DEPTH_BITS(C_DEPTH_BITS)) wrPtrFull (
-	.WR_CLK(WR_CLK), 
-	.WR_RST(WR_RST),
-	.WR_EN(WR_EN),
-	.WR_FULL(WR_FULL), 
-	.WR_PTR(wWrPtr),
-	.WR_PTR_P1(wWrPtrP1),
-	.CMP_FULL(wCmpFull)
-);
- 
 endmodule

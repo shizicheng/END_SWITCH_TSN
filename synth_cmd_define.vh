@@ -3,7 +3,7 @@
 //`define END_POINTER
 //`define SWITCH_CORE
 /*---------------------------------------- 定义CPU与FPGA交互的接口 -----------------------------------*/
-`ifdef END_POINTER_SWOTCH_CORE
+`ifdef END_POINTER_SWITCH_CORE
 `define CPU_MAC
 `elsif END_POINTER
 `define CPU_MAC

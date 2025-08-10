@@ -5,7 +5,6 @@ module  tx_mac_reg #(
 )(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,
-    /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
 `ifdef CPU_MAC
     output             wire    [PORT_NUM-1:0]                   o_port_txmac_down_regs_0            ,  // 端口发送方向MAC关闭使能
     output             wire    [PORT_NUM-17:0]                  o_store_forward_enable_regs_0       ,  // 端口强制存储转发功能使能
