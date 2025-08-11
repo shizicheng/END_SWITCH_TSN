@@ -16,10 +16,10 @@ module rx_port_mng#(
     input               wire                                    i_mac_axi_data_valid               , // 端口数据有效
     output              wire                                    o_mac_axi_data_ready               , // 端口数据就绪信号,表示当前模块准备好接收数据
     input               wire                                    i_mac_axi_data_last                , // 数据流结束标识
-    /*---------------------------------------- 打时间戳信号 -------------------------------------------*/
-    output              wire                                    o_mac_time_irq                      , // 打时间戳中断信号
-    output              wire  [7:0]                             o_mac_frame_seq                     , // 帧序列号
-    output              wire  [7:0]                             o_timestamp_addr                    , // 打时间戳存储的 RAM 地址
+    // /*---------------------------------------- 打时间戳信号 -------------------------------------------*/
+    // output              wire                                    o_mac_time_irq                      , // 打时间戳中断信号
+    // output              wire  [7:0]                             o_mac_frame_seq                     , // 帧序列号
+    // output              wire  [7:0]                             o_timestamp_addr                    , // 打时间戳存储的 RAM 地址
     /*---------------------------------------- 计算的哈希值 -------------------------------------------*/
     output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac_hash_key                    , // 目的 mac 的哈希值
     output              wire   [47 : 0]                         o_dmac                             , // 目的 mac 的值
@@ -327,10 +327,10 @@ qbu_rec #(
     .o_qbu_rx_axis_last               (w_qbu_mac_axi_data_last      ),
     .o_qbu_rx_axis_valid              (w_qbu_mac_axi_data_valid     ),
     .i_qbu_rx_axis_ready              (w_qbu_mac_axi_data_ready     ),  
-    // 打时间戳信号
-    .o_mac_time_irq                   (w_mac_time_irq               ),  
-    .o_mac_frame_seq                  (w_mac_frame_seq              ),  
-    .o_timestamp_addr                 (w_timestamp_addr             ),    
+    // // 打时间戳信号
+    // .o_mac_time_irq                   (w_mac_time_irq               ),  
+    // .o_mac_frame_seq                  (w_mac_frame_seq              ),  
+    // .o_timestamp_addr                 (w_timestamp_addr             ),    
     //qbu寄存器管理
     .o_rx_busy                        (w_rx_busy             	    ), 
     .o_rx_fragment_cnt                (w_rx_fragment_cnt     	    ), 

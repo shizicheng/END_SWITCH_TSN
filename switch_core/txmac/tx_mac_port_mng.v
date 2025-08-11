@@ -50,11 +50,11 @@ module  tx_mac_port_mng #(
     output          wire                                        o_mac_axi_data_valid                ,
     output          wire    [15:0]                              o_mac_axi_data_user                 ,
     input           wire                                        i_mac_axi_data_ready                ,
-    output          wire                                        o_mac_axi_data_last                 ,
-    // 报文时间打时间戳 
-    output              wire                                    o_mac_time_irq                      , // 打时间戳中断信号
-    output              wire  [7:0]                             o_mac_frame_seq                     , // 帧序列号
-    output              wire  [7:0]                             o_timestamp_addr                      // 打时间戳存储的 RAM 地址
+    output          wire                                        o_mac_axi_data_last                 
+//     // 报文时间打时间戳 
+//    input            wire                                        i_mac_time_irq                      , // 打时间戳中断信号
+//    input            wire  [7:0]                                 i_mac_frame_seq                     , // 帧序列号
+//    input            wire  [7:0]                                 i_timestamp_addr                      // 打时间戳存储的 RAM 地址
 );
 
 /*---------------- 调度层流水线 ------------------------*/
