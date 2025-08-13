@@ -1,7 +1,8 @@
 module async_fifo#(
     parameter   DATA_WIDTH      = 8,
     parameter   FIFO_DEPTH      = 16,
-    parameter   PTR_WIDTH       = clog2s(FIFO_DEPTH),
+    parameter   REAL_DEPTH      = 2**clog2(FIFO_DEPTH),
+    parameter   PTR_WIDTH       = clog2s(REAL_DEPTH),
     parameter   DATA_FLOAT_OUT  = 1'b0 
 
 )(
@@ -63,7 +64,7 @@ assign  rd_en = RD_EN && ~RD_EMPTY;
 
 fifomem #(
     .DATA_WIDTH(DATA_WIDTH),
-    .FIFO_DEPTH(FIFO_DEPTH),
+    .FIFO_DEPTH(REAL_DEPTH),
     .DATA_FLOAT_OUT(DATA_FLOAT_OUT)
 )
 x_fifomem(

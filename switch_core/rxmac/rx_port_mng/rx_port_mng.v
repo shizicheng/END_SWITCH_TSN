@@ -43,10 +43,6 @@ module rx_port_mng#(
     output             wire                                     o_cross_metadata_valid             , // 总线 metadata 数据有效信号
     output             wire                                     o_cross_metadata_last              , // 信息流结束标识
     input              wire                                     i_cross_metadata_ready             , // 下游模块反压流水线 
-
-    //qbu验证信号
-    output             wire                                     o_qbu_verify_valid                 ,
-    output             wire                                     o_qbu_response_valid               ,
     /*
         metadata 数据组成
             [63](1bit) : port_speed 
@@ -62,6 +58,10 @@ module rx_port_mng#(
             [11](1bit) : 是否为关键帧(Qbu)
             [10:4](7bit) ：time_stamp_addr，报文时间戳的地址信息
     */
+    //qbu验证信号
+    output             wire                                     o_qbu_verify_valid                 ,
+    output             wire                                     o_qbu_response_valid               ,
+
     /*---------------------------------------- 平台寄存器输入与 RXMAC 相关的寄存器 -------------------------------------------*/
     input              wire   [15:0]                            i_hash_ploy_regs                   , // 哈希多项式
     input              wire   [15:0]                            i_hash_init_val_regs               , // 哈希多项式初始值

@@ -25,7 +25,7 @@ module rx_data_stream_cross#(
     output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     output              wire                                    o_mac_cross_axi_data_valid         , // 端口数据有效
     input               wire                                    i_mac_cross_axi_data_ready         , // 交叉总线聚合架构反压流水线信号
-    output              wire                                    o_mac_cross_axi_data_last           // 数据流结束标识 
+    output              wire                                    o_mac_cross_axi_data_last            // 数据流结束标识 
 );
 
 

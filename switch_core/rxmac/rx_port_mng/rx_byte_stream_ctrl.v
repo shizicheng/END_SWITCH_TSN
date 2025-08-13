@@ -19,6 +19,7 @@ module rx_byte_stream_ctrl #(
     output              wire                                    o_mac_cross_axi_data_ready         , // 交叉总线聚合架构反压流水线信号
     input               wire                                    i_mac_cross_axi_data_last          , // 数据流结束标识 
     /*---------------------------------------- 限流后的数据流输出 -------------------------------------------*/
+    input               wire                                    i_stream_port_ready                , // 下级模块准备信号
     output              wire                                    o_stream_port_link                 , // 端口的连接状态
     output              wire   [1:0]                            o_stream_port_speed                , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
     output              wire   [CROSS_DATA_WIDTH:0]             o_stream_port_axi_data             , // 端口数据流，最高位表示crcerr
