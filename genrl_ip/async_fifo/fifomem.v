@@ -35,7 +35,7 @@ output      [DATA_WIDTH-1:0]    rd_data_o;
 reg [DATA_WIDTH-1:0]    rd_data_o = 'd0;   
 
 integer i;
-always @(posedge wr_clk_i or negedge rstn_wr_i)begin 
+always @(posedge wr_clk_i )begin 
     if(wr_en_i)
         mem[wr_addr_i] <= wr_data_i;
 end

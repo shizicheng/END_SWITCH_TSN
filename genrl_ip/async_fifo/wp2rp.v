@@ -12,7 +12,7 @@ module wp2rp#(
     
     reg [PTR_WIDTH:0]   wp_syn1,wp_syn2;
     
-    always @(posedge rd_clk_i or negedge rstn_i)begin
+    always @(posedge rd_clk_i)begin
         if(!rstn_i)begin
             wp_syn1[PTR_WIDTH:0] <= {{PTR_WIDTH+1}{1'b0}};
             wp_syn2[PTR_WIDTH:0] <= {{PTR_WIDTH+1}{1'b0}};

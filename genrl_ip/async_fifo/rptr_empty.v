@@ -31,7 +31,7 @@ assign  rd_addr_nxt[PTR_WIDTH-1:0] = rptr_bin_nxt[PTR_WIDTH-1:0];//(DATA_FLOAT_O
 assign  rd_empty_nxt = (wptr_gray_i[PTR_WIDTH:0] == rptr_gray_nxt[PTR_WIDTH:0]);
 
 // 二进制指针寄存器
-always @(posedge rd_clk_i or negedge rstn_i)begin
+always @(posedge rd_clk_i)begin
     if(!rstn_i)
         rptr_bin_o[PTR_WIDTH:0] <= {(PTR_WIDTH+1){1'b0}};
     else
@@ -39,7 +39,7 @@ always @(posedge rd_clk_i or negedge rstn_i)begin
 end
 
 // 格雷码指针寄存器
-always @(posedge rd_clk_i or negedge rstn_i)begin
+always @(posedge rd_clk_i)begin
     if(!rstn_i)
         rptr_gray_o[PTR_WIDTH:0] <= {(PTR_WIDTH+1){1'b0}};
     else
@@ -47,7 +47,7 @@ always @(posedge rd_clk_i or negedge rstn_i)begin
 end
 
 // 读地址寄存器
-always @(posedge rd_clk_i or negedge rstn_i)begin
+always @(posedge rd_clk_i)begin
     if(!rstn_i)
         rd_addr_o[PTR_WIDTH-1:0] <= {PTR_WIDTH{1'b0}};
     else
@@ -55,7 +55,7 @@ always @(posedge rd_clk_i or negedge rstn_i)begin
 end
 
 // 空标志寄存器
-always @(posedge rd_clk_i or negedge rstn_i)begin
+always @(posedge rd_clk_i)begin
     if(!rstn_i)
         rd_empty_o <= 1'b1;  // 复位时为空
     else

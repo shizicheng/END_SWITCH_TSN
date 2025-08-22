@@ -16,7 +16,7 @@ output reg [PTR_WIDTH:0]   wptr_bin_o  //输出二进制编码，生成wr_cnt
 wire    [PTR_WIDTH:0]   wptr_bin_nxt;
 
 
-always@(posedge wr_clk_i or negedge rstn_i)begin
+always@(posedge wr_clk_i)begin
     if(!rstn_i)
         wptr_bin_o[PTR_WIDTH:0] <= {(PTR_WIDTH+1){1'b0}};
     else

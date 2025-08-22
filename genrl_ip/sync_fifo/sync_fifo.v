@@ -82,7 +82,7 @@ assign data_out_c    = register[rd_ptr];
 assign DOUT          = FLOP_DATA_OUT ? data_out_c : data_out_d;
 
 // always块
-always @(posedge CLK or negedge RST) begin
+always @(posedge CLK ) begin
     if (RST)
         status_cnt <= 0;
     else begin
@@ -94,14 +94,14 @@ always @(posedge CLK or negedge RST) begin
     end
 end
 
-always @(posedge CLK or negedge RST) begin
+always @(posedge CLK ) begin
     if (RST)
         wr_ptr <= 0;
     else if (WR_EN && full_n)
         wr_ptr <= wr_ptr + 1'b1;
 end
 
-always @(posedge CLK or negedge RST) begin
+always @(posedge CLK ) begin
     if (RST)
         rd_ptr <= 0;
     else if (RD_EN && empty_n)
@@ -109,7 +109,7 @@ always @(posedge CLK or negedge RST) begin
 end
 
 integer i;
-always @(posedge CLK or negedge RST) begin
+always @(posedge CLK ) begin
     if (RST) begin
         for (i = 0; i < DEPTH; i = i + 1)
             register[i] <= 0;
@@ -119,7 +119,7 @@ always @(posedge CLK or negedge RST) begin
     end
 end
 
-always @(posedge CLK or negedge RST) begin
+always @(posedge CLK ) begin
     if (RST)
         data_out_d <= 0;
     else if (RD_EN && empty_n)
