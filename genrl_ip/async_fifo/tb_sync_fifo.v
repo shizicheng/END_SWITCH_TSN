@@ -3,8 +3,8 @@
 module tb_sync_fifo;
 
 // 参数定义
-parameter DEPTH = 8;
-parameter WIDTH = 8;
+parameter DEPTH = 80;
+parameter WIDTH = 80;
 parameter ALMOST_FULL_THRESHOLD = 2;
 parameter ALMOST_EMPTY_THRESHOLD = 2;
 parameter CLK_PERIOD = 10;  // 时钟周期 10ns (100MHz)

@@ -1,7 +1,8 @@
 module fifomem#(    
     parameter   DATA_WIDTH  = 8,
                 FIFO_DEPTH  = 16,
-                DATA_FLOAT_OUT = 1'b0
+                DATA_FLOAT_OUT = 1'b0,
+                RAM_STYLE = 1 // 1: BRAM, 0: LUTRAM
 )(
     rstn_wr_i,
     wr_clk_i,
@@ -30,19 +31,35 @@ input       [ADDR_WIDTH-1:0]    rd_addr_i;
 output      [DATA_WIDTH-1:0]    rd_data_o;
 
 
-(* ram_style = "block" *) reg [DATA_WIDTH-1:0]    mem [FIFO_DEPTH-1:0];
+generate
+    if (RAM_STYLE) begin : gen_bram
+        (* ram_style = "block" *) reg [DATA_WIDTH-1:0] mem [FIFO_DEPTH-1:0];
+    end else begin : gen_lutram
+        (* ram_style = "distributed" *) reg [DATA_WIDTH-1:0] mem [FIFO_DEPTH-1:0];
+    end
+endgenerate
 
 reg [DATA_WIDTH-1:0]    rd_data_o = 'd0;   
 
 integer i;
 always @(posedge wr_clk_i )begin 
-    if(wr_en_i)
-        mem[wr_addr_i] <= wr_data_i;
+    if(wr_en_i) begin
+        if(RAM_STYLE) begin
+            gen_bram.mem[wr_addr_i] <= wr_data_i;
+        end else begin
+            gen_lutram.mem[wr_addr_i] <= wr_data_i;
+        end 
+    end
+        
 end
 
 always @(posedge rd_clk_i )begin 
-   if(rd_en_i)
-        rd_data_o <= mem[rd_addr_i];
+    if(rd_en_i) begin
+        if(RAM_STYLE)
+             rd_data_o <= gen_bram.mem[rd_addr_i];
+        else 
+             rd_data_o <= gen_lutram.mem[rd_addr_i];        
+    end 
 end
 
 endmodule

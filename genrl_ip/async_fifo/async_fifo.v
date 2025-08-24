@@ -1,9 +1,12 @@
 module async_fifo#(
-    parameter   DATA_WIDTH      = 8,
+    parameter   DATA_WIDTH      = 8000,
     parameter   FIFO_DEPTH      = 16,
     parameter   REAL_DEPTH      = 2**clog2(FIFO_DEPTH),
     parameter   PTR_WIDTH       = clog2s(REAL_DEPTH),
-    parameter   DATA_FLOAT_OUT  = 1'b0 
+    parameter   DATA_FLOAT_OUT  = 1'b0,
+    parameter   RAM_STYLE       = 1  // RAM综合类型选择：
+                                     // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
+                                     // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快 
 
 )(
     input                       WR_RST,
@@ -24,10 +27,10 @@ module async_fifo#(
 
 
 //例化模板
-// async_fifo #(
+// async_fifo/async_fifo_fwft #(
 //     .DATA_WIDTH     (32                        ),
 //     .FIFO_DEPTH     (64                        ),
-//     .DATA_FLOAT_OUT (1'b0                      )  //1为fwft ， 0为stander
+//     .RAM_STYLE	   (RAM_STYLE				  ) 1:bram 0:lut
 // ) u_async_fifo (
 //     .WR_RST         (wr_rst                    ),
 //     .WR_CLK         (wr_clk                    ),
@@ -65,7 +68,8 @@ assign  rd_en = RD_EN && ~RD_EMPTY;
 fifomem #(
     .DATA_WIDTH(DATA_WIDTH),
     .FIFO_DEPTH(REAL_DEPTH),
-    .DATA_FLOAT_OUT(DATA_FLOAT_OUT)
+    .DATA_FLOAT_OUT(DATA_FLOAT_OUT),
+    .RAM_STYLE(RAM_STYLE)
 )
 x_fifomem(
     .rstn_wr_i(!WR_RST),

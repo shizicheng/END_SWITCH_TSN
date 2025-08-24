@@ -1,11 +1,14 @@
 
 `timescale  1ns/1ps
 module async_fifo_fwft #(
-	parameter DATA_WIDTH = 32,	// Data bus width
+	parameter DATA_WIDTH = 320,	// Data bus width
 	parameter FIFO_DEPTH = 1024,	// Depth of the FIFO
 	// Local parameters
 	parameter C_REAL_DEPTH = 2**clog2(FIFO_DEPTH),
-	parameter C_DEPTH_P1_BITS = clog2(C_REAL_DEPTH+1)
+	parameter C_DEPTH_P1_BITS = clog2(C_REAL_DEPTH+1),
+    parameter RAM_STYLE       = 0  // RAM综合类型选择：
+                                     // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
+                                     // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快 
 	) (
 	input RD_CLK,							// Read clock
 	input RD_RST,							// Read synchronous reset
@@ -160,7 +163,8 @@ assign WR_CNT = rWriteCount;
 // 		.FIFO_DEPTH(FIFO_DEPTH),
 // 		.C_REAL_DEPTH(C_REAL_DEPTH),
 // 		.C_DEPTH_BITS(C_DEPTH_BITS),
-// 		.C_DEPTH_P1_BITS(C_DEPTH_P1_BITS)
+// 		.C_DEPTH_P1_BITS(C_DEPTH_P1_BITS),
+//		.RAM_STYLE(RAM_STYLE)
 // 	) inst_async_fifo (
 // 		.RD_CLK   (RD_CLK),
 // 		.RD_RST   (RD_RST),
@@ -175,7 +179,8 @@ assign WR_CNT = rWriteCount;
 // 	);
 async_fifo #(
     .DATA_WIDTH     (DATA_WIDTH                ),
-    .FIFO_DEPTH     (FIFO_DEPTH                ) 
+    .FIFO_DEPTH     (FIFO_DEPTH                ),
+	.RAM_STYLE		(RAM_STYLE				   ) 
 ) u_async_fifo (
     .WR_RST         (WR_RST                    ),
     .WR_CLK         (WR_CLK                    ),
