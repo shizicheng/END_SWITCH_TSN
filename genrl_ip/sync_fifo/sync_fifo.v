@@ -1,9 +1,9 @@
 module sync_fifo #(
-    parameter                       DEPTH                  = 8         ,
-    parameter                       WIDTH                  = 8         ,
+    parameter                       DEPTH                  = 360         ,
+    parameter                       WIDTH                  = 1024         ,
     parameter                       ALMOST_FULL_THRESHOLD  = 0         ,
     parameter                       ALMOST_EMPTY_THRESHOLD = 0         ,
-    parameter                       FLOP_DATA_OUT          = 0         ,    //是否开启fwft
+    parameter                       FLOP_DATA_OUT          = 0         , //是否开启fwft
     parameter                       RAM_STYLE              = 1         , // RAM综合类型选择：
                                                                            // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
                                                                            // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快
@@ -71,21 +71,7 @@ reg    [BADDR-1:0]         rd_ptr, wr_ptr           ;
 reg    [CNT_WIDTH-1:0]     status_cnt               ;
 reg    [WIDTH-1:0]         data_out_d               ;
 
-// 参数化RAM类型选择
-generate
-    if (RAM_STYLE == 1) begin : gen_block_ram
-        (* ram_style="block" *)
-        reg [WIDTH-1:0] register [DEPTH-1:0]; 
-        assign data_out_c = register[rd_ptr];
-    end else if (RAM_STYLE == 0) begin : gen_distributed_ram
-        (* ram_style="distributed" *)
-        reg [WIDTH-1:0] register [DEPTH-1:0]; 
-        assign data_out_c = register[rd_ptr];
-    end  
-endgenerate
-
 wire   [WIDTH-1:0]         data_out_c               ;
-
 // assign语句
 assign DATA_CNT      = status_cnt;
 assign EMPTY         = (DATA_CNT == 0);
@@ -94,8 +80,6 @@ assign FULL          = (DATA_CNT == DEPTH);
 assign full_n        = ~FULL;
 assign ALMOST_FULL   = (DATA_CNT > (DEPTH - (ALMOST_FULL_THRESHOLD == 0 ? 1 : ALMOST_FULL_THRESHOLD))) ? 1'b1 : 1'b0;
 assign ALMOST_EMPTY  = (DATA_CNT <= ALMOST_EMPTY_THRESHOLD) ? 1'b1 : 1'b0;
-
-assign DOUT          = FLOP_DATA_OUT ? data_out_c : data_out_d;
 
 // always块
 always @(posedge CLK ) begin
@@ -124,22 +108,47 @@ always @(posedge CLK ) begin
         rd_ptr <= rd_ptr + 1'b1;
 end
 
-always @(posedge CLK ) begin
-    if (WR_EN && full_n) begin
-        if (RAM_STYLE == 1)
-            gen_block_ram.register[wr_ptr] <= DIN;
-        else
-            gen_distributed_ram.register[wr_ptr] <= DIN;
-    end
-end
+// 参数化RAM类型选择
+generate
+    if (RAM_STYLE == 1) begin : gen_block_ram
+        (* ram_style="block" *)
+        reg [WIDTH-1:0] register [DEPTH-1:0]; 
+        assign data_out_c = register[rd_ptr];
+        
+        always @(posedge CLK ) begin
+            if (WR_EN && full_n) begin 
+                    register[wr_ptr] <= #1 DIN; 
+            end
+        end
 
-always @(posedge CLK ) begin 
-    if (RD_EN && empty_n) begin
-        if (RAM_STYLE == 1)
-            data_out_d <= gen_block_ram.register[rd_ptr];
-        else
-            data_out_d <= gen_distributed_ram.register[rd_ptr];
-    end
-end
+        always @(posedge CLK ) begin 
+            if (RD_EN && empty_n) begin
+                    data_out_d <= #1 register[rd_ptr];
+            end
+        end
+
+    end else if (RAM_STYLE == 0) begin : gen_distributed_ram
+        (* ram_style="distributed" *)
+        reg [WIDTH-1:0] register [DEPTH-1:0]; 
+        assign data_out_c = register[rd_ptr];
+        always @(posedge CLK ) begin
+            if (WR_EN && full_n) begin 
+                    register[wr_ptr] <= #1 DIN; 
+            end
+        end
+
+        always @(posedge CLK ) begin 
+            if (RD_EN && empty_n) begin
+                    data_out_d <= #1 register[rd_ptr];
+            end
+        end
+    end  
+endgenerate
+
+assign DOUT          = FLOP_DATA_OUT ? data_out_c : data_out_d;
+
+
+
+
 
 endmodule

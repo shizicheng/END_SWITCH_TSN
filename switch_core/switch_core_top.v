@@ -236,7 +236,7 @@ module switch_core_top#(
     output              wire                                    o_switch_reg_bus_rd_dout_v           // 读数据有效使能
 );
 
-/*----------------------------- 数据流接口 --------------------*/
+/*----------------------------- wire --------------------*/
 `ifdef CPU_MAC 
     // RXMAC TO CROSSBAR
     wire                                    w_mac0_cross_port_link              ; // 端口的连接状态
@@ -246,11 +246,19 @@ module switch_core_top#(
     wire                                    w_mac0_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac0_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac0_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac0_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac0_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac0_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac0_cross_metadata_ready         ; // 下游模块反压流水线 
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac0_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac0_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac0_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac0_cross_axi_data_keep       ;
+    wire                                    w_cb_mac0_cross_axi_data_valid      ;
+    wire                                    w_cb_mac0_cross_axi_data_ready      ;
+    wire                                    w_cb_mac0_cross_axi_data_last       ;
     // CROSSBAR TO TXMAC
         //pmac通道数据
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac0_tx_axis_data            ; 
@@ -281,12 +289,20 @@ module switch_core_top#(
     wire                                    w_mac1_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac1_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac1_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac1_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac1_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac1_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac1_cross_metadata_ready         ; // 下游模块反压流水线 
-
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac1_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac1_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac1_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac1_cross_axi_data_keep       ;
+    wire                                    w_cb_mac1_cross_axi_data_valid      ;
+    wire                                    w_cb_mac1_cross_axi_data_ready      ;
+    wire                                    w_cb_mac1_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac1_tx_axis_data            ; 
     wire    [15:0]                              w_pmac1_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac1_tx_axis_keep            ; 
@@ -315,12 +331,20 @@ module switch_core_top#(
     wire                                    w_mac2_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac2_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac2_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac2_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac2_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac2_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac2_cross_metadata_ready         ; // 下游模块反压流水线 
-        // CROSSBAR TO TXMAC
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac2_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac2_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac2_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac2_cross_axi_data_keep       ;
+    wire                                    w_cb_mac2_cross_axi_data_valid      ;
+    wire                                    w_cb_mac2_cross_axi_data_ready      ;
+    wire                                    w_cb_mac2_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
         //pmac通道数据
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac2_tx_axis_data            ; 
     wire    [15:0]                              w_pmac2_tx_axis_user            ; 
@@ -350,12 +374,20 @@ module switch_core_top#(
     wire                                    w_mac3_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac3_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac3_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac3_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac3_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac3_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac3_cross_metadata_ready         ; // 下游模块反压流水线 
-    
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac3_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac3_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac3_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac3_cross_axi_data_keep       ;
+    wire                                    w_cb_mac3_cross_axi_data_valid      ;
+    wire                                    w_cb_mac3_cross_axi_data_ready      ;
+    wire                                    w_cb_mac3_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac3_tx_axis_data            ; 
     wire    [15:0]                              w_pmac3_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac3_tx_axis_keep            ; 
@@ -384,12 +416,20 @@ module switch_core_top#(
     wire                                    w_mac4_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac4_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac4_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac4_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac4_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac4_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac4_cross_metadata_ready         ; // 下游模块反压流水线 
-
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac4_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac4_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac4_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac4_cross_axi_data_keep       ;
+    wire                                    w_cb_mac4_cross_axi_data_valid      ;
+    wire                                    w_cb_mac4_cross_axi_data_ready      ;
+    wire                                    w_cb_mac4_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac4_tx_axis_data            ; 
     wire    [15:0]                              w_pmac4_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac4_tx_axis_keep            ; 
@@ -418,12 +458,20 @@ module switch_core_top#(
     wire                                    w_mac5_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac5_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac5_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac5_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac5_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac5_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac5_cross_metadata_ready         ; // 下游模块反压流水线 
-    
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac5_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac5_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac5_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac5_cross_axi_data_keep       ;
+    wire                                    w_cb_mac5_cross_axi_data_valid      ;
+    wire                                    w_cb_mac5_cross_axi_data_ready      ;
+    wire                                    w_cb_mac5_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac5_tx_axis_data            ; 
     wire    [15:0]                              w_pmac5_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac5_tx_axis_keep            ; 
@@ -452,12 +500,20 @@ module switch_core_top#(
     wire                                    w_mac6_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac6_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac6_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac6_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac6_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac6_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac6_cross_metadata_ready         ; // 下游模块反压流水线 
-
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac6_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac6_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac6_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac6_cross_axi_data_keep       ;
+    wire                                    w_cb_mac6_cross_axi_data_valid      ;
+    wire                                    w_cb_mac6_cross_axi_data_ready      ;
+    wire                                    w_cb_mac6_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac6_tx_axis_data            ; 
     wire    [15:0]                              w_pmac6_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac6_tx_axis_keep            ; 
@@ -486,12 +542,20 @@ module switch_core_top#(
     wire                                    w_mac7_cross_axi_data_valid         ; // 端口数据有效
     wire                                    w_mac7_cross_axi_data_ready         ; // 交叉总线聚合架构反压流水线信号
     wire                                    w_mac7_cross_axi_data_last          ; // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_mac7_cross_metadata               ; // 总线 metadata 数据
     wire                                    w_mac7_cross_metadata_valid         ; // 总线 metadata 数据有效信号
     wire                                    w_mac7_cross_metadata_last          ; // 信息流结束标识
     wire                                    w_mac7_cross_metadata_ready         ; // 下游模块反压流水线 
-
+    // CB TO CROSSBAR
+    wire                                    w_cb_mac7_cross_port_link           ;
+    wire   [1:0]                            w_cb_mac7_cross_port_speed          ;
+    wire   [CROSS_DATA_WIDTH:0]             w_cb_mac7_cross_port_axi_data       ;
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_cb_mac7_cross_axi_data_keep       ;
+    wire                                    w_cb_mac7_cross_axi_data_valid      ;
+    wire                                    w_cb_mac7_cross_axi_data_ready      ;
+    wire                                    w_cb_mac7_cross_axi_data_last       ;
+    // CROSSBAR TO TXMAC
     wire    [CROSS_DATA_WIDTH - 1:0]            w_pmac7_tx_axis_data            ; 
     wire    [15:0]                              w_pmac7_tx_axis_user            ; 
     wire    [(CROSS_DATA_WIDTH/8)-1:0]          w_pmac7_tx_axis_keep            ; 
@@ -521,7 +585,7 @@ module switch_core_top#(
     wire                                    w_tsn_as_cross_axi_data_valid       , // 端口数据有效
     wire                                    w_tsn_as_cross_axi_data_ready       , // 交叉总线聚合架构反压流水线信号
     wire                                    w_tsn_as_cross_axi_data_last        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]             w_tsn_as_cross_metadata             , // 总线 metadata 数据
     wire                                    w_tsn_as_cross_metadata_valid       , // 总线 metadata 数据有效信号
     wire                                    w_tsn_as_cross_metadata_last        , // 信息流结束标识
@@ -536,7 +600,7 @@ module switch_core_top#(
     wire                                     w_lldp_cross_axi_data_valid         , // 端口数据有效
     wire                                     w_lldp_cross_axi_data_ready         , // 交叉总线聚合架构反压流水线信号
     wire                                     w_lldp_cross_axi_data_last          , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     wire   [METADATA_WIDTH-1:0]              w_lldp_cross_metadata               , // 总线 metadata 数据
     wire                                     w_lldp_cross_metadata_valid         , // 总线 metadata 数据有效信号
     wire                                     w_lldp_cross_metadata_last          , // 信息流结束标识
@@ -715,7 +779,7 @@ rx_mac_mng #(
     .o_mac0_cross_axi_data_valid         ( w_mac0_cross_axi_data_valid            ), // 端口数据有效
     .i_mac0_cross_axi_data_ready         ( w_mac0_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac0_cross_axi_data_last          ( w_mac0_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac0_cross_metadata               ( w_mac0_cross_metadata                 ), // 总线 metadata 数据
     .o_mac0_cross_metadata_valid         ( w_mac0_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac0_cross_metadata_last          ( w_mac0_cross_metadata_last            ), // 信息流结束标识
@@ -754,7 +818,7 @@ rx_mac_mng #(
     .o_mac1_cross_axi_data_valid         ( w_mac1_cross_axi_data_valid            ), // 端口数据有效
     .i_mac1_cross_axi_data_ready         ( w_mac1_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac1_cross_axi_data_last          ( w_mac1_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac1_cross_metadata               ( w_mac1_cross_metadata                 ), // 总线 metadata 数据
     .o_mac1_cross_metadata_valid         ( w_mac1_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac1_cross_metadata_last          ( w_mac1_cross_metadata_last            ), // 信息流结束标识
@@ -793,7 +857,7 @@ rx_mac_mng #(
     .o_mac2_cross_axi_data_valid         ( w_mac2_cross_axi_data_valid            ), // 端口数据有效
     .i_mac2_cross_axi_data_ready         ( w_mac2_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac2_cross_axi_data_last          ( w_mac2_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac2_cross_metadata               ( w_mac2_cross_metadata                 ), // 总线 metadata 数据
     .o_mac2_cross_metadata_valid         ( w_mac2_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac2_cross_metadata_last          ( w_mac2_cross_metadata_last            ), // 信息流结束标识
@@ -832,7 +896,7 @@ rx_mac_mng #(
     .o_mac3_cross_axi_data_valid         ( w_mac3_cross_axi_data_valid            ), // 端口数据有效
     .i_mac3_cross_axi_data_ready         ( w_mac3_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac3_cross_axi_data_last          ( w_mac3_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac3_cross_metadata               ( w_mac3_cross_metadata                 ), // 总线 metadata 数据
     .o_mac3_cross_metadata_valid         ( w_mac3_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac3_cross_metadata_last          ( w_mac3_cross_metadata_last            ), // 信息流结束标识
@@ -871,7 +935,7 @@ rx_mac_mng #(
     .o_mac4_cross_axi_data_valid         ( w_mac4_cross_axi_data_valid            ), // 端口数据有效
     .i_mac4_cross_axi_data_ready         ( w_mac4_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac4_cross_axi_data_last          ( w_mac4_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac4_cross_metadata               ( w_mac4_cross_metadata                 ), // 总线 metadata 数据
     .o_mac4_cross_metadata_valid         ( w_mac4_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac4_cross_metadata_last          ( w_mac4_cross_metadata_last            ), // 信息流结束标识
@@ -910,7 +974,7 @@ rx_mac_mng #(
     .o_mac5_cross_axi_data_valid         ( w_mac5_cross_axi_data_valid            ), // 端口数据有效
     .i_mac5_cross_axi_data_ready         ( w_mac5_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac5_cross_axi_data_last          ( w_mac5_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac5_cross_metadata               ( w_mac5_cross_metadata                 ), // 总线 metadata 数据
     .o_mac5_cross_metadata_valid         ( w_mac5_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac5_cross_metadata_last          ( w_mac5_cross_metadata_last            ), // 信息流结束标识
@@ -919,28 +983,28 @@ rx_mac_mng #(
     /*---------------------------------------- MAC6 数据流 -------------------------------------------*/
 `ifdef MAC6
     // 数据流信息 
-    .i_mac6_port_link                   ( i_mac6_port_link                   ) , // 端口的连接状态
-    .i_mac6_port_speed                  ( i_mac6_port_speed                  ) , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G
-    .i_mac6_port_filter_preamble_v      ( i_mac6_port_filter_preamble_v      ) , // 端口是否过滤前导码信息
-    .i_mac6_axi_data                    ( i_mac6_axi_data                    ) , // 端口数据流
-    .i_mac6_axi_data_keep               ( i_mac6_axi_data_keep               ) , // 端口数据流掩码，有效字节指示
-    .i_mac6_axi_data_valid              ( i_mac6_axi_data_valid              ) , // 端口数据有效
-    .o_mac6_axi_data_ready              ( o_mac6_axi_data_ready              ) , // 端口数据就绪信号,表示当前模块准备好接收数据
-    .i_mac6_axi_data_last               ( i_mac6_axi_data_last               ) , // 数据流结束标识
-    // 报文时间打时间戳 
-    .o_mac6_time_irq                    ( o_rxmac6_time_irq        ) , // 打时间戳中断信号
-    .o_mac6_frame_seq                   ( o_rxmac6_frame_seq       ) , // 帧序列号
-    .o_timestamp6_addr                  ( o_rxtimestamp6_addr      ) , // 打时间戳存储的 RAM 地址
+    .i_mac6_port_link                    ( i_mac6_port_link                   ) , // 端口的连接状态
+    .i_mac6_port_speed                   ( i_mac6_port_speed                  ) , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G
+    .i_mac6_port_filter_preamble_v       ( i_mac6_port_filter_preamble_v      ) , // 端口是否过滤前导码信息
+    .i_mac6_axi_data                     ( i_mac6_axi_data                    ) , // 端口数据流
+    .i_mac6_axi_data_keep                ( i_mac6_axi_data_keep               ) , // 端口数据流掩码，有效字节指示
+    .i_mac6_axi_data_valid               ( i_mac6_axi_data_valid              ) , // 端口数据有效
+    .o_mac6_axi_data_ready               ( o_mac6_axi_data_ready              ) , // 端口数据就绪信号,表示当前模块准备好接收数据
+    .i_mac6_axi_data_last                ( i_mac6_axi_data_last               ) , // 数据流结束标识
+    // 报文时间打时间戳  
+    .o_mac6_time_irq                     ( o_rxmac6_time_irq        ) , // 打时间戳中断信号
+    .o_mac6_frame_seq                    ( o_rxmac6_frame_seq       ) , // 帧序列号
+    .o_timestamp6_addr                   ( o_rxtimestamp6_addr      ) , // 打时间戳存储的 RAM 地址
     /*---------------------------------------- 计算的哈希值 -------------------------------------------*/
-    .o_dmac6_hash_key                   ( w_dmac6_hash_key      ) , // 目的 mac 的哈希值
-    .o_dmac6                            ( w_dmac6               ) , // 目的 mac 的值
-    .o_dmac6_vld                        ( w_dmac6_vld           ) , // dmac_vld
-    .o_smac6_hash_key                   ( w_smac6_hash_key      ) , // 源 mac 的值有效标识
-    .o_smac6                            ( w_smac6               ) , // 源 mac 的值
-    .o_smac6_vld                        ( w_smac6_vld           ) , // smac_vld
- 
-    .i_tx_6_port                        ( w_tx_6_port           ) , // 交换表模块返回的查表端口信息
-    .i_tx_6_port_vld                    ( w_tx_6_port_vld       ) ,
+    .o_dmac6_hash_key                    ( w_dmac6_hash_key      ) , // 目的 mac 的哈希值
+    .o_dmac6                             ( w_dmac6               ) , // 目的 mac 的值
+    .o_dmac6_vld                         ( w_dmac6_vld           ) , // dmac_vld
+    .o_smac6_hash_key                    ( w_smac6_hash_key      ) , // 源 mac 的值有效标识
+    .o_smac6                             ( w_smac6               ) , // 源 mac 的值
+    .o_smac6_vld                         ( w_smac6_vld           ) , // smac_vld
+  
+    .i_tx_6_port                         ( w_tx_6_port           ) , // 交换表模块返回的查表端口信息
+    .i_tx_6_port_vld                     ( w_tx_6_port_vld       ) ,
 /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
     .o_mac6_cross_port_link              ( w_mac6_cross_port_link                 ), // 端口的连接状态
     .o_mac6_cross_port_speed             ( w_mac6_cross_port_speed                ), // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
@@ -949,7 +1013,7 @@ rx_mac_mng #(
     .o_mac6_cross_axi_data_valid         ( w_mac6_cross_axi_data_valid            ), // 端口数据有效
     .i_mac6_cross_axi_data_ready         ( w_mac6_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
     .o_mac6_cross_axi_data_last          ( w_mac6_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_mac6_cross_metadata               ( w_mac6_cross_metadata                 ), // 总线 metadata 数据
     .o_mac6_cross_metadata_valid         ( w_mac6_cross_metadata_valid           ), // 总线 metadata 数据有效信号
     .o_mac6_cross_metadata_last          ( w_mac6_cross_metadata_last            ), // 信息流结束标识
@@ -981,18 +1045,18 @@ rx_mac_mng #(
     .i_tx_7_port                        ( w_tx_7_port                       ) , // 交换表模块返回的查表端口信息
     .i_tx_7_port_vld                    ( w_tx_7_port_vld                   ) ,
 /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .o_mac7_cross_port_link              ( w_mac7_cross_port_link                 ), // 端口的连接状态
-    .o_mac7_cross_port_speed             ( w_mac7_cross_port_speed                ), // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .o_mac7_cross_port_axi_data          ( w_mac7_cross_port_axi_data             ), // 端口数据流，最高位表示crcerr
-    .o_mac7_cross_axi_data_keep          ( w_mac7_cross_axi_data_keep             ), // 端口数据流掩码，有效字节指示
-    .o_mac7_cross_axi_data_valid         ( w_mac7_cross_axi_data_valid            ), // 端口数据有效
-    .i_mac7_cross_axi_data_ready         ( w_mac7_cross_axi_data_ready            ), // 交叉总线聚合架构反压流水线信号
-    .o_mac7_cross_axi_data_last          ( w_mac7_cross_axi_data_last             ), // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .o_mac7_cross_metadata               ( w_mac7_cross_metadata                 ), // 总线 metadata 数据
-    .o_mac7_cross_metadata_valid         ( w_mac7_cross_metadata_valid           ), // 总线 metadata 数据有效信号
-    .o_mac7_cross_metadata_last          ( w_mac7_cross_metadata_last            ), // 信息流结束标识
-    .i_mac7_cross_metadata_ready         ( w_mac7_cross_metadata_ready           ), // 下游模块反压流水线 
+    .o_mac7_cross_port_link             ( w_mac7_cross_port_link            ), // 端口的连接状态
+    .o_mac7_cross_port_speed            ( w_mac7_cross_port_speed           ), // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac7_cross_port_axi_data         ( w_mac7_cross_port_axi_data        ), // 端口数据流，最高位表示crcerr
+    .o_mac7_cross_axi_data_keep         ( w_mac7_cross_axi_data_keep        ), // 端口数据流掩码，有效字节指示
+    .o_mac7_cross_axi_data_valid        ( w_mac7_cross_axi_data_valid       ), // 端口数据有效
+    .i_mac7_cross_axi_data_ready        ( w_mac7_cross_axi_data_ready       ), // 交叉总线聚合架构反压流水线信号
+    .o_mac7_cross_axi_data_last         ( w_mac7_cross_axi_data_last        ), // 数据流结束标识
+    
+    .o_mac7_cross_metadata              ( w_mac7_cross_metadata             ), // 总线 metadata 数据
+    .o_mac7_cross_metadata_valid        ( w_mac7_cross_metadata_valid       ), // 总线 metadata 数据有效信号
+    .o_mac7_cross_metadata_last         ( w_mac7_cross_metadata_last        ), // 信息流结束标识
+    .i_mac7_cross_metadata_ready        ( w_mac7_cross_metadata_ready       ), // 下游模块反压流水线 
 `endif
 /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
@@ -1025,103 +1089,103 @@ swlist#(
     .i_clk                      ( i_clk                     ) ,   // 250MHz
     .i_rst                      ( i_rst                     ) ,   
 `ifdef CPU_MAC  
-    .i_dmac_cpu_hash_key        (w_dmac_cpu_hash_key        ) , // 目的 mac 的哈希值
-    .i_dmac_cpu                 (w_dmac_cpu                 ) , // 目的 mac 的值
-    .i_dmac_cpu_vld             (w_dmac_cpu_vld             ) , // dmac_vld
-    .i_smac_cpu_hash_key        (w_smac_cpu_hash_key        ) , // 源 mac 的值有效标识
-    .i_smac_cpu                 (w_smac_cpu                 ) , // 源 mac 的值
-    .i_smac_cpu_vld             (w_smac_cpu_vld             ) , // smac_vld
-
-    .o_tx_cpu_port              (w_tx_cpu_port              ) ,
-    .o_tx_cpu_port_vld          (w_tx_cpu_port_vld          ) ,
+    .i_dmac_cpu_hash_key        ( w_dmac_cpu_hash_key        ) , // 目的 mac 的哈希值
+    .i_dmac_cpu                 ( w_dmac_cpu                 ) , // 目的 mac 的值
+    .i_dmac_cpu_vld             ( w_dmac_cpu_vld             ) , // dmac_vld
+    .i_smac_cpu_hash_key        ( w_smac_cpu_hash_key        ) , // 源 mac 的值有效标识
+    .i_smac_cpu                 ( w_smac_cpu                 ) , // 源 mac 的值
+    .i_smac_cpu_vld             ( w_smac_cpu_vld             ) , // smac_vld
+ 
+    .o_tx_cpu_port              ( w_tx_cpu_port              ) ,
+    .o_tx_cpu_port_vld          ( w_tx_cpu_port_vld          ) ,
 `endif  
 `ifdef MAC0 
-    .i_dmac0_hash_key           (w_dmac0_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac0                    (w_dmac0         )            , // 目的 mac 的值
-    .i_dmac0_vld                (w_dmac0_vld     )            , // dmac_vld
-    .i_smac0_hash_key           (w_smac0_hash_key)            , // 源 mac 的值有效标识
-    .i_smac0                    (w_smac0         )            , // 源 mac 的值
-    .i_smac0_vld                (w_smac0_vld     )            , // smac_vld
- 
-    .o_tx_0_port                (w_tx_0_port     )            ,
-    .o_tx_0_port_vld            (w_tx_0_port_vld )            ,
+    .i_dmac0_hash_key           ( w_dmac0_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac0                    ( w_dmac0          )            , // 目的 mac 的值
+    .i_dmac0_vld                ( w_dmac0_vld      )            , // dmac_vld
+    .i_smac0_hash_key           ( w_smac0_hash_key )            , // 源 mac 的值有效标识
+    .i_smac0                    ( w_smac0          )            , // 源 mac 的值
+    .i_smac0_vld                ( w_smac0_vld      )            , // smac_vld
+   
+    .o_tx_0_port                ( w_tx_0_port      )            ,
+    .o_tx_0_port_vld            ( w_tx_0_port_vld  )            ,
 `endif      
 `ifdef MAC1 
-    .i_dmac1_hash_key           (w_dmac1_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac1                    (w_dmac1         )            , // 目的 mac 的值
-    .i_dmac1_vld                (w_dmac1_vld     )            , // dmac_vld
-    .i_smac1_hash_key           (w_smac1_hash_key)            , // 源 mac 的值有效标识
-    .i_smac1                    (w_smac1         )            , // 源 mac 的值
-    .i_smac1_vld                (w_smac1_vld     )            , // smac_vld
- 
-    .o_tx_1_port                (w_tx_1_port     )            ,
-    .o_tx_1_port_vld            (w_tx_1_port_vld )            ,
+    .i_dmac1_hash_key           ( w_dmac1_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac1                    ( w_dmac1          )            , // 目的 mac 的值
+    .i_dmac1_vld                ( w_dmac1_vld      )            , // dmac_vld
+    .i_smac1_hash_key           ( w_smac1_hash_key )            , // 源 mac 的值有效标识
+    .i_smac1                    ( w_smac1          )            , // 源 mac 的值
+    .i_smac1_vld                ( w_smac1_vld      )            , // smac_vld
+   
+    .o_tx_1_port                ( w_tx_1_port      )            ,
+    .o_tx_1_port_vld            ( w_tx_1_port_vld  )            ,
 `endif      
 `ifdef MAC2 
-    .i_dmac2_hash_key           (w_dmac2_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac2                    (w_dmac2         )            , // 目的 mac 的值
-    .i_dmac2_vld                (w_dmac2_vld     )            , // dmac_vld
-    .i_smac2_hash_key           (w_smac2_hash_key)            , // 源 mac 的值有效标识
-    .i_smac2                    (w_smac2         )            , // 源 mac 的值
-    .i_smac2_vld                (w_smac2_vld     )            , // smac_vld
- 
-    .o_tx_2_port                (w_tx_2_port     )            ,
-    .o_tx_2_port_vld            (w_tx_2_port_vld )            ,
-`endif  
-`ifdef MAC3 
-    .i_dmac3_hash_key           (w_dmac3_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac3                    (w_dmac3         )            , // 目的 mac 的值
-    .i_dmac3_vld                (w_dmac3_vld     )            , // dmac_vld
-    .i_smac3_hash_key           (w_smac3_hash_key)            , // 源 mac 的值有效标识
-    .i_smac3                    (w_smac3         )            , // 源 mac 的值
-    .i_smac3_vld                (w_smac3_vld     )            , // smac_vld
- 
-    .o_tx_3_port                (w_tx_3_port     )            ,
-    .o_tx_3_port_vld            (w_tx_3_port_vld )            ,
-`endif  
-`ifdef MAC4 
-    .i_dmac4_hash_key           (w_dmac4_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac4                    (w_dmac4         )            , // 目的 mac 的值
-    .i_dmac4_vld                (w_dmac4_vld     )            , // dmac_vld
-    .i_smac4_hash_key           (w_smac4_hash_key)            , // 源 mac 的值有效标识
-    .i_smac4                    (w_smac4         )            , // 源 mac 的值
-    .i_smac4_vld                (w_smac4_vld     )            , // smac_vld
- 
-    .o_tx_4_port                (w_tx_4_port     )            ,
-    .o_tx_4_port_vld            (w_tx_4_port_vld )            ,
+    .i_dmac2_hash_key           ( w_dmac2_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac2                    ( w_dmac2          )            , // 目的 mac 的值
+    .i_dmac2_vld                ( w_dmac2_vld      )            , // dmac_vld
+    .i_smac2_hash_key           ( w_smac2_hash_key )            , // 源 mac 的值有效标识
+    .i_smac2                    ( w_smac2          )            , // 源 mac 的值
+    .i_smac2_vld                ( w_smac2_vld      )            , // smac_vld
+   
+    .o_tx_2_port                ( w_tx_2_port      )            ,
+    .o_tx_2_port_vld            ( w_tx_2_port_vld  )            ,
+`endif    
+`ifdef MAC3   
+    .i_dmac3_hash_key           ( w_dmac3_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac3                    ( w_dmac3          )            , // 目的 mac 的值
+    .i_dmac3_vld                ( w_dmac3_vld      )            , // dmac_vld
+    .i_smac3_hash_key           ( w_smac3_hash_key )            , // 源 mac 的值有效标识
+    .i_smac3                    ( w_smac3          )            , // 源 mac 的值
+    .i_smac3_vld                ( w_smac3_vld      )            , // smac_vld
+   
+    .o_tx_3_port                ( w_tx_3_port      )            ,
+    .o_tx_3_port_vld            ( w_tx_3_port_vld  )            ,
+`endif    
+`ifdef MAC4   
+    .i_dmac4_hash_key           ( w_dmac4_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac4                    ( w_dmac4          )            , // 目的 mac 的值
+    .i_dmac4_vld                ( w_dmac4_vld      )            , // dmac_vld
+    .i_smac4_hash_key           ( w_smac4_hash_key )            , // 源 mac 的值有效标识
+    .i_smac4                    ( w_smac4          )            , // 源 mac 的值
+    .i_smac4_vld                ( w_smac4_vld      )            , // smac_vld
+   
+    .o_tx_4_port                ( w_tx_4_port      )            ,
+    .o_tx_4_port_vld            ( w_tx_4_port_vld  )            ,
 `endif  
 `ifdef MAC5 
-    .i_dmac5_hash_key           (w_dmac5_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac5                    (w_dmac5         )            , // 目的 mac 的值
-    .i_dmac5_vld                (w_dmac5_vld     )            , // dmac_vld
-    .i_smac5_hash_key           (w_smac5_hash_key)            , // 源 mac 的值有效标识
-    .i_smac5                    (w_smac5         )            , // 源 mac 的值
-    .i_smac5_vld                (w_smac5_vld     )            , // smac_vld
- 
-    .o_tx_5_port                (w_tx_5_port     )            ,
-    .o_tx_5_port_vld            (w_tx_5_port_vld )            ,
-`endif  
-`ifdef MAC6 
-    .i_dmac6_hash_key           (w_dmac6_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac6                    (w_dmac6         )            , // 目的 mac 的值
-    .i_dmac6_vld                (w_dmac6_vld     )            , // dmac_vld
-    .i_smac6_hash_key           (w_smac6_hash_key)            , // 源 mac 的值有效标识
-    .i_smac6                    (w_smac6         )            , // 源 mac 的值
-    .i_smac6_vld                (w_smac6_vld     )            , // smac_vld
- 
-    .o_tx_6_port                (w_tx_6_port     )            ,
-    .o_tx_6_port_vld            (w_tx_6_port_vld )            ,
-`endif  
-`ifdef MAC7 
-    .i_dmac7_hash_key           (w_dmac7_hash_key)            , // 目的 mac 的哈希值
-    .i_dmac7                    (w_dmac7         )            , // 目的 mac 的值
-    .i_dmac7_vld                (w_dmac7_vld     )            , // dmac_vld
-    .i_smac7_hash_key           (w_smac7_hash_key)            , // 源 mac 的值有效标识
-    .i_smac7                    (w_smac7         )            , // 源 mac 的值
-    .i_smac7_vld                (w_smac7_vld     )            , // smac_vld
- 
-    .o_tx_7_port                (w_tx_7_port     )            ,
-    .o_tx_7_port_vld            (w_tx_7_port_vld )            ,
+    .i_dmac5_hash_key           ( w_dmac5_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac5                    ( w_dmac5          )            , // 目的 mac 的值
+    .i_dmac5_vld                ( w_dmac5_vld      )            , // dmac_vld
+    .i_smac5_hash_key           ( w_smac5_hash_key )            , // 源 mac 的值有效标识
+    .i_smac5                    ( w_smac5          )            , // 源 mac 的值
+    .i_smac5_vld                ( w_smac5_vld      )            , // smac_vld
+   
+    .o_tx_5_port                ( w_tx_5_port      )            ,
+    .o_tx_5_port_vld            ( w_tx_5_port_vld  )            ,
+`endif    
+`ifdef MAC6   
+    .i_dmac6_hash_key           ( w_dmac6_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac6                    ( w_dmac6          )            , // 目的 mac 的值
+    .i_dmac6_vld                ( w_dmac6_vld      )            , // dmac_vld
+    .i_smac6_hash_key           ( w_smac6_hash_key )            , // 源 mac 的值有效标识
+    .i_smac6                    ( w_smac6          )            , // 源 mac 的值
+    .i_smac6_vld                ( w_smac6_vld      )            , // smac_vld
+   
+    .o_tx_6_port                ( w_tx_6_port      )            ,
+    .o_tx_6_port_vld            ( w_tx_6_port_vld  )            ,
+`endif    
+`ifdef MAC7   
+    .i_dmac7_hash_key           ( w_dmac7_hash_key )            , // 目的 mac 的哈希值
+    .i_dmac7                    ( w_dmac7          )            , // 目的 mac 的值
+    .i_dmac7_vld                ( w_dmac7_vld      )            , // dmac_vld
+    .i_smac7_hash_key           ( w_smac7_hash_key )            , // 源 mac 的值有效标识
+    .i_smac7                    ( w_smac7          )            , // 源 mac 的值
+    .i_smac7_vld                ( w_smac7_vld      )            , // smac_vld
+   
+    .o_tx_7_port                ( w_tx_7_port      )            ,
+    .o_tx_7_port_vld            ( w_tx_7_port_vld  )            ,
 `endif  
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
@@ -1140,16 +1204,15 @@ swlist#(
     .o_switch_reg_bus_we_dout_v ( w_swlist_reg_bus_rd_dout_v  )           // 读数据有效使能
 );
 
-crossbar_switch_top#(
-
-    .REG_ADDR_BUS_WIDTH         ( REG_ADDR_BUS_WIDTH         )     ,  // 接收 MAC 层的配置寄存器地址位宽
-    .REG_DATA_BUS_WIDTH         ( REG_DATA_BUS_WIDTH         )     ,  // 接收 MAC 层的配置寄存器数据位宽
-    .METADATA_WIDTH             ( METADATA_WIDTH             )     ,  // 信息流（METADATA）的位宽
-    .PORT_MNG_DATA_WIDTH        ( PORT_MNG_DATA_WIDTH        )     ,
-    .PORT_FIFO_PRI_NUM          ( PORT_FIFO_PRI_NUM          )     ,
-    .CROSS_DATA_WIDTH           ( CROSS_DATA_WIDTH           )      // 聚合总线输出 
-)crossbar_switch_top_inst (
-    /*-------------------- RXMAC 输入数据流 -----------------------*/
+tsn_cb_top#(
+    .PORT_MNG_DATA_WIDTH        ( PORT_MNG_DATA_WIDTH  )   ,  // Mac_port_mng 数据位宽 
+    .CROSS_DATA_WIDTH           ( CROSS_DATA_WIDTH     )   ,  // 聚合总线输出
+    .REG_ADDR_BUS_WIDTH         ( REG_ADDR_BUS_WIDTH   )   ,  // 接收 MAC 层的配置寄存器地址位宽
+    .REG_DATA_BUS_WIDTH         ( REG_DATA_BUS_WIDTH   )         //      
+)tsn_cb_top_inst (  
+    .i_clk                      ( i_clk                )           ,
+    .i_rst                      ( i_rst                )           ,
+    /*---------------------- 接收 MAC 数据流 ------------------*/
 `ifdef CPU_MAC
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
     .i_mac0_cross_port_link      ( w_mac0_cross_port_link      )        , // 端口的连接状态
@@ -1159,26 +1222,26 @@ crossbar_switch_top#(
     .i_mac0_cross_axi_data_valid ( w_mac0_cross_axi_data_valid )        , // 端口数据有效
     .o_mac0_cross_axi_data_ready ( w_mac0_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac0_cross_axi_data_last  ( w_mac0_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac0_cross_metadata       ( w_mac0_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac0_cross_metadata_valid ( w_mac0_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac0_cross_metadata_last  ( w_mac0_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac0_cross_metadata_ready ( w_mac0_cross_metadata_ready )        , // 下游模块反压流水线 
+    
+    .i_mac0_cross_metadata       ( w_mac0_cross_metadata       )       , // 总线 metadata 数据
+    .i_mac0_cross_metadata_valid ( w_mac0_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .i_mac0_cross_metadata_last  ( w_mac0_cross_metadata_last  )       , // 信息流结束标识
+    .o_mac0_cross_metadata_ready ( w_mac0_cross_metadata_ready )       , // 下游模块反压流水线 
 `endif
 `ifdef MAC1
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac1_cross_port_link      ( w_mac1_cross_port_link      )        , // 端口的连接状态
-    .i_mac1_cross_port_speed     ( w_mac1_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac1_cross_port_axi_data  ( w_mac1_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac1_cross_axi_data_keep  ( w_mac1_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac1_cross_axi_data_valid ( w_mac1_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac1_cross_axi_data_ready ( w_mac1_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac1_cross_axi_data_last  ( w_mac1_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac1_cross_metadata       ( w_mac1_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac1_cross_metadata_valid ( w_mac1_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac1_cross_metadata_last  ( w_mac1_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac1_cross_metadata_ready ( w_mac1_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac1_cross_port_link      ( w_mac1_cross_port_link      )       , // 端口的连接状态
+    .i_mac1_cross_port_speed     ( w_mac1_cross_port_speed     )       , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac1_cross_port_axi_data  ( w_mac1_cross_port_axi_data  )       , // 端口数据流，最高位表示crcerr
+    .i_mac1_cross_axi_data_keep  ( w_mac1_cross_axi_data_keep  )       , // 端口数据流掩码，有效字节指示
+    .i_mac1_cross_axi_data_valid ( w_mac1_cross_axi_data_valid )       , // 端口数据有效
+    .o_mac1_cross_axi_data_ready ( w_mac1_cross_axi_data_ready )       , // 交叉总线聚合架构反压流水线信号
+    .i_mac1_cross_axi_data_last  ( w_mac1_cross_axi_data_last  )       , // 数据流结束标识
+    
+    .i_mac1_cross_metadata       ( w_mac1_cross_metadata       )       , // 总线 metadata 数据
+    .i_mac1_cross_metadata_valid ( w_mac1_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .i_mac1_cross_metadata_last  ( w_mac1_cross_metadata_last  )       , // 信息流结束标识
+    .o_mac1_cross_metadata_ready ( w_mac1_cross_metadata_ready )       , // 下游模块反压流水线 
 `endif
 `ifdef MAC2
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
@@ -1189,11 +1252,11 @@ crossbar_switch_top#(
     .i_mac2_cross_axi_data_valid ( w_mac2_cross_axi_data_valid )        , // 端口数据有效
     .o_mac2_cross_axi_data_ready ( w_mac2_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac2_cross_axi_data_last  ( w_mac2_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac2_cross_metadata       ( w_mac2_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac2_cross_metadata_valid ( w_mac2_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac2_cross_metadata_last  ( w_mac2_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac2_cross_metadata_ready ( w_mac2_cross_metadata_ready )        , // 下游模块反压流水线 
+    
+    .i_mac2_cross_metadata       ( w_mac2_cross_metadata       )       , // 总线 metadata 数据
+    .i_mac2_cross_metadata_valid ( w_mac2_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .i_mac2_cross_metadata_last  ( w_mac2_cross_metadata_last  )       , // 信息流结束标识
+    .o_mac2_cross_metadata_ready ( w_mac2_cross_metadata_ready )       , // 下游模块反压流水线 
 `endif
 `ifdef MAC3
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
@@ -1204,11 +1267,11 @@ crossbar_switch_top#(
     .i_mac3_cross_axi_data_valid ( w_mac3_cross_axi_data_valid )        , // 端口数据有效
     .o_mac3_cross_axi_data_ready ( w_mac3_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac3_cross_axi_data_last  ( w_mac3_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac3_cross_metadata       ( w_mac3_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac3_cross_metadata_valid ( w_mac3_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac3_cross_metadata_last  ( w_mac3_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac3_cross_metadata_ready ( w_mac3_cross_metadata_ready )        , // 下游模块反压流水线 
+    
+    .i_mac3_cross_metadata       ( w_mac3_cross_metadata       )       , // 总线 metadata 数据
+    .i_mac3_cross_metadata_valid ( w_mac3_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .i_mac3_cross_metadata_last  ( w_mac3_cross_metadata_last  )       , // 信息流结束标识
+    .o_mac3_cross_metadata_ready ( w_mac3_cross_metadata_ready )       , // 下游模块反压流水线 
 `endif
 `ifdef MAC4
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
@@ -1219,7 +1282,7 @@ crossbar_switch_top#(
     .i_mac4_cross_axi_data_valid ( w_mac4_cross_axi_data_valid )        , // 端口数据有效
     .o_mac4_cross_axi_data_ready ( w_mac4_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac4_cross_axi_data_last  ( w_mac4_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+      
     .i_mac4_cross_metadata       ( w_mac4_cross_metadata       )        , // 总线 metadata 数据
     .i_mac4_cross_metadata_valid ( w_mac4_cross_metadata_valid )        , // 总线 metadata 数据有效信号
     .i_mac4_cross_metadata_last  ( w_mac4_cross_metadata_last  )        , // 信息流结束标识
@@ -1234,7 +1297,7 @@ crossbar_switch_top#(
     .i_mac5_cross_axi_data_valid ( w_mac5_cross_axi_data_valid )        , // 端口数据有效
     .o_mac5_cross_axi_data_ready ( w_mac5_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac5_cross_axi_data_last  ( w_mac5_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+        
     .i_mac5_cross_metadata       ( w_mac5_cross_metadata       )        , // 总线 metadata 数据
     .i_mac5_cross_metadata_valid ( w_mac5_cross_metadata_valid )        , // 总线 metadata 数据有效信号
     .i_mac5_cross_metadata_last  ( w_mac5_cross_metadata_last  )        , // 信息流结束标识
@@ -1249,7 +1312,7 @@ crossbar_switch_top#(
     .i_mac6_cross_axi_data_valid ( w_mac6_cross_axi_data_valid )        , // 端口数据有效
     .o_mac6_cross_axi_data_ready ( w_mac6_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac6_cross_axi_data_last  ( w_mac6_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+        
     .i_mac6_cross_metadata       ( w_mac6_cross_metadata       )        , // 总线 metadata 数据
     .i_mac6_cross_metadata_valid ( w_mac6_cross_metadata_valid )        , // 总线 metadata 数据有效信号
     .i_mac6_cross_metadata_last  ( w_mac6_cross_metadata_last  )        , // 信息流结束标识
@@ -1264,11 +1327,278 @@ crossbar_switch_top#(
     .i_mac7_cross_axi_data_valid ( w_mac7_cross_axi_data_valid )        , // 端口数据有效
     .o_mac7_cross_axi_data_ready ( w_mac7_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
     .i_mac7_cross_axi_data_last  ( w_mac7_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac7_cross_metadata       ( w_mac7_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac7_cross_metadata_valid ( w_mac7_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac7_cross_metadata_last  ( w_mac7_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac7_cross_metadata_ready ( w_mac7_cross_metadata_ready )        , // 下游模块反压流水线 
+      
+    .i_mac7_cross_metadata       ( w_mac7_cross_metadata       )       , // 总线 metadata 数据
+    .i_mac7_cross_metadata_valid ( w_mac7_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .i_mac7_cross_metadata_last  ( w_mac7_cross_metadata_last  )       , // 信息流结束标识
+    .o_mac7_cross_metadata_ready ( w_mac7_cross_metadata_ready )       , // 下游模块反压流水线 
+`endif
+    /*---------------------- 发送 MAC 数据流 ------------------*/
+`ifdef CPU_MAC
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac0_cross_port_link      ( w_cb_mac0_cross_port_link      )       , // 端口的连接状态
+    .o_mac0_cross_port_speed     ( w_cb_mac0_cross_port_speed     )       , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac0_cross_port_axi_data  ( w_cb_mac0_cross_port_axi_data  )       , // 端口数据流，最高位表示crcerr
+    .o_mac0_cross_axi_data_keep  ( w_cb_mac0_cross_axi_data_keep  )       , // 端口数据流掩码，有效字节指示
+    .o_mac0_cross_axi_data_valid ( w_cb_mac0_cross_axi_data_valid )       , // 端口数据有效
+    .i_mac0_cross_axi_data_ready ( w_cb_mac0_cross_axi_data_ready )       , // 交叉总线聚合架构反压流水线信号
+    .o_mac0_cross_axi_data_last  ( w_cb_mac0_cross_axi_data_last  )       , // 数据流结束标识
+
+    .o_mac0_cross_metadata       ( w_cb_mac0_cross_metadata       )       , // 总线 metadata 数据
+    .o_mac0_cross_metadata_valid ( w_cb_mac0_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .o_mac0_cross_metadata_last  ( w_cb_mac0_cross_metadata_last  )       , // 信息流结束标识
+    .i_mac0_cross_metadata_ready ( w_cb_mac0_cross_metadata_ready )       , // 下游模块反压流水线 
+`endif
+`ifdef MAC1
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac1_cross_port_link      ( w_cb_mac1_cross_port_link      )        , // 端口的连接状态
+    .o_mac1_cross_port_speed     ( w_cb_mac1_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac1_cross_port_axi_data  ( w_cb_mac1_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac1_cross_axi_data_keep  ( w_cb_mac1_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac1_cross_axi_data_valid ( w_cb_mac1_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac1_cross_axi_data_ready ( w_cb_mac1_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac1_cross_axi_data_last  ( w_cb_mac1_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac1_cross_metadata       ( w_cb_mac1_cross_metadata       )       , // 总线 metadata 数据
+    .o_mac1_cross_metadata_valid ( w_cb_mac1_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .o_mac1_cross_metadata_last  ( w_cb_mac1_cross_metadata_last  )       , // 信息流结束标识
+    .i_mac1_cross_metadata_ready ( w_cb_mac1_cross_metadata_ready )       , // 下游模块反压流水线 
+`endif
+`ifdef MAC2
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac2_cross_port_link      ( w_cb_mac2_cross_port_link      )        , // 端口的连接状态
+    .o_mac2_cross_port_speed     ( w_cb_mac2_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac2_cross_port_axi_data  ( w_cb_mac2_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac2_cross_axi_data_keep  ( w_cb_mac2_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac2_cross_axi_data_valid ( w_cb_mac2_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac2_cross_axi_data_ready ( w_cb_mac2_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac2_cross_axi_data_last  ( w_cb_mac2_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac2_cross_metadata       ( w_cb_mac2_cross_metadata       )       , // 总线 metadata 数据
+    .o_mac2_cross_metadata_valid ( w_cb_mac2_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .o_mac2_cross_metadata_last  ( w_cb_mac2_cross_metadata_last  )       , // 信息流结束标识
+    .i_mac2_cross_metadata_ready ( w_cb_mac2_cross_metadata_ready )       , // 下游模块反压流水线 
+`endif
+`ifdef MAC3
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac3_cross_port_link      ( w_cb_mac3_cross_port_link      )        , // 端口的连接状态
+    .o_mac3_cross_port_speed     ( w_cb_mac3_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac3_cross_port_axi_data  ( w_cb_mac3_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac3_cross_axi_data_keep  ( w_cb_mac3_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac3_cross_axi_data_valid ( w_cb_mac3_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac3_cross_axi_data_ready ( w_cb_mac3_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac3_cross_axi_data_last  ( w_cb_mac3_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac3_cross_metadata       ( w_cb_mac3_cross_metadata       )        , // 总线 metadata 数据
+    .o_mac3_cross_metadata_valid ( w_cb_mac3_cross_metadata_valid )        , // 总线 metadata 数据有效信号
+    .o_mac3_cross_metadata_last  ( w_cb_mac3_cross_metadata_last  )        , // 信息流结束标识
+    .i_mac3_cross_metadata_ready ( w_cb_mac3_cross_metadata_ready )        , // 下游模块反压流水线  
+`endif
+`ifdef MAC4
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac4_cross_port_link      ( w_cb_mac4_cross_port_link      )        , // 端口的连接状态
+    .o_mac4_cross_port_speed     ( w_cb_mac4_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac4_cross_port_axi_data  ( w_cb_mac4_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac4_cross_axi_data_keep  ( w_cb_mac4_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac4_cross_axi_data_valid ( w_cb_mac4_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac4_cross_axi_data_ready ( w_cb_mac4_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac4_cross_axi_data_last  ( w_cb_mac4_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac4_cross_metadata       ( w_cb_mac4_cross_metadata       )        , // 总线 metadata 数据
+    .o_mac4_cross_metadata_valid ( w_cb_mac4_cross_metadata_valid )        , // 总线 metadata 数据有效信号
+    .o_mac4_cross_metadata_last  ( w_cb_mac4_cross_metadata_last  )        , // 信息流结束标识
+    .i_mac4_cross_metadata_ready ( w_cb_mac4_cross_metadata_ready )        , // 下游模块反压流水线 
+`endif
+`ifdef MAC5
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac5_cross_port_link      ( w_cb_mac5_cross_port_link      )        , // 端口的连接状态
+    .o_mac5_cross_port_speed     ( w_cb_mac5_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac5_cross_port_axi_data  ( w_cb_mac5_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac5_cross_axi_data_keep  ( w_cb_mac5_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac5_cross_axi_data_valid ( w_cb_mac5_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac5_cross_axi_data_ready ( w_cb_mac5_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac5_cross_axi_data_last  ( w_cb_mac5_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac5_cross_metadata       ( w_cb_mac5_cross_metadata       )       , // 总线 metadata 数据
+    .o_mac5_cross_metadata_valid ( w_cb_mac5_cross_metadata_valid )       , // 总线 metadata 数据有效信号
+    .o_mac5_cross_metadata_last  ( w_cb_mac5_cross_metadata_last  )       , // 信息流结束标识
+    .i_mac5_cross_metadata_ready ( w_cb_mac5_cross_metadata_ready )       , // 下游模块反压流水线 
+`endif
+`ifdef MAC6
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac6_cross_port_link      ( w_cb_mac6_cross_port_link      )        , // 端口的连接状态
+    .o_mac6_cross_port_speed     ( w_cb_mac6_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac6_cross_port_axi_data  ( w_cb_mac6_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac6_cross_axi_data_keep  ( w_cb_mac6_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac6_cross_axi_data_valid ( w_cb_mac6_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac6_cross_axi_data_ready ( w_cb_mac6_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac6_cross_axi_data_last  ( w_cb_mac6_cross_axi_data_last  )        , // 数据流结束标识
+        
+    .o_mac6_cross_metadata       ( w_cb_mac6_cross_metadata       )        , // 总线 metadata 数据
+    .o_mac6_cross_metadata_valid ( w_cb_mac6_cross_metadata_valid )        , // 总线 metadata 数据有效信号
+    .o_mac6_cross_metadata_last  ( w_cb_mac6_cross_metadata_last  )        , // 信息流结束标识
+    .i_mac6_cross_metadata_ready ( w_cb_mac6_cross_metadata_ready )        , // 下游模块反压流水线 
+`endif
+`ifdef MAC7
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .o_mac7_cross_port_link      ( w_cb_mac7_cross_port_link      )        , // 端口的连接状态
+    .o_mac7_cross_port_speed     ( w_cb_mac7_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .o_mac7_cross_port_axi_data  ( w_cb_mac7_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
+    .o_mac7_cross_axi_data_keep  ( w_cb_mac7_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
+    .o_mac7_cross_axi_data_valid ( w_cb_mac7_cross_axi_data_valid )        , // 端口数据有效
+    .i_mac7_cross_axi_data_ready ( w_cb_mac7_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
+    .o_mac7_cross_axi_data_last  ( w_cb_mac7_cross_axi_data_last  )        , // 数据流结束标识
+       
+    .o_mac7_cross_metadata       ( w_cb_mac7_cross_metadata       )        , // 总线 metadata 数据
+    .o_mac7_cross_metadata_valid ( w_cb_mac7_cross_metadata_valid )        , // 总线 metadata 数据有效信号
+    .o_mac7_cross_metadata_last  ( w_cb_mac7_cross_metadata_last  )        , // 信息流结束标识
+    .i_mac7_cross_metadata_ready ( w_cb_mac7_cross_metadata_ready )        , // 下游模块反压流水线 
+`endif
+    /*---------------------- 寄存器配置 ------------------*/
+        // 寄存器控制信号                     
+    .i_refresh_list_pulse        (  )        , // 刷新寄存器列表（状态寄存器和控制寄存器）
+    .i_switch_err_cnt_clr        (  )        , // 刷新错误计数器
+    .i_switch_err_cnt_stat       (  )        , // 刷新错误状态寄存器
+    // 寄存器写控制接口       
+    .i_switch_reg_bus_we         (  )       , // 寄存器写使能
+    .i_switch_reg_bus_we_addr    (  )       , // 寄存器写地址
+    .i_switch_reg_bus_we_din     (  )       , // 寄存器写数据
+    .i_switch_reg_bus_we_din_v   (  )       , // 寄存器写数据使能
+    // 寄存器读控制接口       
+    .i_switch_reg_bus_rd         (  )       , // 寄存器读使能
+    .i_switch_reg_bus_rd_addr    (  )       , // 寄存器读地址
+    .o_switch_reg_bus_we_dout    (  )       , // 读出寄存器数据
+    .o_switch_reg_bus_we_dout_v  (  )        // 读数据有效使能
+);
+
+crossbar_switch_top#(
+    .REG_ADDR_BUS_WIDTH         ( REG_ADDR_BUS_WIDTH         )     ,  // 接收 MAC 层的配置寄存器地址位宽
+    .REG_DATA_BUS_WIDTH         ( REG_DATA_BUS_WIDTH         )     ,  // 接收 MAC 层的配置寄存器数据位宽
+    .METADATA_WIDTH             ( METADATA_WIDTH             )     ,  // 信息流（METADATA）的位宽
+    .PORT_MNG_DATA_WIDTH        ( PORT_MNG_DATA_WIDTH        )     ,
+    .PORT_FIFO_PRI_NUM          ( PORT_FIFO_PRI_NUM          )     ,
+    .CROSS_DATA_WIDTH           ( CROSS_DATA_WIDTH           )      // 聚合总线输出 
+)crossbar_switch_top_inst (
+    /*-------------------- RXMAC 输入数据流 -----------------------*/
+`ifdef CPU_MAC
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac0_cross_port_link      (w_cb_mac0_cross_port_link     )        , // 端口的连接状态
+    .i_mac0_cross_port_speed     (w_cb_mac0_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac0_cross_port_axi_data  (w_cb_mac0_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac0_cross_axi_data_keep  (w_cb_mac0_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac0_cross_axi_data_valid (w_cb_mac0_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac0_cross_axi_data_ready (w_cb_mac0_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac0_cross_axi_data_last  (w_cb_mac0_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac0_cross_metadata       (w_cb_mac0_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac0_cross_metadata_valid (w_cb_mac0_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac0_cross_metadata_last  (w_cb_mac0_cross_metadata_last )        , // 信息流结束标识
+    .o_mac0_cross_metadata_ready (w_cb_mac0_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC1
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac1_cross_port_link      (w_cb_mac1_cross_port_link     )        , // 端口的连接状态
+    .i_mac1_cross_port_speed     (w_cb_mac1_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac1_cross_port_axi_data  (w_cb_mac1_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac1_cross_axi_data_keep  (w_cb_mac1_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac1_cross_axi_data_valid (w_cb_mac1_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac1_cross_axi_data_ready (w_cb_mac1_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac1_cross_axi_data_last  (w_cb_mac1_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac1_cross_metadata       (w_cb_mac1_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac1_cross_metadata_valid (w_cb_mac1_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac1_cross_metadata_last  (w_cb_mac1_cross_metadata_last )        , // 信息流结束标识
+    .o_mac1_cross_metadata_ready (w_cb_mac1_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC2
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac2_cross_port_link      (w_cb_mac2_cross_port_link     )        , // 端口的连接状态
+    .i_mac2_cross_port_speed     (w_cb_mac2_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac2_cross_port_axi_data  (w_cb_mac2_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac2_cross_axi_data_keep  (w_cb_mac2_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac2_cross_axi_data_valid (w_cb_mac2_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac2_cross_axi_data_ready (w_cb_mac2_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac2_cross_axi_data_last  (w_cb_mac2_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac2_cross_metadata       (w_cb_mac2_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac2_cross_metadata_valid (w_cb_mac2_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac2_cross_metadata_last  (w_cb_mac2_cross_metadata_last )        , // 信息流结束标识
+    .o_mac2_cross_metadata_ready (w_cb_mac2_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC3
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac3_cross_port_link      (w_cb_mac3_cross_port_link     )        , // 端口的连接状态
+    .i_mac3_cross_port_speed     (w_cb_mac3_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac3_cross_port_axi_data  (w_cb_mac3_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac3_cross_axi_data_keep  (w_cb_mac3_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac3_cross_axi_data_valid (w_cb_mac3_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac3_cross_axi_data_ready (w_cb_mac3_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac3_cross_axi_data_last  (w_cb_mac3_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac3_cross_metadata       (w_cb_mac3_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac3_cross_metadata_valid (w_cb_mac3_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac3_cross_metadata_last  (w_cb_mac3_cross_metadata_last )        , // 信息流结束标识
+    .o_mac3_cross_metadata_ready (w_cb_mac3_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC4
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac4_cross_port_link      (w_cb_mac4_cross_port_link     )        , // 端口的连接状态
+    .i_mac4_cross_port_speed     (w_cb_mac4_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac4_cross_port_axi_data  (w_cb_mac4_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac4_cross_axi_data_keep  (w_cb_mac4_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac4_cross_axi_data_valid (w_cb_mac4_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac4_cross_axi_data_ready (w_cb_mac4_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac4_cross_axi_data_last  (w_cb_mac4_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac4_cross_metadata       (w_cb_mac4_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac4_cross_metadata_valid (w_cb_mac4_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac4_cross_metadata_last  (w_cb_mac4_cross_metadata_last )        , // 信息流结束标识
+    .o_mac4_cross_metadata_ready (w_cb_mac4_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC5
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac5_cross_port_link      (w_cb_mac5_cross_port_link     )        , // 端口的连接状态
+    .i_mac5_cross_port_speed     (w_cb_mac5_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac5_cross_port_axi_data  (w_cb_mac5_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac5_cross_axi_data_keep  (w_cb_mac5_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac5_cross_axi_data_valid (w_cb_mac5_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac5_cross_axi_data_ready (w_cb_mac5_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac5_cross_axi_data_last  (w_cb_mac5_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac5_cross_metadata       (w_cb_mac5_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac5_cross_metadata_valid (w_cb_mac5_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac5_cross_metadata_last  (w_cb_mac5_cross_metadata_last )        , // 信息流结束标识
+    .o_mac5_cross_metadata_ready (w_cb_mac5_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC6
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac6_cross_port_link      (w_cb_mac6_cross_port_link     )        , // 端口的连接状态
+    .i_mac6_cross_port_speed     (w_cb_mac6_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac6_cross_port_axi_data  (w_cb_mac6_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac6_cross_axi_data_keep  (w_cb_mac6_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac6_cross_axi_data_valid (w_cb_mac6_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac6_cross_axi_data_ready (w_cb_mac6_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac6_cross_axi_data_last  (w_cb_mac6_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac6_cross_metadata       (w_cb_mac6_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac6_cross_metadata_valid (w_cb_mac6_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac6_cross_metadata_last  (w_cb_mac6_cross_metadata_last )        , // 信息流结束标识
+    .o_mac6_cross_metadata_ready (w_cb_mac6_cross_metadata_ready)        , // 下游模块反压流水线 
+`endif
+`ifdef MAC7
+    /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
+    .i_mac7_cross_port_link      (w_cb_mac7_cross_port_link     )        , // 端口的连接状态
+    .i_mac7_cross_port_speed     (w_cb_mac7_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac7_cross_port_axi_data  (w_cb_mac7_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac7_cross_axi_data_keep  (w_cb_mac7_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac7_cross_axi_data_valid (w_cb_mac7_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac7_cross_axi_data_ready (w_cb_mac7_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac7_cross_axi_data_last  (w_cb_mac7_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac7_cross_metadata       (w_cb_mac7_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac7_cross_metadata_valid (w_cb_mac7_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac7_cross_metadata_last  (w_cb_mac7_cross_metadata_last )        , // 信息流结束标识
+    .o_mac7_cross_metadata_ready (w_cb_mac7_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef TSN_AS
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
@@ -1279,7 +1609,7 @@ crossbar_switch_top#(
     .i_tsn_as_cross_axi_data_valid  ( w_tsn_as_cross_axi_data_valid  )       , // 端口数据有效
     .o_tsn_as_cross_axi_data_ready  ( w_tsn_as_cross_axi_data_ready  )       , // 交叉总线聚合架构反压流水线信号
     .i_tsn_as_cross_axi_data_last   ( w_tsn_as_cross_axi_data_last   )       , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .i_tsn_as_cross_metadata        ( w_tsn_as_cross_metadata        )     , // 总线 metadata 数据
     .i_tsn_as_cross_metadata_valid  ( w_tsn_as_cross_metadata_valid  )     , // 总线 metadata 数据有效信号
     .i_tsn_as_cross_metadata_last   ( w_tsn_as_cross_metadata_last   )     , // 信息流结束标识
@@ -1294,7 +1624,7 @@ crossbar_switch_top#(
     .i_lldp_cross_axi_data_valid   ( w_lldp_cross_axi_data_valid    )     , // 端口数据有效
     .o_lldp_cross_axi_data_ready   ( w_lldp_cross_axi_data_ready    )     , // 交叉总线聚合架构反压流水线信号
     .i_lldp_cross_axi_data_last    ( w_lldp_cross_axi_data_last     )     , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .i_lldp_cross_metadata         ( w_lldp_cross_metadata         )      , // 总线 metadata 数据
     .i_lldp_cross_metadata_valid   ( w_lldp_cross_metadata_valid   )      , // 总线 metadata 数据有效信号
     .i_lldp_cross_metadata_last    ( w_lldp_cross_metadata_last    )      , // 信息流结束标识
@@ -1311,17 +1641,17 @@ crossbar_switch_top#(
     .o_pmac0_ethertype            ( w_pmac0_ethertype       )      , 
     .i_pmac0_tx_axis_ready        ( w_pmac0_tx_axis_ready   )      ,
     //emac通道数据                
-    .o_emac0_tx_axis_data         ( w_emac0_tx_axis_data    )       , 
-    .o_emac0_tx_axis_user         ( w_emac0_tx_axis_user    )       , 
-    .o_emac0_tx_axis_keep         ( w_emac0_tx_axis_keep    )       , 
-    .o_emac0_tx_axis_last         ( w_emac0_tx_axis_last    )       , 
-    .o_emac0_tx_axis_valid        ( w_emac0_tx_axis_valid   )       , 
-    .o_emac0_ethertype            ( w_emac0_ethertype       )       ,
-    .i_emac0_tx_axis_ready        ( w_emac0_tx_axis_ready   )       ,
+    .o_emac0_tx_axis_data         ( w_emac0_tx_axis_data    )      , 
+    .o_emac0_tx_axis_user         ( w_emac0_tx_axis_user    )      , 
+    .o_emac0_tx_axis_keep         ( w_emac0_tx_axis_keep    )      , 
+    .o_emac0_tx_axis_last         ( w_emac0_tx_axis_last    )      , 
+    .o_emac0_tx_axis_valid        ( w_emac0_tx_axis_valid   )      , 
+    .o_emac0_ethertype            ( w_emac0_ethertype       )      ,
+    .i_emac0_tx_axis_ready        ( w_emac0_tx_axis_ready   )      ,
     // 调度流水线调度信息交互
-    .o_mac0_fifoc_empty           (w_mac0_fifoc_empty       )       ,    
-    .i_mac0_scheduing_rst         (w_mac0_scheduing_rst     )       ,
-    .i_mac0_scheduing_rst_vld     (w_mac0_scheduing_rst_vld )       ,  
+    .o_mac0_fifoc_empty           (w_mac0_fifoc_empty       )      ,    
+    .i_mac0_scheduing_rst         (w_mac0_scheduing_rst     )      ,
+    .i_mac0_scheduing_rst_vld     (w_mac0_scheduing_rst_vld )      ,  
 `endif
 `ifdef MAC1
     //pmac通道数据
@@ -1819,123 +2149,123 @@ tsn_as_top#(
     /*-------------------- RXMAC 输入数据流 -----------------------*/
 `ifdef CPU_MAC
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac0_cross_port_link      ( w_mac0_cross_port_link      )        , // 端口的连接状态
-    .i_mac0_cross_port_speed     ( w_mac0_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac0_cross_port_axi_data  ( w_mac0_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac0_cross_axi_data_keep  ( w_mac0_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac0_cross_axi_data_valid ( w_mac0_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac0_cross_axi_data_ready ( w_mac0_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac0_cross_axi_data_last  ( w_mac0_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac0_cross_metadata       ( w_mac0_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac0_cross_metadata_valid ( w_mac0_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac0_cross_metadata_last  ( w_mac0_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac0_cross_metadata_ready ( w_mac0_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac0_cross_port_link      (w_cb_mac0_cross_port_link     )        , // 端口的连接状态
+    .i_mac0_cross_port_speed     (w_cb_mac0_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac0_cross_port_axi_data  (w_cb_mac0_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac0_cross_axi_data_keep  (w_cb_mac0_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac0_cross_axi_data_valid (w_cb_mac0_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac0_cross_axi_data_ready (w_cb_mac0_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac0_cross_axi_data_last  (w_cb_mac0_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac0_cross_metadata       (w_cb_mac0_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac0_cross_metadata_valid (w_cb_mac0_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac0_cross_metadata_last  (w_cb_mac0_cross_metadata_last )        , // 信息流结束标识
+    .o_mac0_cross_metadata_ready (w_cb_mac0_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC1
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac1_cross_port_link      ( w_mac1_cross_port_link      )        , // 端口的连接状态
-    .i_mac1_cross_port_speed     ( w_mac1_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac1_cross_port_axi_data  ( w_mac1_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac1_cross_axi_data_keep  ( w_mac1_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac1_cross_axi_data_valid ( w_mac1_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac1_cross_axi_data_ready ( w_mac1_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac1_cross_axi_data_last  ( w_mac1_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac1_cross_metadata       ( w_mac1_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac1_cross_metadata_valid ( w_mac1_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac1_cross_metadata_last  ( w_mac1_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac1_cross_metadata_ready ( w_mac1_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac1_cross_port_link      (w_cb_mac1_cross_port_link     )        , // 端口的连接状态
+    .i_mac1_cross_port_speed     (w_cb_mac1_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac1_cross_port_axi_data  (w_cb_mac1_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac1_cross_axi_data_keep  (w_cb_mac1_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac1_cross_axi_data_valid (w_cb_mac1_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac1_cross_axi_data_ready (w_cb_mac1_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac1_cross_axi_data_last  (w_cb_mac1_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac1_cross_metadata       (w_cb_mac1_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac1_cross_metadata_valid (w_cb_mac1_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac1_cross_metadata_last  (w_cb_mac1_cross_metadata_last )        , // 信息流结束标识
+    .o_mac1_cross_metadata_ready (w_cb_mac1_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC2
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac2_cross_port_link      ( w_mac2_cross_port_link      )        , // 端口的连接状态
-    .i_mac2_cross_port_speed     ( w_mac2_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac2_cross_port_axi_data  ( w_mac2_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac2_cross_axi_data_keep  ( w_mac2_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac2_cross_axi_data_valid ( w_mac2_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac2_cross_axi_data_ready ( w_mac2_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac2_cross_axi_data_last  ( w_mac2_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac2_cross_metadata       ( w_mac2_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac2_cross_metadata_valid ( w_mac2_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac2_cross_metadata_last  ( w_mac2_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac2_cross_metadata_ready ( w_mac2_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac2_cross_port_link      (w_cb_mac2_cross_port_link     )        , // 端口的连接状态
+    .i_mac2_cross_port_speed     (w_cb_mac2_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac2_cross_port_axi_data  (w_cb_mac2_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac2_cross_axi_data_keep  (w_cb_mac2_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac2_cross_axi_data_valid (w_cb_mac2_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac2_cross_axi_data_ready (w_cb_mac2_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac2_cross_axi_data_last  (w_cb_mac2_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac2_cross_metadata       (w_cb_mac2_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac2_cross_metadata_valid (w_cb_mac2_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac2_cross_metadata_last  (w_cb_mac2_cross_metadata_last )        , // 信息流结束标识
+    .o_mac2_cross_metadata_ready (w_cb_mac2_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC3
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac3_cross_port_link      ( w_mac3_cross_port_link      )        , // 端口的连接状态
-    .i_mac3_cross_port_speed     ( w_mac3_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac3_cross_port_axi_data  ( w_mac3_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac3_cross_axi_data_keep  ( w_mac3_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac3_cross_axi_data_valid ( w_mac3_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac3_cross_axi_data_ready ( w_mac3_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac3_cross_axi_data_last  ( w_mac3_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac3_cross_metadata       ( w_mac3_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac3_cross_metadata_valid ( w_mac3_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac3_cross_metadata_last  ( w_mac3_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac3_cross_metadata_ready ( w_mac3_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac3_cross_port_link      (w_cb_mac3_cross_port_link     )        , // 端口的连接状态
+    .i_mac3_cross_port_speed     (w_cb_mac3_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac3_cross_port_axi_data  (w_cb_mac3_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac3_cross_axi_data_keep  (w_cb_mac3_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac3_cross_axi_data_valid (w_cb_mac3_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac3_cross_axi_data_ready (w_cb_mac3_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac3_cross_axi_data_last  (w_cb_mac3_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac3_cross_metadata       (w_cb_mac3_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac3_cross_metadata_valid (w_cb_mac3_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac3_cross_metadata_last  (w_cb_mac3_cross_metadata_last )        , // 信息流结束标识
+    .o_mac3_cross_metadata_ready (w_cb_mac3_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC4
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac4_cross_port_link      ( w_mac4_cross_port_link      )        , // 端口的连接状态
-    .i_mac4_cross_port_speed     ( w_mac4_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac4_cross_port_axi_data  ( w_mac4_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac4_cross_axi_data_keep  ( w_mac4_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac4_cross_axi_data_valid ( w_mac4_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac4_cross_axi_data_ready ( w_mac4_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac4_cross_axi_data_last  ( w_mac4_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac4_cross_metadata       ( w_mac4_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac4_cross_metadata_valid ( w_mac4_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac4_cross_metadata_last  ( w_mac4_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac4_cross_metadata_ready ( w_mac4_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac4_cross_port_link      (w_cb_mac4_cross_port_link     )        , // 端口的连接状态
+    .i_mac4_cross_port_speed     (w_cb_mac4_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac4_cross_port_axi_data  (w_cb_mac4_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac4_cross_axi_data_keep  (w_cb_mac4_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac4_cross_axi_data_valid (w_cb_mac4_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac4_cross_axi_data_ready (w_cb_mac4_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac4_cross_axi_data_last  (w_cb_mac4_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac4_cross_metadata       (w_cb_mac4_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac4_cross_metadata_valid (w_cb_mac4_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac4_cross_metadata_last  (w_cb_mac4_cross_metadata_last )        , // 信息流结束标识
+    .o_mac4_cross_metadata_ready (w_cb_mac4_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC5
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac5_cross_port_link      ( w_mac5_cross_port_link      )        , // 端口的连接状态
-    .i_mac5_cross_port_speed     ( w_mac5_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac5_cross_port_axi_data  ( w_mac5_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac5_cross_axi_data_keep  ( w_mac5_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac5_cross_axi_data_valid ( w_mac5_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac5_cross_axi_data_ready ( w_mac5_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac5_cross_axi_data_last  ( w_mac5_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac5_cross_metadata       ( w_mac5_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac5_cross_metadata_valid ( w_mac5_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac5_cross_metadata_last  ( w_mac5_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac5_cross_metadata_ready ( w_mac5_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac5_cross_port_link      (w_cb_mac5_cross_port_link     )        , // 端口的连接状态
+    .i_mac5_cross_port_speed     (w_cb_mac5_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac5_cross_port_axi_data  (w_cb_mac5_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac5_cross_axi_data_keep  (w_cb_mac5_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac5_cross_axi_data_valid (w_cb_mac5_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac5_cross_axi_data_ready (w_cb_mac5_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac5_cross_axi_data_last  (w_cb_mac5_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac5_cross_metadata       (w_cb_mac5_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac5_cross_metadata_valid (w_cb_mac5_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac5_cross_metadata_last  (w_cb_mac5_cross_metadata_last )        , // 信息流结束标识
+    .o_mac5_cross_metadata_ready (w_cb_mac5_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC6
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac6_cross_port_link      ( w_mac6_cross_port_link      )        , // 端口的连接状态
-    .i_mac6_cross_port_speed     ( w_mac6_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac6_cross_port_axi_data  ( w_mac6_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac6_cross_axi_data_keep  ( w_mac6_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac6_cross_axi_data_valid ( w_mac6_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac6_cross_axi_data_ready ( w_mac6_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac6_cross_axi_data_last  ( w_mac6_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac6_cross_metadata       ( w_mac6_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac6_cross_metadata_valid ( w_mac6_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac6_cross_metadata_last  ( w_mac6_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac6_cross_metadata_ready ( w_mac6_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac6_cross_port_link      (w_cb_mac6_cross_port_link     )        , // 端口的连接状态
+    .i_mac6_cross_port_speed     (w_cb_mac6_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac6_cross_port_axi_data  (w_cb_mac6_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac6_cross_axi_data_keep  (w_cb_mac6_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac6_cross_axi_data_valid (w_cb_mac6_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac6_cross_axi_data_ready (w_cb_mac6_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac6_cross_axi_data_last  (w_cb_mac6_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac6_cross_metadata       (w_cb_mac6_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac6_cross_metadata_valid (w_cb_mac6_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac6_cross_metadata_last  (w_cb_mac6_cross_metadata_last )        , // 信息流结束标识
+    .o_mac6_cross_metadata_ready (w_cb_mac6_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC7
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac7_cross_port_link      ( w_mac7_cross_port_link      )        , // 端口的连接状态
-    .i_mac7_cross_port_speed     ( w_mac7_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac7_cross_port_axi_data  ( w_mac7_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac7_cross_axi_data_keep  ( w_mac7_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac7_cross_axi_data_valid ( w_mac7_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac7_cross_axi_data_ready ( w_mac7_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac7_cross_axi_data_last  ( w_mac7_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac7_cross_metadata       ( w_mac7_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac7_cross_metadata_valid ( w_mac7_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac7_cross_metadata_last  ( w_mac7_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac7_cross_metadata_ready ( w_mac7_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac7_cross_port_link      (w_cb_mac7_cross_port_link     )        , // 端口的连接状态
+    .i_mac7_cross_port_speed     (w_cb_mac7_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac7_cross_port_axi_data  (w_cb_mac7_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac7_cross_axi_data_keep  (w_cb_mac7_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac7_cross_axi_data_valid (w_cb_mac7_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac7_cross_axi_data_ready (w_cb_mac7_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac7_cross_axi_data_last  (w_cb_mac7_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac7_cross_metadata       (w_cb_mac7_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac7_cross_metadata_valid (w_cb_mac7_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac7_cross_metadata_last  (w_cb_mac7_cross_metadata_last )        , // 信息流结束标识
+    .o_mac7_cross_metadata_ready (w_cb_mac7_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
     /*-------------------- 输出数据流重新进入CROSSBAR交换平面 -----------------------*/
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
@@ -1946,7 +2276,7 @@ tsn_as_top#(
     .o_tsn_as_cross_axi_data_valid  ( w_tsn_as_cross_axi_data_valid  )     , // 端口数据有效
     .i_tsn_as_cross_axi_data_ready  ( w_tsn_as_cross_axi_data_ready  )     , // 交叉总线聚合架构反压流水线信号
     .o_tsn_as_cross_axi_data_last   ( w_tsn_as_cross_axi_data_last   )     , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
+    
     .o_tsn_as_cross_metadata        ( w_tsn_as_cross_metadata       )     , // 总线 metadata 数据
     .o_tsn_as_cross_metadata_valid  ( w_tsn_as_cross_metadata_valid )     , // 总线 metadata 数据有效信号
     .o_tsn_as_cross_metadata_last   ( w_tsn_as_cross_metadata_last  )     , // 信息流结束标识
@@ -1981,125 +2311,125 @@ lldp_top#(
     /*-------------------- RXMAC 输入数据流 -----------------------*/
 `ifdef CPU_MAC
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac0_cross_port_link      ( w_mac0_cross_port_link      )        , // 端口的连接状态
-    .i_mac0_cross_port_speed     ( w_mac0_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac0_cross_port_axi_data  ( w_mac0_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac0_cross_axi_data_keep  ( w_mac0_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac0_cross_axi_data_valid ( w_mac0_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac0_cross_axi_data_ready ( w_mac0_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac0_cross_axi_data_last  ( w_mac0_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac0_cross_metadata       ( w_mac0_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac0_cross_metadata_valid ( w_mac0_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac0_cross_metadata_last  ( w_mac0_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac0_cross_metadata_ready ( w_mac0_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac0_cross_port_link      (w_cb_mac0_cross_port_link     )        , // 端口的连接状态
+    .i_mac0_cross_port_speed     (w_cb_mac0_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac0_cross_port_axi_data  (w_cb_mac0_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac0_cross_axi_data_keep  (w_cb_mac0_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac0_cross_axi_data_valid (w_cb_mac0_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac0_cross_axi_data_ready (w_cb_mac0_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac0_cross_axi_data_last  (w_cb_mac0_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac0_cross_metadata       (w_cb_mac0_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac0_cross_metadata_valid (w_cb_mac0_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac0_cross_metadata_last  (w_cb_mac0_cross_metadata_last )        , // 信息流结束标识
+    .o_mac0_cross_metadata_ready (w_cb_mac0_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC1
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac1_cross_port_link      ( w_mac1_cross_port_link      )        , // 端口的连接状态
-    .i_mac1_cross_port_speed     ( w_mac1_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac1_cross_port_axi_data  ( w_mac1_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac1_cross_axi_data_keep  ( w_mac1_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac1_cross_axi_data_valid ( w_mac1_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac1_cross_axi_data_ready ( w_mac1_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac1_cross_axi_data_last  ( w_mac1_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac1_cross_metadata       ( w_mac1_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac1_cross_metadata_valid ( w_mac1_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac1_cross_metadata_last  ( w_mac1_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac1_cross_metadata_ready ( w_mac1_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac1_cross_port_link      (w_cb_mac1_cross_port_link     )        , // 端口的连接状态
+    .i_mac1_cross_port_speed     (w_cb_mac1_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac1_cross_port_axi_data  (w_cb_mac1_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac1_cross_axi_data_keep  (w_cb_mac1_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac1_cross_axi_data_valid (w_cb_mac1_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac1_cross_axi_data_ready (w_cb_mac1_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac1_cross_axi_data_last  (w_cb_mac1_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac1_cross_metadata       (w_cb_mac1_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac1_cross_metadata_valid (w_cb_mac1_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac1_cross_metadata_last  (w_cb_mac1_cross_metadata_last )        , // 信息流结束标识
+    .o_mac1_cross_metadata_ready (w_cb_mac1_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC2
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac2_cross_port_link      ( w_mac2_cross_port_link      )        , // 端口的连接状态
-    .i_mac2_cross_port_speed     ( w_mac2_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac2_cross_port_axi_data  ( w_mac2_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac2_cross_axi_data_keep  ( w_mac2_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac2_cross_axi_data_valid ( w_mac2_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac2_cross_axi_data_ready ( w_mac2_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac2_cross_axi_data_last  ( w_mac2_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac2_cross_metadata       ( w_mac2_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac2_cross_metadata_valid ( w_mac2_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac2_cross_metadata_last  ( w_mac2_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac2_cross_metadata_ready ( w_mac2_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac2_cross_port_link      (w_cb_mac2_cross_port_link     )        , // 端口的连接状态
+    .i_mac2_cross_port_speed     (w_cb_mac2_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac2_cross_port_axi_data  (w_cb_mac2_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac2_cross_axi_data_keep  (w_cb_mac2_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac2_cross_axi_data_valid (w_cb_mac2_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac2_cross_axi_data_ready (w_cb_mac2_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac2_cross_axi_data_last  (w_cb_mac2_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac2_cross_metadata       (w_cb_mac2_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac2_cross_metadata_valid (w_cb_mac2_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac2_cross_metadata_last  (w_cb_mac2_cross_metadata_last )        , // 信息流结束标识
+    .o_mac2_cross_metadata_ready (w_cb_mac2_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC3
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac3_cross_port_link      ( w_mac3_cross_port_link      )        , // 端口的连接状态
-    .i_mac3_cross_port_speed     ( w_mac3_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac3_cross_port_axi_data  ( w_mac3_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac3_cross_axi_data_keep  ( w_mac3_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac3_cross_axi_data_valid ( w_mac3_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac3_cross_axi_data_ready ( w_mac3_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac3_cross_axi_data_last  ( w_mac3_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac3_cross_metadata       ( w_mac3_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac3_cross_metadata_valid ( w_mac3_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac3_cross_metadata_last  ( w_mac3_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac3_cross_metadata_ready ( w_mac3_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac3_cross_port_link      (w_cb_mac3_cross_port_link     )        , // 端口的连接状态
+    .i_mac3_cross_port_speed     (w_cb_mac3_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac3_cross_port_axi_data  (w_cb_mac3_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac3_cross_axi_data_keep  (w_cb_mac3_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac3_cross_axi_data_valid (w_cb_mac3_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac3_cross_axi_data_ready (w_cb_mac3_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac3_cross_axi_data_last  (w_cb_mac3_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac3_cross_metadata       (w_cb_mac3_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac3_cross_metadata_valid (w_cb_mac3_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac3_cross_metadata_last  (w_cb_mac3_cross_metadata_last )        , // 信息流结束标识
+    .o_mac3_cross_metadata_ready (w_cb_mac3_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC4
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac4_cross_port_link      ( w_mac4_cross_port_link      )        , // 端口的连接状态
-    .i_mac4_cross_port_speed     ( w_mac4_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac4_cross_port_axi_data  ( w_mac4_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac4_cross_axi_data_keep  ( w_mac4_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac4_cross_axi_data_valid ( w_mac4_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac4_cross_axi_data_ready ( w_mac4_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac4_cross_axi_data_last  ( w_mac4_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac4_cross_metadata       ( w_mac4_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac4_cross_metadata_valid ( w_mac4_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac4_cross_metadata_last  ( w_mac4_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac4_cross_metadata_ready ( w_mac4_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac4_cross_port_link      (w_cb_mac4_cross_port_link     )        , // 端口的连接状态
+    .i_mac4_cross_port_speed     (w_cb_mac4_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac4_cross_port_axi_data  (w_cb_mac4_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac4_cross_axi_data_keep  (w_cb_mac4_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac4_cross_axi_data_valid (w_cb_mac4_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac4_cross_axi_data_ready (w_cb_mac4_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac4_cross_axi_data_last  (w_cb_mac4_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac4_cross_metadata       (w_cb_mac4_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac4_cross_metadata_valid (w_cb_mac4_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac4_cross_metadata_last  (w_cb_mac4_cross_metadata_last )        , // 信息流结束标识
+    .o_mac4_cross_metadata_ready (w_cb_mac4_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC5
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac5_cross_port_link      ( w_mac5_cross_port_link      )        , // 端口的连接状态
-    .i_mac5_cross_port_speed     ( w_mac5_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac5_cross_port_axi_data  ( w_mac5_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac5_cross_axi_data_keep  ( w_mac5_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac5_cross_axi_data_valid ( w_mac5_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac5_cross_axi_data_ready ( w_mac5_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac5_cross_axi_data_last  ( w_mac5_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac5_cross_metadata       ( w_mac5_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac5_cross_metadata_valid ( w_mac5_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac5_cross_metadata_last  ( w_mac5_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac5_cross_metadata_ready ( w_mac5_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac5_cross_port_link      (w_cb_mac5_cross_port_link     )        , // 端口的连接状态
+    .i_mac5_cross_port_speed     (w_cb_mac5_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac5_cross_port_axi_data  (w_cb_mac5_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac5_cross_axi_data_keep  (w_cb_mac5_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac5_cross_axi_data_valid (w_cb_mac5_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac5_cross_axi_data_ready (w_cb_mac5_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac5_cross_axi_data_last  (w_cb_mac5_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac5_cross_metadata       (w_cb_mac5_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac5_cross_metadata_valid (w_cb_mac5_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac5_cross_metadata_last  (w_cb_mac5_cross_metadata_last )        , // 信息流结束标识
+    .o_mac5_cross_metadata_ready (w_cb_mac5_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC6
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac6_cross_port_link      ( w_mac6_cross_port_link      )        , // 端口的连接状态
-    .i_mac6_cross_port_speed     ( w_mac6_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac6_cross_port_axi_data  ( w_mac6_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac6_cross_axi_data_keep  ( w_mac6_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac6_cross_axi_data_valid ( w_mac6_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac6_cross_axi_data_ready ( w_mac6_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac6_cross_axi_data_last  ( w_mac6_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac6_cross_metadata       ( w_mac6_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac6_cross_metadata_valid ( w_mac6_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac6_cross_metadata_last  ( w_mac6_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac6_cross_metadata_ready ( w_mac6_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac6_cross_port_link      (w_cb_mac6_cross_port_link     )        , // 端口的连接状态
+    .i_mac6_cross_port_speed     (w_cb_mac6_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac6_cross_port_axi_data  (w_cb_mac6_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac6_cross_axi_data_keep  (w_cb_mac6_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac6_cross_axi_data_valid (w_cb_mac6_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac6_cross_axi_data_ready (w_cb_mac6_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac6_cross_axi_data_last  (w_cb_mac6_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac6_cross_metadata       (w_cb_mac6_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac6_cross_metadata_valid (w_cb_mac6_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac6_cross_metadata_last  (w_cb_mac6_cross_metadata_last )        , // 信息流结束标识
+    .o_mac6_cross_metadata_ready (w_cb_mac6_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
 `ifdef MAC7
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    .i_mac7_cross_port_link      ( w_mac7_cross_port_link      )        , // 端口的连接状态
-    .i_mac7_cross_port_speed     ( w_mac7_cross_port_speed     )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
-    .i_mac7_cross_port_axi_data  ( w_mac7_cross_port_axi_data  )        , // 端口数据流，最高位表示crcerr
-    .i_mac7_cross_axi_data_keep  ( w_mac7_cross_axi_data_keep  )        , // 端口数据流掩码，有效字节指示
-    .i_mac7_cross_axi_data_valid ( w_mac7_cross_axi_data_valid )        , // 端口数据有效
-    .o_mac7_cross_axi_data_ready ( w_mac7_cross_axi_data_ready )        , // 交叉总线聚合架构反压流水线信号
-    .i_mac7_cross_axi_data_last  ( w_mac7_cross_axi_data_last  )        , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .i_mac7_cross_metadata       ( w_mac7_cross_metadata       )        , // 总线 metadata 数据
-    .i_mac7_cross_metadata_valid ( w_mac7_cross_metadata_valid )        , // 总线 metadata 数据有效信号
-    .i_mac7_cross_metadata_last  ( w_mac7_cross_metadata_last  )        , // 信息流结束标识
-    .o_mac7_cross_metadata_ready ( w_mac7_cross_metadata_ready )        , // 下游模块反压流水线 
+    .i_mac7_cross_port_link      (w_cb_mac7_cross_port_link     )        , // 端口的连接状态
+    .i_mac7_cross_port_speed     (w_cb_mac7_cross_port_speed    )        , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    .i_mac7_cross_port_axi_data  (w_cb_mac7_cross_port_axi_data )        , // 端口数据流，最高位表示crcerr
+    .i_mac7_cross_axi_data_keep  (w_cb_mac7_cross_axi_data_keep )        , // 端口数据流掩码，有效字节指示
+    .i_mac7_cross_axi_data_valid (w_cb_mac7_cross_axi_data_valid)        , // 端口数据有效
+    .o_mac7_cross_axi_data_ready (w_cb_mac7_cross_axi_data_ready)        , // 交叉总线聚合架构反压流水线信号
+    .i_mac7_cross_axi_data_last  (w_cb_mac7_cross_axi_data_last )        , // 数据流结束标识
+    
+    .i_mac7_cross_metadata       (w_cb_mac7_cross_metadata      )        , // 总线 metadata 数据
+    .i_mac7_cross_metadata_valid (w_cb_mac7_cross_metadata_valid)        , // 总线 metadata 数据有效信号
+    .i_mac7_cross_metadata_last  (w_cb_mac7_cross_metadata_last )        , // 信息流结束标识
+    .o_mac7_cross_metadata_ready (w_cb_mac7_cross_metadata_ready)        , // 下游模块反压流水线 
 `endif
-    /*-------------------- 输出数据流重新进入CROSSBAR交换平面 -----------------------*/
+    /*----------- 输出数据流重新进入CROSSBAR交换平面 ------------*/
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
     .o_lldp_cross_port_link       ( w_lldp_cross_port_link       )     , // 端口的连接状态
     .o_lldp_cross_port_speed      ( w_lldp_cross_port_speed      )     , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
@@ -2108,11 +2438,11 @@ lldp_top#(
     .o_lldp_cross_axi_data_valid  ( w_lldp_cross_axi_data_valid  )     , // 端口数据有效
     .i_lldp_cross_axi_data_ready  ( w_lldp_cross_axi_data_ready  )     , // 交叉总线聚合架构反压流水线信号
     .o_lldp_cross_axi_data_last   ( w_lldp_cross_axi_data_last   )     , // 数据流结束标识
-    /*---------------------------------------- 单 PORT 聚合信息流 -------------------------------------------*/
-    .o_lldp_cross_metadata        ( w_lldp_cross_metadata       )     , // 总线 metadata 数据
-    .o_lldp_cross_metadata_valid  ( w_lldp_cross_metadata_valid )     , // 总线 metadata 数据有效信号
-    .o_lldp_cross_metadata_last   ( w_lldp_cross_metadata_last  )     , // 信息流结束标识
-    .i_lldp_cross_metadata_ready  ( w_lldp_cross_metadata_ready )       // 下游模块反压流水线 
+    
+    .o_lldp_cross_metadata        ( w_lldp_cross_metadata       )      , // 总线 metadata 数据
+    .o_lldp_cross_metadata_valid  ( w_lldp_cross_metadata_valid )      , // 总线 metadata 数据有效信号
+    .o_lldp_cross_metadata_last   ( w_lldp_cross_metadata_last  )      , // 信息流结束标识
+    .i_lldp_cross_metadata_ready  ( w_lldp_cross_metadata_ready )        // 下游模块反压流水线 
 );
 
 switch_core_regs #(
@@ -2175,6 +2505,5 @@ switch_core_regs #(
     .i_swlist_reg_bus_rd_dout_v     ( w_swlist_reg_bus_rd_dout_v    )      // 读数据有效使能
 );
 
-
-
 endmodule
+

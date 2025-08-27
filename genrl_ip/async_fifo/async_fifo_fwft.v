@@ -1,12 +1,12 @@
 
 `timescale  1ns/1ps
 module async_fifo_fwft #(
-	parameter DATA_WIDTH = 320,	// Data bus width
+	parameter DATA_WIDTH = 360,	// Data bus width
 	parameter FIFO_DEPTH = 1024,	// Depth of the FIFO
 	// Local parameters
 	parameter C_REAL_DEPTH = 2**clog2(FIFO_DEPTH),
 	parameter C_DEPTH_P1_BITS = clog2(C_REAL_DEPTH+1),
-    parameter RAM_STYLE       = 0  // RAM综合类型选择：
+    parameter RAM_STYLE       = 1  // RAM综合类型选择：
                                      // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
                                      // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快 
 	) (

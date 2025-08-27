@@ -86,7 +86,7 @@ wire [DATA_WIDTH-1:0]   rd_data_fwft;
 wire                    rd_empty_fwft;
 wire [PTR_WIDTH:0]      rd_cnt_fwft;
 
-async_fifo #(
+async_fifo_fwft #(
     .DATA_WIDTH     (DATA_WIDTH),
     .FIFO_DEPTH     (FIFO_DEPTH),
     .DATA_FLOAT_OUT (1'b1)
@@ -179,9 +179,9 @@ task read_fifo;
     begin
         @(posedge rd_clk);
         wait(!rd_empty) @(posedge rd_clk);  // 等待非空
-        rd_en = 1;
+        #1 rd_en = 1;
         @(posedge rd_clk);
-        rd_en = 0;
+        #1 rd_en = 0;
         
         if(!queue_empty(0)) begin
             dequeue_data(expected_data);

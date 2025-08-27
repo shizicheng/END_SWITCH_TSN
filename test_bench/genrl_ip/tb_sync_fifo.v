@@ -45,11 +45,24 @@ initial begin
     forever #(CLK_PERIOD/2) clk = ~clk;
 end
 
-// 复位生成
+// 复位生成和信号初始化
 initial begin
+    // 信号初始化 - 确保在仿真开始时就有明确的值
+    wr_en = 0;
+    rd_en = 0;
+    din = 0;
+    write_count = 0;
+    read_count = 0;
+    error_count = 0;
+    queue_head = 0;
+    queue_tail = 0;
+    
+    // 复位序列
     rst = 1;
     #(CLK_PERIOD * 3);
     rst = 0;
+    
+    $display("[%0t] 复位完成，信号初始化完成", $time);
 end
 
 //=====================================
@@ -154,12 +167,18 @@ task write_fifo;
     begin
         @(posedge clk);
         while(full) @(posedge clk);  // 等待非满
-        wr_en = 1;
-        din = data;
+        
+        $display("[%0t] write_fifo: Setting wr_en=1, din=0x%02h", $time, data);
+        // 在时钟上升沿前设置信号，确保建立时间
+        #1 wr_en = 1;
+        #1 din = data;
         enqueue_data(data);
+        
         @(posedge clk);
-        wr_en = 0;
+        $display("[%0t] write_fifo: Setting wr_en=0", $time);
+        #1 wr_en = 0;  // 添加延时确保保持时间
         write_count = write_count + 1;
+        
         $display("[%0t] Write: 0x%02h, count=%0d, data_cnt=%0d", 
                  $time, data, write_count, data_cnt);
     end
@@ -170,9 +189,11 @@ task read_fifo_std;
     begin
         @(posedge clk);
         while(empty) @(posedge clk);  // 等待非空
-        rd_en = 1;
+        
+        // 在时钟上升沿前设置rd_en，确保建立时间
+        #1 rd_en = 1;  // 添加1ns延时，确保在时钟上升沿前建立
         @(posedge clk);
-        rd_en = 0;
+        #1 rd_en = 0;  // 添加延时确保保持时间
         
         if(!queue_empty(0)) begin
             dequeue_data(expected_data);
@@ -194,9 +215,11 @@ task read_fifo_fwft;
     begin
         @(posedge clk);
         while(empty_fwft) @(posedge clk);  // 等待非空
-        rd_en = 1;
+        
+        // 在时钟上升沿前设置rd_en，确保建立时间
+        #1 rd_en = 1;  // 添加1ns延时，确保在时钟上升沿前建立
         @(posedge clk);
-        rd_en = 0;
+        #1 rd_en = 0;  // 添加延时确保保持时间
         
         if(!queue_empty(0)) begin
             dequeue_data(expected_data);
@@ -276,16 +299,6 @@ endtask
 // 主测试流程
 //=====================================
 initial begin
-    // 初始化
-    wr_en = 0;
-    rd_en = 0;
-    din = 0;
-    write_count = 0;
-    read_count = 0;
-    error_count = 0;
-    queue_head = 0;
-    queue_tail = 0;
-    
     // 等待复位释放
     wait(!rst);
     repeat(3) @(posedge clk);
@@ -348,10 +361,10 @@ initial begin
     
     // 尝试写入（应该被阻止）
     @(posedge clk);
-    wr_en = 1;
-    din = 8'hFF;
+    #1 wr_en = 1;  // 添加延时确保建立时间
+    #1 din = 8'hFF;
     @(posedge clk);
-    wr_en = 0;
+    #1 wr_en = 0;  // 添加延时确保保持时间
     @(posedge clk);
     
     // 验证计数器没有变化
@@ -403,9 +416,9 @@ initial begin
     
     // 尝试读取（应该被阻止）
     @(posedge clk);
-    rd_en = 1;
+    #1 rd_en = 1;   
     @(posedge clk);
-    rd_en = 0;
+    #1 rd_en = 0;   
     @(posedge clk);
     
     // 验证计数器没有变化
@@ -521,17 +534,36 @@ initial begin
         $display("*** 测试失败，发现 %0d 个错误 ***", error_count);
     end
 
+    $finish;  // 结束仿真
     
+end
+
+// 仿真超时保护
+initial begin
+    #(CLK_PERIOD * 10000);  // 10000个时钟周期后强制结束
+    $display("*** 仿真超时，强制结束 ***");
+    $finish;
 end
 
 //=====================================
 // 实时监控
 //=====================================
+// 基本操作监控
 always @(posedge clk) begin
     if(wr_en || rd_en) begin
-        $display("[%0t] Monitor: wr_en=%0b, rd_en=%0b, data_cnt=%0d, empty=%0b, full=%0b, almost_empty=%0b, almost_full=%0b", 
-                 $time, wr_en, rd_en, data_cnt, empty, full, almost_empty, almost_full);
+        $display("[%0t] Monitor: wr_en=%0b, rd_en=%0b, din=0x%02h, data_cnt=%0d, empty=%0b, full=%0b, almost_empty=%0b, almost_full=%0b", 
+                 $time, wr_en, rd_en, din, data_cnt, empty, full, almost_empty, almost_full);
     end
+end
+
+// 写使能信号变化监控
+always @(wr_en) begin
+    $display("[%0t] WR_EN changed to: %0b", $time, wr_en);
+end
+
+// 读使能信号变化监控
+always @(rd_en) begin
+    $display("[%0t] RD_EN changed to: %0b", $time, rd_en);
 end
 
 // 生成波形文件

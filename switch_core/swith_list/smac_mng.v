@@ -6,11 +6,7 @@ module smac_mng #(
         input               wire                                    i_clk                       ,
         input               wire                                    i_rst                       ,
         /*----------------------------- 控制寄存器接口 ------------------------------*/
-        input               wire                                    i_cfg_smac_list_clr         ,   // 静态MAC配置-清空列表
-        input               wire                                    i_cfg_smac_list_we          ,   // 静态MAC配置-写使能
-        input               wire        [47:0]                      i_cfg_smac_list_din_0       ,   // 静态MAC配置条目-MAC地址字段
-        input               wire        [7:0]                       i_cfg_smac_list_din_1       ,   // 静态MAC配置条目-发送指定端口字段
-        input               wire        [7:0]                       i_cfg_smac_list_din_2       ,   // 静态MAC配置条目-有效使能及掩码配置字段(掩码必须连续有效)
+      
         /*----------------------------- 查找 DMAC 输入 ------------------------------*/
         input               wire        [47:0]                      i_mac_in                    ,   
         input               wire                                    i_mac_in_vld                ,   

@@ -1,17 +1,13 @@
 module look_up_mng #(
         parameter                           HASH_DATA_WIDTH         =      12                   ,   // 哈希计算的值的位宽
         parameter                           PORT_NUM                =      4                    ,   // 交换机的端口数
-        parameter                           ADDR_WIDTH              =      6                        // 地址表的深度
+        parameter                           ADDR_WIDTH              =      6                    ,   // 地址表的深度
+        parameter   [47:0]                  LOCAL_MAC               = 48'h000000000000             // 本地MAC地址参数
 )(  
         input               wire                                    i_clk                       ,
         input               wire                                    i_rst                       ,
-        /*----------------------------- 控制寄存器接口 ------------------------------*/
-        input               wire                                    i_cfg_smac_list_clr         ,   // 静态MAC配置-清空列表
-        input               wire                                    i_cfg_smac_list_we          ,   // 静态MAC配置-写使能
-        input               wire        [47:0]                      i_cfg_smac_list_din_0       ,   // 静态MAC配置条目-MAC地址字段
-        input               wire        [7:0]                       i_cfg_smac_list_din_1       ,   // 静态MAC配置条目-发送指定端口字段
-        input               wire        [7:0]                       i_cfg_smac_list_din_2       ,   // 静态MAC配置条目-有效使能及掩码配置字段(掩码必须连续有效)
         /*----------------------------- KEY仲裁结果输入 ------------------------------*/
+        input               wire   [11 : 0]                         i_vlan_id                   ,   // 输入报文的VLAN ID
         input               wire   [PORT_NUM - 1:0]                 i_dmac_port                 ,   // 输入查表引擎的端口
         input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac_hash_key             ,   // 目的 mac 的哈希值
         input               wire   [47 : 0]                         i_dmac                      ,   // 目的 mac 的值
@@ -20,38 +16,270 @@ module look_up_mng #(
         input               wire   [47 : 0]                         i_smac                      ,   // 源 mac 的值
         input               wire                                    i_smac_vld                  ,   // smac_vld
 
-        output              wire   [PORT_NUM - 1:0]                 o_tx_port                   ,
-        output              wire                                    o_tx_port_vld               ,
+        output              wire   [PORT_NUM  :0 ]                  o_tx_port                   ,  // 最高位为1表明为自己MAC的，不需要查表
+        output              wire                                    o_tx_port_vld               , 
+        /*----------------------------- SMAC 表读写接口 ------------------------------*/         
+        output              wire   [47 : 0]                         o_dmac                      ,   // 目的 mac 的值
+        output              wire   [11 : 0]                         o_vlan_id                   ,   // vlan_id 值
+        output              wire                                    o_dmac_vld                  ,   // dmac_vld
         /*----------------------------- DMAC 表读写接口 ------------------------------*/
-        input               wire                                    i_dmac_old_en               ,   // DMAC 老化时间使能
-        input               wire   [HASH_DATA_WIDTH-1:0]            i_dmac_old_num              ,   // DMAC 老化的表项
-        output              wire   [HASH_DATA_WIDTH-1:0]            o_dmac_item_mac_addr        ,   // DMAC 地址表项
-        output              wire                                    o_dmac_item_mac_addr_vld    ,   // DMAC 地址表项有效位
-        output              wire                                    o_dmac_item_mac_we          ,   // DMAC 地址表读写信号
-        output              wire   [47:0]                           o_dmac_item_mac_in          ,   // MAC输入
+        output              wire   [11 : 0]                         o_dmac_item_vlan_id         ,   // vlan_id 值
+        output              wire   [HASH_DATA_WIDTH-1:0]            o_dmac_item_dmac_addr       ,   // DMAC 地址表项
+        output              wire                                    o_dmac_item_dmac_addr_vld   ,   // DMAC 地址表项有效位
+        output              wire   [47 : 0]                         o_dmac_item_dmac            ,   // DMAC 地址表读写信号
+        output              wire   [HASH_DATA_WIDTH-1:0]            o_dmac_item_smac_addr       ,   // DMAC 地址表项
+        output              wire                                    o_dmac_item_smac_addr_vld   ,   // DMAC 地址表项有效位
+        output              wire   [47 : 0]                         o_dmac_item_smac            ,   // DMAC 地址表读写信号 
         output              wire   [PORT_NUM - 1:0]                 o_dmac_item_mac_rx_port     ,   // DMAC 输入端口
         /*----------------------------- 哈希冲突表读写接口 ------------------------------*/
-        output              wire                                    o_clash_clr                 ,   // 哈希冲突表清空
-        input               wire                                    i_clash_rdy                 ,   
-        input               wire                                    i_clash_old_en              ,   // DMAC 老化时间使能
-        input               wire   [HASH_DATA_WIDTH-1:0]            i_clash_old_num             ,   // DMAC 老化的表项
-        output              wire   [HASH_DATA_WIDTH-1:0]            o_clash_item_mac_addr       ,   // DMAC 地址表项
-        output              wire                                    o_clash_item_mac_addr_vld   ,   // DMAC 地址表项有效位
-        output              wire                                    o_clash_item_mac_we         ,   // DMAC 地址表读写信号
-        output              wire   [47:0]                           o_clash_item_mac_in         ,   // MAC输入
+        output              wire   [11 : 0]                         o_clash_item_vlan_id        ,   // vlan_id 值
+        output              wire   [HASH_DATA_WIDTH-1:0]            o_clash_item_dmac_addr      ,   // DMAC 地址表项
+        output              wire                                    o_clash_item_dmac_addr_vld  ,   // DMAC 地址表项有效位
+        output              wire   [47 : 0]                         o_clash_item_dmac           ,   // DMAC 地址表读写信号
+        output              wire   [HASH_DATA_WIDTH-1:0]            o_clash_item_smac_addr      ,   // DMAC 地址表项
+        output              wire                                    o_clash_item_smac_addr_vld  ,   // DMAC 地址表项有效位
+        output              wire   [47 : 0]                         o_clash_item_smac           ,   // DMAC 地址表读写信号 
         output              wire   [PORT_NUM - 1:0]                 o_clash_item_mac_rx_port    ,   // DMAC 输入端口
         /*----------------------------- 查表的结果 ------------------------------*/
         // smac
-        input               wire   [PORT_NUM  : 0]                  i_smac_tx_port_rslt         , // 最高位为1，代表该报文是本地网卡设备的，将该报文转到内部网卡端口处理
+        input               wire   [PORT_NUM-1: 0]                  i_smac_tx_port_rslt         ,  
         input               wire                                    i_smac_tx_port_vld          ,
-        // dmac
-        input               wire   [PORT_NUM  : 0]                  i_dmac_tx_port_rslt         , // 最高位为1，代表该报文是本地网卡设备的，将该报文转到内部网卡端口处理
-        input               wire                                    i_dmac_tx_port_vld          ,
-        input               wire                                    i_clash_out                 , // 表明在 DMAC 中，没有查找到合适的表项，转到哈希冲突表查找
+        // dmac  
+        input               wire   [PORT_NUM-1: 0]                  i_dmac_tx_port_rslt         ,
+        input               wire                                    i_dmac_lookup_vld           ,  
+        input               wire                                    i_dmac_lookup_clash         , // 表明在 DMAC 中，没有查找到合适的表项，转到哈希冲突表查找
         // clash
-        input               wire   [PORT_NUM  : 0]                  i_clash_tx_port_rslt        , // 最高位为1，代表该报文是本地网卡设备的，将该报文转到内部网卡端口处理
+        input               wire   [PORT_NUM-1: 0]                  i_clash_tx_port_rslt        , 
         input               wire                                    i_clash_tx_port_vld         
 );
+
+/*======================= 内部信号声明 =======================*/
+// 输入信号打拍寄存器
+reg    [11 : 0]                         ri_vlan_id                   ;   // VLAN ID打拍
+reg    [PORT_NUM - 1:0]                 ri_dmac_port                 ;   // DMAC端口打拍
+reg    [HASH_DATA_WIDTH - 1 : 0]        ri_dmac_hash_key             ;   // DMAC哈希值打拍
+reg    [47 : 0]                         ri_dmac                      ;   // DMAC值打拍
+reg                                     ri_dmac_vld                  ;   // DMAC有效信号打拍
+reg    [HASH_DATA_WIDTH - 1 : 0]        ri_smac_hash_key             ;   // SMAC哈希值打拍
+reg    [47 : 0]                         ri_smac                      ;   // SMAC值打拍
+reg                                     ri_smac_vld                  ;   // SMAC有效信号打拍
+
+// 查表结果输入信号打拍
+reg    [PORT_NUM-1: 0]                  ri_smac_tx_port_rslt         ;   // SMAC查表结果打拍
+reg                                     ri_smac_tx_port_vld          ;   // SMAC查表结果有效打拍
+reg    [PORT_NUM-1: 0]                  ri_dmac_tx_port_rslt         ;   // DMAC查表结果打拍
+reg                                     ri_dmac_lookup_vld           ;   // DMAC查找有效打拍
+reg                                     ri_dmac_lookup_clash         ;   // DMAC查找冲突打拍
+reg    [PORT_NUM-1: 0]                  ri_clash_tx_port_rslt        ;   // 冲突查表结果打拍
+reg                                     ri_clash_tx_port_vld         ;   // 冲突查表结果有效打拍
+
+// 输出寄存器
+// 所有输出信号直接使用已有寄存器，无需额外输出寄存器
+
+// 中间逻辑信号
+reg                                     r_dmac_req_en                ;   // DMAC表请求使能
+reg                                     r_smac_req_en                ;   // SMAC表请求使能
+reg                                     r_clash_req_en               ;   // 冲突表请求使能
+reg                                     r_is_self_mac                ;   // 是否为自己MAC标识
+reg    [PORT_NUM-1:0]                   r_final_tx_port              ;   // 最终输出端口
+reg                                     r_final_tx_port_vld          ;   // 最终输出端口有效
+reg    [2:0]                            r_lookup_state               ;   // 查表状态计数器
+reg                                     r_smac_result_ready          ;   // SMAC结果准备就绪
+reg                                     r_dmac_result_ready          ;   // DMAC结果准备就绪
+reg                                     r_clash_result_ready         ;   // CLASH结果准备就绪
+reg                                     r_all_results_ready          ;   // 所有结果准备就绪
+reg    [PORT_NUM-1:0]                   r_smac_lookup_result         ;   // SMAC查表结果
+reg    [PORT_NUM-1:0]                   r_dmac_lookup_result         ;   // DMAC查表结果
+reg    [PORT_NUM-1:0]                   r_clash_lookup_result        ;   // CLASH查表结果
+reg    [PORT_NUM-1:0]                   r_flood_port                 ;   // 泛洪端口
+
+// 本地MAC地址 - 参数化配置
+wire   [47:0]                           w_local_mac                  ;   // 本地MAC地址
+
+/*======================= 输出信号连接 ===========================*/
+assign o_tx_port                    = r_is_self_mac ? {{1'b1}, {PORT_NUM{1'b0}}} : {{1'b0}, r_final_tx_port};
+assign o_tx_port_vld                = r_is_self_mac ? 1'b1 : r_final_tx_port_vld;
+assign o_dmac                       = ri_dmac;
+assign o_vlan_id                    = ri_vlan_id;
+assign o_dmac_vld                   = ri_dmac_vld;
+assign o_dmac_item_dmac_addr        = ri_dmac_hash_key;
+assign o_dmac_item_dmac_addr_vld    = r_dmac_req_en;
+assign o_dmac_item_dmac             = ri_dmac;
+assign o_dmac_item_smac_addr        = ri_smac_hash_key;
+assign o_dmac_item_smac_addr_vld    = r_smac_req_en;
+assign o_dmac_item_smac             = ri_smac;
+assign o_dmac_item_mac_rx_port      = ri_dmac_port;
+assign o_dmac_item_vlan_id          = ri_vlan_id;
+assign o_clash_item_dmac_addr       = ri_dmac_hash_key;
+assign o_clash_item_dmac_addr_vld   = r_clash_req_en;
+assign o_clash_item_dmac            = ri_dmac;
+assign o_clash_item_smac_addr       = ri_smac_hash_key;
+assign o_clash_item_smac_addr_vld   = r_smac_req_en;
+assign o_clash_item_smac            = ri_smac;
+assign o_clash_item_mac_rx_port     = ri_dmac_port;
+assign o_clash_item_vlan_id         = ri_vlan_id;
+
+
+/*======================= 输入信号打拍逻辑 =======================*/
+// 所有信号打拍处理
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst) begin
+        ri_vlan_id              <= 12'd0;
+        ri_dmac_port            <= {PORT_NUM{1'b0}};
+        ri_dmac_hash_key        <= {HASH_DATA_WIDTH{1'b0}};
+        ri_dmac                 <= 48'd0;
+        ri_dmac_vld             <= 1'b0;
+        ri_smac_hash_key        <= {HASH_DATA_WIDTH{1'b0}};
+        ri_smac                 <= 48'd0;
+        ri_smac_vld             <= 1'b0;
+        ri_smac_tx_port_rslt    <= {PORT_NUM{1'b0}};
+        ri_smac_tx_port_vld     <= 1'b0;
+        ri_dmac_tx_port_rslt    <= {PORT_NUM{1'b0}};
+        ri_dmac_lookup_vld      <= 1'b0;
+        ri_dmac_lookup_clash    <= 1'b0;
+        ri_clash_tx_port_rslt   <= {PORT_NUM{1'b0}};
+        ri_clash_tx_port_vld    <= 1'b0;
+    end
+    else begin
+        ri_vlan_id              <= i_vlan_id;
+        ri_dmac_port            <= i_dmac_port;
+        ri_dmac_hash_key        <= i_dmac_hash_key;
+        ri_dmac                 <= i_dmac;
+        ri_dmac_vld             <= i_dmac_vld;
+        ri_smac_hash_key        <= i_smac_hash_key;
+        ri_smac                 <= i_smac;
+        ri_smac_vld             <= i_smac_vld;
+        ri_smac_tx_port_rslt    <= i_smac_tx_port_rslt;
+        ri_smac_tx_port_vld     <= i_smac_tx_port_vld;
+        ri_dmac_tx_port_rslt    <= i_dmac_tx_port_rslt;
+        ri_dmac_lookup_vld      <= i_dmac_lookup_vld;
+        ri_dmac_lookup_clash    <= i_dmac_lookup_clash;
+        ri_clash_tx_port_rslt   <= i_clash_tx_port_rslt;
+        ri_clash_tx_port_vld    <= i_clash_tx_port_vld;
+    end
+end
+
+/*======================= 查表请求分发逻辑 =======================*/
+// DMAC表请求使能
+always @(*) begin
+    if (!i_rst)
+        r_dmac_req_en = 1'b0;
+    else
+        r_dmac_req_en = ri_dmac_vld;
+end
+
+// SMAC表请求使能
+always @(*) begin
+    if (!i_rst)
+        r_smac_req_en = 1'b0;
+    else
+        r_smac_req_en = ri_smac_vld;
+end
+
+// 冲突表请求使能
+always @(*) begin
+    if (!i_rst)
+        r_clash_req_en = 1'b0;
+    else
+        r_clash_req_en = ri_dmac_vld;
+end
+
+/*======================= 自己MAC检查逻辑 =======================*/
+// 本地MAC地址参数化配置
+assign w_local_mac = LOCAL_MAC;
+
+// 是否为自己MAC检查
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_is_self_mac <= 1'b0;
+    else
+        r_is_self_mac <= (ri_dmac == w_local_mac) ? 1'b1 : 1'b0;
+end
+
+/*======================= 查表结果收集逻辑 =======================*/
+// SMAC查表结果收集
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst) begin
+        r_smac_result_ready <= 1'b0;
+        r_smac_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else if (r_all_results_ready && r_final_tx_port_vld) begin
+        r_smac_result_ready <= 1'b0;
+        r_smac_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else begin
+        r_smac_result_ready <= ri_smac_tx_port_vld ? 1'b1 : r_smac_result_ready;
+        r_smac_lookup_result <= ri_smac_tx_port_vld ? ri_smac_tx_port_rslt : r_smac_lookup_result;
+    end
+end
+
+// DMAC查表结果收集
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst) begin
+        r_dmac_result_ready <= 1'b0;
+        r_dmac_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else if (r_all_results_ready && r_final_tx_port_vld) begin
+        r_dmac_result_ready <= 1'b0;
+        r_dmac_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else begin
+        r_dmac_result_ready <= ri_dmac_lookup_vld ? 1'b1 : r_dmac_result_ready;
+        r_dmac_lookup_result <= ri_dmac_lookup_vld ? ri_dmac_tx_port_rslt : r_dmac_lookup_result;
+    end
+end
+
+// CLASH查表结果收集
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst) begin
+        r_clash_result_ready <= 1'b0;
+        r_clash_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else if (r_all_results_ready && r_final_tx_port_vld) begin
+        r_clash_result_ready <= 1'b0;
+        r_clash_lookup_result <= {PORT_NUM{1'b0}};
+    end
+    else begin
+        r_clash_result_ready <= ri_clash_tx_port_vld ? 1'b1 : r_clash_result_ready;
+        r_clash_lookup_result <= ri_clash_tx_port_vld ? ri_clash_tx_port_rslt : r_clash_lookup_result;
+    end
+end
+
+// 所有结果准备就绪判断
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_all_results_ready <= 1'b0;
+    else
+        r_all_results_ready <= r_smac_result_ready & r_dmac_result_ready & r_clash_result_ready;
+end
+
+// 泛洪端口生成 - 除了输入端口外，其他端口全为1
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_flood_port <= {PORT_NUM{1'b0}};
+    else
+        r_flood_port <= ~ri_dmac_port;
+end
+
+/*======================= 查表结果仲裁逻辑 =======================*/
+// 最终输出端口仲裁 - 优先级：smac > dmac > clash > flood
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_final_tx_port <= {PORT_NUM{1'b0}};
+    else if (r_all_results_ready)
+        r_final_tx_port <= (r_smac_lookup_result != {PORT_NUM{1'b0}}) ? r_smac_lookup_result :
+                          ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) & !ri_dmac_lookup_clash) ? r_dmac_lookup_result :
+                          (r_clash_lookup_result != {PORT_NUM{1'b0}}) ? r_clash_lookup_result : 
+                          r_flood_port;
+end
+
+// 最终输出端口有效
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_final_tx_port_vld <= 1'b0;
+    else
+        r_final_tx_port_vld <= r_all_results_ready;
+end
 
 
 endmodule
