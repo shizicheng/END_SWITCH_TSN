@@ -6,7 +6,9 @@ module  tsn_qav_mng #(
     input               wire                                    i_clk                   , // 250MHz
     input               wire                                    i_rst                   ,
     /*------------------------------ 寄存器配置接口 ----------------------------*/
-
+    input               wire   [7:0]                            i_idleSlope             ,
+    input               wire   [7:0]                            i_sendslope             ,
+    input               wire                                    i_qav_en                ,
     /*------------------------------ 调度信息输入 ------------------------------*/
     input               wire   [PORT_FIFO_PRI_NUM:0]            i_fifoc_empty           , // 实时检测该端口对应 CROSSBAR 交换平面优先级 FIFO 信息
     input               wire                                    i_pmac_tx_axis_last     ,

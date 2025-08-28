@@ -8,7 +8,11 @@ module  tsn_qbv_mng #(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,
     /*---------------------------------------- 寄存器配置接口 --------------------------------------*/
-
+    input               wire   [PORT_FIFO_PRI_NUM:0]            o_ControlList                    ,
+    input               wire   [7:0]                            o_ControlList_len                ,
+    input               wire   [15:0]                           o_cycle_time                     ,
+    input               wire   [79:0]                           o_cycle_time_extension           ,
+    input               wire                                    o_qbv_en                         , 
     /*---------------------------------- Qav 输入满足信用条件的队列向量结果 -------------------------*/ 
     input               wire   [PORT_FIFO_PRI_NUM:0]            i_queque                , // 输出满足信用值的队列结果向量
     input               wire                                    i_queque_vld            ,

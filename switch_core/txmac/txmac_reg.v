@@ -13,7 +13,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_0                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_0               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_0                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_0                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_0                ,  // 可抢占帧
@@ -34,7 +33,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_1                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_1               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_1                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_1                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_1                ,  // 可抢占帧
@@ -55,7 +53,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_2                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_2               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_2                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_2                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_2                ,  // 可抢占帧
@@ -76,7 +73,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_3                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_3               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_3                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_3                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_3                ,  // 可抢占帧
@@ -97,7 +93,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_4                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_4               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_4                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_4                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_4                ,  // 可抢占帧
@@ -118,7 +113,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_5                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_5               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_5                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_5                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_5                ,  // 可抢占帧
@@ -139,7 +133,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_6                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_6               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_6                 ,  // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_6                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_6                ,  // 可抢占帧
@@ -160,7 +153,6 @@ module  tx_mac_reg #(
     input              wire    [15:0]                           i_port_tx_byte_cnt_7                ,  // 端口发送字节数
     input              wire    [15:0]                           i_port_tx_frame_cnt_7               ,  // 端口发送帧计数器
     input              wire    [15:0]                           i_port_diag_state_7                 ,   // 诊断状态
-
     //qbu_tx 寄存器
     input              wire                                     i_tx_busy_7                          ,  // 发送忙信号
     input              wire                                     i_preemptable_frame_7                ,  // 可抢占帧

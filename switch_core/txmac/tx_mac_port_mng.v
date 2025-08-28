@@ -62,6 +62,18 @@ Scheduling_top #(
 )(  
     .i_clk                   (  )            , // 250MHz
     .i_rst                   (  )            ,
+    // 寄存器配置接口
+    .i_refresh_list_pulse    (  )            ,
+    .i_switch_err_cnt_clr    (  )            ,
+    .i_switch_err_cnt_stat   (  )            ,
+    .i_Sch_reg_bus_we        (  )            ,
+    .i_Sch_reg_bus_we_addr   (  )            ,
+    .i_Sch_reg_bus_we_din    (  )            ,
+    .i_Sch_reg_bus_we_din_v  (  )            ,
+    .i_Sch_reg_bus_rd        (  )            ,
+    .i_Sch_reg_bus_rd_addr   (  )            ,
+    .o_Sch_reg_bus_we_dout   (  )            ,
+    .o_Sch_reg_bus_we_dout_v (  )            ,
     /*------------------------------ 与CROSSBAR交换平面交互的调度信息 ------------------------------*/
     // 调度流水线调度信息交互
     .i_fifoc_empty           (  )            , // 实时检测该端口对应 CROSSBAR 交换平面优先级 FIFO 信息 
