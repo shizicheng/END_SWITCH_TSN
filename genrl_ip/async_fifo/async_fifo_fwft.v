@@ -10,18 +10,18 @@ module async_fifo_fwft #(
                                      // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
                                      // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快 
 	) (
-	input RD_CLK,							// Read clock
-	input RD_RST,							// Read synchronous reset
-	input WR_CLK,						 	// Write clock
-	input WR_RST,							// Write synchronous reset
-	input [DATA_WIDTH-1:0] WR_DATA, 			// Write data input (WR_CLK)
-	input WR_EN, 							// Write enable, high active (WR_CLK)
-	output [DATA_WIDTH-1:0] RD_DATA, 			// Read data output (RD_CLK)
-	input RD_EN,							// Read enable, high active (RD_CLK)
-	output WR_FULL, 						// Full condition (WR_CLK)
-	output RD_EMPTY, 						// Empty condition (RD_CLK)
-	output [C_DEPTH_P1_BITS-1:0] WR_CNT,	// Write count (WR_CLK)
-	output [C_DEPTH_P1_BITS-1:0] RD_CNT		// Read count (RD_CLK)
+	input i_rd_clk,							// Read clock
+	input i_rd_rst,							// Read synchronous reset
+	input i_wr_clk,						 	// Write clock
+	input i_wr_rst,							// Write synchronous reset
+	input [DATA_WIDTH-1:0] i_wr_data, 			// Write data input (i_wr_clk)
+	input i_wr_en, 							// Write enable, high active (i_wr_clk)
+	output [DATA_WIDTH-1:0] o_rd_data, 			// Read data output (i_rd_clk)
+	input i_rd_en,							// Read enable, high active (i_rd_clk)
+	output o_wr_full, 						// Full condition (i_wr_clk)
+	output o_rd_empty, 						// Empty condition (i_rd_clk)
+	output [C_DEPTH_P1_BITS-1:0] o_wr_cnt,	// Write count (i_wr_clk)
+	output [C_DEPTH_P1_BITS-1:0] o_rd_cnt		// Read count (i_rd_clk)
 );
 
 `include "functions.vh"
@@ -42,24 +42,24 @@ reg 					rCacheVlaid;
 reg [C_DEPTH_P1_BITS-1:0] rReadCount;    // 读端计数器调整
 reg [C_DEPTH_P1_BITS-1:0] rWriteCount;   // 写端计数器调整
 
-assign RD_DATA = rData;
+assign o_rd_data = rData;
 
-assign RD_EMPTY = ~rDataValid;
+assign o_rd_empty = ~rDataValid;
 
-assign wRen = ((rCount <2 ) | RD_EN)& (~wEmpty);//(rCount <2 & (~wEmpty)) | RD_EN;
+assign wRen = ((rCount <2 ) | i_rd_en)& (~wEmpty);//(rCount <2 & (~wEmpty)) | i_rd_en;
 
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rCount <='d0;
 	end
 	else begin 
-		rCount <= rCount + (wRen&(~wEmpty)) -((~RD_EMPTY)&RD_EN);
+		rCount <= rCount + (wRen&(~wEmpty)) -((~o_rd_empty)&i_rd_en);
 	end
 end
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rFifoDataValid <= 1'b0;
 	end
 	else begin 
@@ -68,47 +68,47 @@ always @(posedge RD_CLK) begin
 end
 
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rDataValid <= 1'b0;
 	end
-	else if (rFifoDataValid == 1'b1 && (RD_EMPTY == 1'b1 || RD_EN == 1'b1)) begin
+	else if (rFifoDataValid == 1'b1 && (o_rd_empty == 1'b1 || i_rd_en == 1'b1)) begin
 		rDataValid <= 1'b1;
 	end
-	else if (RD_EN == 1'b1 || RD_EMPTY == 1'b1) begin
+	else if (i_rd_en == 1'b1 || o_rd_empty == 1'b1) begin
 		rDataValid <= rCacheVlaid;
 	end
 end
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rData <= {DATA_WIDTH{1'b0}};
 	end
-	else if (rFifoDataValid == 1'b1 && (RD_EMPTY == 1'b1 || RD_EN == 1'b1)) begin
+	else if (rFifoDataValid == 1'b1 && (o_rd_empty == 1'b1 || i_rd_en == 1'b1)) begin
 		rData <= wData;
 	end
-	else if (RD_EN == 1'b1 || RD_EMPTY == 1'b1) begin
+	else if (i_rd_en == 1'b1 || o_rd_empty == 1'b1) begin
 		rData <= rCache;
 	end
 end
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rCacheVlaid <= 1'b0;
 	end
-	else if (rFifoDataValid == 1'b1 && (RD_EMPTY == 1'b1 || RD_EN == 1'b1)) begin
+	else if (rFifoDataValid == 1'b1 && (o_rd_empty == 1'b1 || i_rd_en == 1'b1)) begin
 		rCacheVlaid <= 1'b0;
 	end
-	else if (RD_EN == 1'b1 && RD_EMPTY == 1'b0) begin  
+	else if (i_rd_en == 1'b1 && o_rd_empty == 1'b0) begin  
 		rCacheVlaid <= 1'b0;
 	end
-	else if (rFifoDataValid == 1'b1 && (RD_EN == 1'b0 && RD_EMPTY == 1'b0)) begin   
+	else if (rFifoDataValid == 1'b1 && (i_rd_en == 1'b0 && o_rd_empty == 1'b0)) begin   
 		rCacheVlaid <= 1'b1;
 	end
 end
 
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rCache <= {DATA_WIDTH{1'b0}};
 	end
 	else if (rFifoDataValid == 1'b1) begin
@@ -122,8 +122,8 @@ end
 
 // 读端计数器调整
 // FWFT模式下，用户看到的数据数量 = 内部FIFO数据数量 + 预读出的数据数量
-always @(posedge RD_CLK) begin 
-	if (RD_RST == 1'b1) begin
+always @(posedge i_rd_clk) begin 
+	if (i_rd_rst == 1'b1) begin
 		rReadCount <= 'd0;
 	end
 	else begin
@@ -136,8 +136,8 @@ end
 // 写端计数器调整  
 // 在写时钟域，需要同步读端的调整信息
 reg [1:0] rCount_sync1, rCount_sync2;  // 跨时钟域同步
-always @(posedge WR_CLK) begin 
-	if (WR_RST == 1'b1) begin
+always @(posedge i_wr_clk) begin 
+	if (i_wr_rst == 1'b1) begin
 		rCount_sync1 <= 2'd0;
 		rCount_sync2 <= 2'd0;
 		rWriteCount <= 'd0;
@@ -152,8 +152,8 @@ always @(posedge WR_CLK) begin
 end
 
 // 输出赋值
-assign RD_CNT = rReadCount;
-assign WR_CNT = rWriteCount;
+assign o_rd_cnt = rReadCount;
+assign o_wr_cnt = rWriteCount;
 
 
 
@@ -166,34 +166,34 @@ assign WR_CNT = rWriteCount;
 // 		.C_DEPTH_P1_BITS(C_DEPTH_P1_BITS),
 //		.RAM_STYLE(RAM_STYLE)
 // 	) inst_async_fifo (
-// 		.RD_CLK   (RD_CLK),
-// 		.RD_RST   (RD_RST),
-// 		.WR_CLK   (WR_CLK),
-// 		.WR_RST   (WR_RST),
-// 		.WR_DATA  (WR_DATA),
-// 		.WR_EN    (WR_EN),
-// 		.RD_DATA  (wData),
-// 		.RD_EN    (wRen),
-// 		.WR_FULL  (WR_FULL),
-// 		.RD_EMPTY (wEmpty)
+// 		.i_rd_clk   (i_rd_clk),
+// 		.i_rd_rst   (i_rd_rst),
+// 		.i_wr_clk   (i_wr_clk),
+// 		.i_wr_rst   (i_wr_rst),
+// 		.i_wr_data  (i_wr_data),
+// 		.i_wr_en    (i_wr_en),
+// 		.o_rd_data  (wData),
+// 		.i_rd_en    (wRen),
+// 		.o_wr_full  (o_wr_full),
+// 		.o_rd_empty (wEmpty)
 // 	);
 async_fifo #(
     .DATA_WIDTH     (DATA_WIDTH                ),
     .FIFO_DEPTH     (FIFO_DEPTH                ),
 	.RAM_STYLE		(RAM_STYLE				   ) 
 ) u_async_fifo (
-    .WR_RST         (WR_RST                    ),
-    .WR_CLK         (WR_CLK                    ),
-    .WR_EN          (WR_EN                     ),
-    .WR_DATA        (WR_DATA                   ),
-    .WR_FULL        (WR_FULL                   ),
-    .WR_CNT         (wr_cnt_internal           ),
+    .i_wr_rst         (i_wr_rst                ),
+    .i_wr_clk         (i_wr_clk                ),
+    .i_wr_en          (i_wr_en                 ),
+    .i_wr_data        (i_wr_data               ),
+    .o_wr_full        (o_wr_full               ),
+    .o_wr_cnt         (wr_cnt_internal         ),
     
-    .RD_RST         (RD_RST                    ),
-    .RD_CLK         (RD_CLK                    ),
-    .RD_EN          (wRen                      ),
-    .RD_DATA        (wData                     ),
-    .RD_EMPTY       (wEmpty                    ),
-    .RD_CNT         (rd_cnt_internal           )
+    .i_rd_rst         (i_rd_rst                ),
+    .i_rd_clk         (i_rd_clk                ),
+    .i_rd_en          (wRen                    ),
+    .o_rd_data        (wData                   ),
+    .o_rd_empty       (wEmpty                  ),
+    .o_rd_cnt         (rd_cnt_internal         )
 );
 endmodule

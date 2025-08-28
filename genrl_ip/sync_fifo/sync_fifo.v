@@ -1,8 +1,8 @@
 module sync_fifo #(
-    parameter                       DEPTH                  = 360         ,
-    parameter                       WIDTH                  = 1024         ,
-    parameter                       ALMOST_FULL_THRESHOLD  = 0         ,
-    parameter                       ALMOST_EMPTY_THRESHOLD = 0         ,
+    parameter                       DEPTH                  = 360       ,
+    parameter                       WIDTH                  = 1024      ,
+    parameter                       ALMOST_FULL_THRESHOLD  = 1         ,
+    parameter                       ALMOST_EMPTY_THRESHOLD = 1         ,
     parameter                       FLOP_DATA_OUT          = 0         , //是否开启fwft
     parameter                       RAM_STYLE              = 1         , // RAM综合类型选择：
                                                                            // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
@@ -12,38 +12,38 @@ module sync_fifo #(
     parameter                       CNT_WIDTH              = log2_cnt(DEPTH) 
 )(
        
-    input                           CLK                                ,
-    input                           RST                                ,
-    input                           WR_EN                              ,
-    input  [WIDTH-1:0]              DIN                                ,
-    output                          FULL                               ,
-    input                           RD_EN                              ,
-    output [WIDTH-1:0]              DOUT                               ,
-    output                          EMPTY                              ,
-    output                          ALMOST_FULL                        ,
-    output                          ALMOST_EMPTY                       ,
-    output [CNT_WIDTH-1:0]          DATA_CNT
+    input                           i_clk                                ,
+    input                           i_rst                                ,
+    input                           i_wr_en                              ,
+    input  [WIDTH-1:0]              i_din                                ,
+    output                          o_full                               ,
+    input                           i_rd_en                              ,
+    output [WIDTH-1:0]              o_dout                               ,
+    output                          o_empty                              ,
+    output                          o_almost_full                        ,
+    output                          o_almost_empty                       ,
+    output [CNT_WIDTH-1:0]          o_data_cnt
 );
 
 //例化模板
 // sync_fifo #(
-//     .DEPTH                 (16                    ),
-//     .WIDTH                 (32                    ),
-//     .ALMOST_FULL_THRESHOLD (0                     ),
-//     .ALMOST_EMPTY_THRESHOLD(0                     ),
-//     .FLOP_DATA_OUT         (0                     ) //1为fwft ， 0为stander
+//     .DEPTH                   (16                    ),
+//     .WIDTH                   (32                    ),
+//     .ALMOST_FULL_THRESHOLD   (0                     ),
+//     .ALMOST_EMPTY_THRESHOLD  (0                     ),
+//     .FLOP_DATA_OUT           (0                     ) //1为fwft ， 0为stander
 // ) u_sync_fifo (
-//     .CLK                   (clk                   ),
-//     .RST                   (rst                   ),
-//     .WR_EN                 (wr_en                 ),
-//     .DIN                   (din                   ),
-//     .FULL                  (full                  ),
-//     .RD_EN                 (rd_en                 ),
-//     .DOUT                  (dout                  ),
-//     .EMPTY                 (empty                 ),
-//     .ALMOST_FULL           (almost_full           ),
-//     .ALMOST_EMPTY          (almost_empty          ),
-//     .DATA_CNT              (data_cnt              )
+//     .i_clk                   (clk                   ),
+//     .i_rst                   (rst                   ),
+//     .i_wr_en                 (wr_en                 ),
+//     .i_din                   (din                   ),
+//     .o_full                  (full                  ),
+//     .i_rd_en                 (rd_en                 ),
+//     .o_dout                  (dout                  ),
+//     .o_empty                 (empty                 ),
+//     .o_almost_full           (almost_full           ),
+//     .o_almost_empty          (almost_empty          ),
+//     .o_data_cnt              (data_cnt              )
 // );
 
 function integer log2;
@@ -73,20 +73,20 @@ reg    [WIDTH-1:0]         data_out_d               ;
 
 wire   [WIDTH-1:0]         data_out_c               ;
 // assign语句
-assign DATA_CNT      = status_cnt;
-assign EMPTY         = (DATA_CNT == 0);
-assign empty_n       = ~EMPTY;
-assign FULL          = (DATA_CNT == DEPTH);
-assign full_n        = ~FULL;
-assign ALMOST_FULL   = (DATA_CNT > (DEPTH - (ALMOST_FULL_THRESHOLD == 0 ? 1 : ALMOST_FULL_THRESHOLD))) ? 1'b1 : 1'b0;
-assign ALMOST_EMPTY  = (DATA_CNT <= ALMOST_EMPTY_THRESHOLD) ? 1'b1 : 1'b0;
+assign o_data_cnt      = status_cnt;
+assign o_empty         = (o_data_cnt == 0);
+assign empty_n       = ~o_empty;
+assign o_full          = (o_data_cnt == DEPTH);
+assign full_n        = ~o_full;
+assign o_almost_full   = (o_data_cnt > (DEPTH - (ALMOST_FULL_THRESHOLD == 0 ? 1 : ALMOST_FULL_THRESHOLD))) ? 1'b1 : 1'b0;
+assign o_almost_empty  = (o_data_cnt <= ALMOST_EMPTY_THRESHOLD) ? 1'b1 : 1'b0;
 
 // always块
-always @(posedge CLK ) begin
-    if (RST)
+always @(posedge i_clk ) begin
+    if (i_rst)
         status_cnt <= 0;
     else begin
-        case ({RD_EN, WR_EN})
+        case ({i_rd_en, i_wr_en})
             2'b00, 2'b11: status_cnt <= status_cnt;
             2'b01: if (status_cnt != DEPTH) status_cnt <= status_cnt + 1'b1;
             2'b10: if (status_cnt != 0)     status_cnt <= status_cnt - 1'b1;
@@ -94,17 +94,17 @@ always @(posedge CLK ) begin
     end
 end
 
-always @(posedge CLK ) begin
-    if (RST)
+always @(posedge i_clk ) begin
+    if (i_rst)
         wr_ptr <= 0;
-    else if (WR_EN && full_n)
+    else if (i_wr_en && full_n)
         wr_ptr <= wr_ptr + 1'b1;
 end
 
-always @(posedge CLK ) begin
-    if (RST)
+always @(posedge i_clk ) begin
+    if (i_rst)
         rd_ptr <= 0;
-    else if (RD_EN && empty_n)
+    else if (i_rd_en && empty_n)
         rd_ptr <= rd_ptr + 1'b1;
 end
 
@@ -115,14 +115,14 @@ generate
         reg [WIDTH-1:0] register [DEPTH-1:0]; 
         assign data_out_c = register[rd_ptr];
         
-        always @(posedge CLK ) begin
-            if (WR_EN && full_n) begin 
-                    register[wr_ptr] <= #1 DIN; 
+        always @(posedge i_clk ) begin
+            if (i_wr_en && full_n) begin 
+                    register[wr_ptr] <= #1 i_din; 
             end
         end
 
-        always @(posedge CLK ) begin 
-            if (RD_EN && empty_n) begin
+        always @(posedge i_clk ) begin 
+            if (i_rd_en && empty_n) begin
                     data_out_d <= #1 register[rd_ptr];
             end
         end
@@ -131,21 +131,21 @@ generate
         (* ram_style="distributed" *)
         reg [WIDTH-1:0] register [DEPTH-1:0]; 
         assign data_out_c = register[rd_ptr];
-        always @(posedge CLK ) begin
-            if (WR_EN && full_n) begin 
-                    register[wr_ptr] <= #1 DIN; 
+        always @(posedge i_clk ) begin
+            if (i_wr_en && full_n) begin 
+                    register[wr_ptr] <= #1 i_din; 
             end
         end
 
-        always @(posedge CLK ) begin 
-            if (RD_EN && empty_n) begin
+        always @(posedge i_clk ) begin 
+            if (i_rd_en && empty_n) begin
                     data_out_d <= #1 register[rd_ptr];
             end
         end
     end  
 endgenerate
 
-assign DOUT          = FLOP_DATA_OUT ? data_out_c : data_out_d;
+assign o_dout          = FLOP_DATA_OUT ? data_out_c : data_out_d;
 
 
 

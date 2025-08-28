@@ -15,15 +15,15 @@ module  tx_mac_port_mng #(
     output              wire                                    o_scheduing_rst_vld                 ,                 
     /*---------------------------------------- CROSS 数据流输入 -------------------------------------------*/
     // 数据流信息 
-    //pmac通道数据
+    // pmac通道数据
     input           wire    [CROSS_DATA_WIDTH - 1:0]            i_pmac_tx_axis_data                 , 
     input           wire    [15:0]                              i_pmac_tx_axis_user                 , 
     input           wire    [(CROSS_DATA_WIDTH/8)-1:0]          i_pmac_tx_axis_keep                 , 
     input           wire                                        i_pmac_tx_axis_last                 , 
     input           wire                                        i_pmac_tx_axis_valid                , 
     input           wire    [15:0]                              i_pmac_ethertype                    , 
-    output          wire                                        o_pmac_tx_axis_ready                ,
-    //emac通道数据              
+    output          wire                                        o_pmac_tx_axis_ready                , 
+    // emac通道数据              
     input           wire    [CROSS_DATA_WIDTH - 1:0]            i_emac_tx_axis_data                 , 
     input           wire    [15:0]                              i_emac_tx_axis_user                 , 
     input           wire    [(CROSS_DATA_WIDTH/8)-1:0]          i_emac_tx_axis_keep                 , 
@@ -42,7 +42,6 @@ module  tx_mac_port_mng #(
     output             wire    [15:0]                           o_port_tx_frame_cnt                 ,  // 端口发送帧计数器
     // 诊断状态寄存器
     output             wire    [15:0]                           o_port_diag_state                   ,  // 诊断状态
-
     /*------------------------------------------ IP 核接口输出 -------------------------------------------*/
     //输出给接口层axi数据流
     output          wire    [CROSS_DATA_WIDTH - 1:0]            o_mac_axi_data                      ,
@@ -50,11 +49,11 @@ module  tx_mac_port_mng #(
     output          wire                                        o_mac_axi_data_valid                ,
     output          wire    [15:0]                              o_mac_axi_data_user                 ,
     input           wire                                        i_mac_axi_data_ready                ,
-    output          wire                                        o_mac_axi_data_last                 
-//     // 报文时间打时间戳 
-//    input            wire                                        i_mac_time_irq                      , // 打时间戳中断信号
-//    input            wire  [7:0]                                 i_mac_frame_seq                     , // 帧序列号
-//    input            wire  [7:0]                                 i_timestamp_addr                      // 打时间戳存储的 RAM 地址
+    output          wire                                        o_mac_axi_data_last                 ,
+    // 报文时间打时间戳 
+    output              wire                                    o_mac_time_irq                      , // 打时间戳中断信号
+    output              wire  [7:0]                             o_mac_frame_seq                     , // 帧序列号
+    output              wire  [7:0]                             o_timestamp_addr                      // 打时间戳存储的 RAM 地址
 );
 
 /*---------------- 调度层流水线 ------------------------*/

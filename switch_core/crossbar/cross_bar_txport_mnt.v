@@ -1,13 +1,19 @@
 `include "synth_cmd_define.vh"
 
+/* 关注的信息流 : 
+    [62:60](3bit) : vlan_pri; 
+    [59:52](8bit) : tx_prot;
+    [51:44](8bit) : acl_frmtype
+    [11](1bit) : 是否为关键帧(Qbu) 
+    [10:0] ：data_len，数据长度信息 
+*/
 module cross_bar_txport_mnt#(
-
-    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // 接收 MAC 层的配置寄存器地址位宽
-    parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // 接收 MAC 层的配置寄存器数据位宽
-    parameter                                                   METADATA_WIDTH          =      64       ,  // 信息流（METADATA）的位宽
-    parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,
-    parameter                                                   PORT_FIFO_PRI_NUM       =      8        , 
-    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // 聚合总线输出 
+    parameter                      REG_ADDR_BUS_WIDTH      =      8        ,  // 接收 MAC 层的配置寄存器地址位宽
+    parameter                      REG_DATA_BUS_WIDTH      =      16       ,  // 接收 MAC 层的配置寄存器数据位宽
+    parameter                      METADATA_WIDTH          =      64       ,  // 信息流（METADATA）的位宽
+    parameter                      PORT_MNG_DATA_WIDTH     =      8        ,
+    parameter                      PORT_FIFO_PRI_NUM       =      8        , 
+    parameter                      CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // 聚合总线输出 
 )(
     /*-------------------- RXMAC 输入数据流 -----------------------*/
 `ifdef CPU_MAC
@@ -186,5 +192,103 @@ module cross_bar_txport_mnt#(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               
 );
+
+/*------------ wire -------------*/
+
+/*------------- reg -------------*/
+
+/*------------ assign -----------*/
+
+/*------------ always -----------*/
+
+
+/*------------ inst -------------*/
+cross_data_cache #(
+    .PORT_MNG_DATA_WIDTH    (PORT_MNG_DATA_WIDTH) ,
+    .PORT_FIFO_PRI_NUM      (PORT_FIFO_PRI_NUM) ,
+    .CROSS_DATA_WIDTH       (CROSS_DATA_WIDTH)  // 聚合总线输出 
+)cross_data_cache_inst (
+    // sys interface
+    .i_clk                  (  ) ,
+    .i_rst                  (  ) ,
+    // data stream pri interface   
+    .i_data_pri0            (  ) ,
+    .i_data_pri0_vld        (  ) ,
+    .i_meta_data_pri0       (  ) ,
+    .i_meta_data_pri0_vld   (  ) ,
+    .o_data_pri0_ready      (  ) ,
+    .i_data0_qbu_flag       (  ) ,
+  
+    .i_data_pri1            (  ) ,     
+    .i_data_pri1_vld        (  ) ,
+    .i_meta_data_pri1       (  ) ,
+    .i_meta_data_pri1_vld   (  ) ,
+    .o_data_pri1_ready      (  ) ,
+    .i_data1_qbu_flag       (  ) ,
+  
+    .i_data_pri2            (  ) ,
+    .i_data_pri2_vld        (  ) ,
+    .i_meta_data_pri2       (  ) ,
+    .i_meta_data_pri2_vld   (  ) ,
+    .o_data_pri2_ready      (  ) ,
+    .i_data2_qbu_flag       (  ) ,
+  
+    .i_data_pri3            (  ) ,
+    .i_data_pri3_vld        (  ) ,
+    .i_meta_data_pri3       (  ) ,
+    .i_meta_data_pri3_vld   (  ) ,
+    .o_data_pri3_ready      (  ) ,
+    .i_data3_qbu_flag       (  ) ,
+  
+    .i_data_pri4            (  ) ,
+    .i_data_pri4_vld        (  ) ,
+    .i_meta_data_pri4       (  ) ,
+    .i_meta_data_pri4_vld   (  ) ,
+    .o_data_pri4_ready      (  ) ,
+    .i_data4_qbu_flag       (  ) ,
+  
+    .i_data_pri5            (  ) ,
+    .i_data_pri5_vld        (  ) ,
+    .i_meta_data_pri5       (  ) ,
+    .i_meta_data_pri5_vld   (  ) ,
+    .o_data_pri5_ready      (  ) ,
+    .i_data5_qbu_flag       (  ) ,
+  
+    .i_data_pri6            (  ) ,
+    .i_data_pri6_vld        (  ) ,
+    .i_meta_data_pri6       (  ) ,
+    .i_meta_data_pri6_vld   (  ) ,
+    .o_data_pri6_ready      (  ) ,
+    .i_data6_qbu_flag       (  ) ,
+  
+    .i_data_pri7            (  ) ,
+    .i_data_pri7_vld        (  ) ,
+    .i_meta_data_pri7       (  ) ,
+    .i_meta_data_pri7_vld   (  ) ,
+    .o_data_pri7_ready      (  ) ,
+    .i_data7_qbu_flag       (  ) ,
+    // 与调度流水线交互接口  
+    .o_mac_fifoc_empty      (  ) ,   
+    .i_mac_scheduing_rst    (  ) ,
+    .i_mac_scheduing_rst_vld(  ) ,
+    /*-------------------- TXMAC 输出数据流 -----------------------*/
+    //pmac通道数据
+    .o_pmac_tx_axis_data   (  ), 
+    .o_pmac_tx_axis_user   (  ), 
+    .o_pmac_tx_axis_keep   (  ), 
+    .o_pmac_tx_axis_last   (  ), 
+    .o_pmac_tx_axis_valid  (  ), 
+    .o_pmac_ethertype      (  ), 
+    .i_pmac_tx_axis_ready  (  ),
+    //emac通道数据                 
+    .o_emac_tx_axis_data   (  ), 
+    .o_emac_tx_axis_user   (  ), 
+    .o_emac_tx_axis_keep   (  ), 
+    .o_emac_tx_axis_last   (  ), 
+    .o_emac_tx_axis_valid  (  ), 
+    .o_emac_ethertype      (  ),
+    .i_emac_tx_axis_ready  (  )
+);
+
 
 endmodule
