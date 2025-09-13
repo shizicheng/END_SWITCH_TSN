@@ -29,8 +29,8 @@ module sync_fifo #(
 // sync_fifo #(
 //     .DEPTH                   (16                    ),
 //     .WIDTH                   (32                    ),
-//     .ALMOST_FULL_THRESHOLD   (0                     ),
-//     .ALMOST_EMPTY_THRESHOLD  (0                     ),
+//     .ALMOST_FULL_THRESHOLD   (1                     ),
+//     .ALMOST_EMPTY_THRESHOLD  (1                     ),
 //     .FLOP_DATA_OUT           (0                     ) //1为fwft ， 0为stander
 // ) u_sync_fifo (
 //     .i_clk                   (clk                   ),
@@ -72,6 +72,7 @@ reg    [CNT_WIDTH-1:0]     status_cnt               ;
 reg    [WIDTH-1:0]         data_out_d               ;
 
 wire   [WIDTH-1:0]         data_out_c               ;
+wire empty_n,full_n;
 // assign语句
 assign o_data_cnt      = status_cnt;
 assign o_empty         = (o_data_cnt == 0);
@@ -96,16 +97,24 @@ end
 
 always @(posedge i_clk ) begin
     if (i_rst)
-        wr_ptr <= 0;
-    else if (i_wr_en && full_n)
-        wr_ptr <= wr_ptr + 1'b1;
+        wr_ptr <= 'd0;
+    else if (i_wr_en && full_n) begin
+        if (wr_ptr == DEPTH - 1)
+            wr_ptr <= 'd0;  // 环形缓冲区，回绕到0
+        else
+            wr_ptr <= wr_ptr + 1'b1;
+    end
 end
 
 always @(posedge i_clk ) begin
     if (i_rst)
-        rd_ptr <= 0;
-    else if (i_rd_en && empty_n)
-        rd_ptr <= rd_ptr + 1'b1;
+        rd_ptr <= 'd0;
+    else if (i_rd_en && empty_n) begin
+        if (rd_ptr == DEPTH - 1)
+            rd_ptr <= 'd0;  // 环形缓冲区，回绕到0
+        else
+            rd_ptr <= rd_ptr + 1'b1;
+    end
 end
 
 // 参数化RAM类型选择
@@ -123,7 +132,7 @@ generate
 
         always @(posedge i_clk ) begin 
             if (i_rd_en && empty_n) begin
-                    data_out_d <= #1 register[rd_ptr];
+                data_out_d <= #1 register[rd_ptr];
             end
         end
 
@@ -139,7 +148,7 @@ generate
 
         always @(posedge i_clk ) begin 
             if (i_rd_en && empty_n) begin
-                    data_out_d <= #1 register[rd_ptr];
+                data_out_d <= #1 register[rd_ptr];
             end
         end
     end  
