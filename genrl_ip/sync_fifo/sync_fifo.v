@@ -139,7 +139,6 @@ generate
     end else if (RAM_STYLE == 0) begin : gen_distributed_ram
         (* ram_style="distributed" *)
         reg [WIDTH-1:0] register [DEPTH-1:0]; 
-        assign data_out_c = register[rd_ptr];
         always @(posedge i_clk ) begin
             if (i_wr_en && full_n) begin 
                     register[wr_ptr] <= #1 i_din; 
@@ -151,10 +150,11 @@ generate
                 data_out_d <= #1 register[rd_ptr];
             end
         end
+        
+        assign data_out_c = register[rd_ptr];
     end  
 endgenerate
-
-assign o_dout          = FLOP_DATA_OUT ? data_out_c : data_out_d;
+assign o_dout = FLOP_DATA_OUT ? ((i_rd_en & empty_n) ? data_out_c : data_out_d) : data_out_d;
 
 
 

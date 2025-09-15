@@ -177,6 +177,7 @@ module cam_bram_mng #(
   // 控制信号
   reg                                             r_module_busy                           ;   // 模块忙标志
 
+  reg                                             r_write_done_flag                        ;
   /*---------------------------------------- 输出寄存器信号 -------------------------------------------*/
   reg     [CAM_NUM_BITCNT-1:0]                    ro_acl_addr                             ;   // 输出查表结果
   reg                                             ro_acl_addr_vld                         ;   // 查表结果有效
@@ -228,7 +229,7 @@ module cam_bram_mng #(
          ri_change_data_vld ? ri_change_data_cnt :
          ri_delete_data_vld ? ri_delete_data_cnt : {DATA_CNT_WIDTH{1'd0}};
 
-  /*---------------------------------------- 地址展开Generate逻辑 -----------------------------------------*/
+  /*---------------------------------------- 地址展开Generate逻辑  -----------------------------------------*/
   // 状态判断信号
   wire w_is_active_state;
   // 匹配信号数组
@@ -237,27 +238,34 @@ module cam_bram_mng #(
   wire [4:0] w_cum_count_h [15:0];
   wire [4:0] w_cum_count_l [15:0];
 
+  // 第一级流水线寄存器
+  reg [15:0] r_match_h_pipe, r_match_l_pipe;
+  reg [4:0] r_cum_count_h_pipe [15:0];
+  reg [4:0] r_cum_count_l_pipe [15:0];
+
+  // 第二级流水线寄存器
+  reg [3:0] r_addr_list_h_pipe [15:0];
+  reg [3:0] r_addr_list_l_pipe [15:0];
+  reg [4:0] r_addr_count_h_pipe, r_addr_count_l_pipe;
+
   assign w_is_active_state = (r_fsm_cur_state == WRITE_STATE_ADDR_GEN) ||
          (r_fsm_cur_state == WRITE_STATE_READ_ORIG) ||
          (r_fsm_cur_state == WRITE_STATE_WRITE_PAIR) ||
          (r_fsm_cur_state == WRITE_STATE_NEXT_CNT);
 
-
-
-  // Generate: 生成16个匹配检测器
+  /*---------------------------------------- 第一级：匹配检测和累计计数 ---------------------------------*/
+   
   genvar addr_i;
   generate
     for (addr_i = 0; addr_i < 16; addr_i = addr_i + 1)
     begin : gen_match_detect
-      assign w_match_h[addr_i] = w_is_active_state &&
+      assign w_match_h[addr_i] = w_is_active_state == 1'd1 &&
              ((addr_i[3:0] & r_current_mask_h) == (r_current_data_h & r_current_mask_h));
-      assign w_match_l[addr_i] = w_is_active_state &&
+      assign w_match_l[addr_i] = w_is_active_state == 1'd1 &&
              ((addr_i[3:0] & r_current_mask_l) == (r_current_data_l & r_current_mask_l));
     end
   endgenerate
-
-
-
+ 
   generate
     for (addr_i = 0; addr_i < 16; addr_i = addr_i + 1)
     begin : gen_cumulative_count
@@ -274,69 +282,157 @@ module cam_bram_mng #(
     end
   endgenerate
 
-  // 地址压缩存储逻辑
+  // 第一级流水线锁存
+genvar pipe1_i;
+generate
+    for (pipe1_i = 0; pipe1_i < 16; pipe1_i = pipe1_i + 1) begin : gen_pipe1
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_cum_count_h_pipe[pipe1_i] <= 5'd0;
+                r_cum_count_l_pipe[pipe1_i] <= 5'd0;
+            end else begin
+                r_cum_count_h_pipe[pipe1_i] <= w_cum_count_h[pipe1_i];
+                r_cum_count_l_pipe[pipe1_i] <= w_cum_count_l[pipe1_i];
+            end
+        end
+    end
+endgenerate
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_match_h_pipe <= 16'd0;
+        r_match_l_pipe <= 16'd0;
+    end else begin
+        r_match_h_pipe <= w_match_h;
+        r_match_l_pipe <= w_match_l;
+    end
+end
+
+  /*---------------------------------------- 第二级  ---------------------------------*/
+ 
   generate
     for (addr_i = 0; addr_i < 16; addr_i = addr_i + 1)
-    begin : gen_addr_compression
+    begin : gen_addr_compression_opt
+        
+      // 分组编码器（高4bit）
+      wire [1:0] w_group_enc_h [3:0];
+      wire w_group_vld_h [3:0];
+        
+      // 组0: [0:3]
+      assign {w_group_vld_h[0], w_group_enc_h[0]} = 
+        (r_match_h_pipe[3] && r_cum_count_h_pipe[3] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_h_pipe[2] && r_cum_count_h_pipe[2] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_h_pipe[1] && r_cum_count_h_pipe[1] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_h_pipe[0] && r_cum_count_h_pipe[0] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组1: [4:7]
+      assign {w_group_vld_h[1], w_group_enc_h[1]} = 
+        (r_match_h_pipe[7] && r_cum_count_h_pipe[7] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_h_pipe[6] && r_cum_count_h_pipe[6] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_h_pipe[5] && r_cum_count_h_pipe[5] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_h_pipe[4] && r_cum_count_h_pipe[4] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组2: [8:11]
+      assign {w_group_vld_h[2], w_group_enc_h[2]} = 
+        (r_match_h_pipe[11] && r_cum_count_h_pipe[11] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_h_pipe[10] && r_cum_count_h_pipe[10] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_h_pipe[9] && r_cum_count_h_pipe[9] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_h_pipe[8] && r_cum_count_h_pipe[8] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组3: [12:15]
+      assign {w_group_vld_h[3], w_group_enc_h[3]} = 
+        (r_match_h_pipe[15] && r_cum_count_h_pipe[15] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_h_pipe[14] && r_cum_count_h_pipe[14] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_h_pipe[13] && r_cum_count_h_pipe[13] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_h_pipe[12] && r_cum_count_h_pipe[12] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
 
-      // 高4bit优先级选择器
-      wire [3:0] w_selected_addr_h;
-      wire w_found_h;
+      // 分组编码器（低4bit）
+      wire [1:0] w_group_enc_l [3:0];
+      wire w_group_vld_l [3:0];
+        
+      // 组0: [0:3]
+      assign {w_group_vld_l[0], w_group_enc_l[0]} = 
+        (r_match_l_pipe[3] && r_cum_count_l_pipe[3] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_l_pipe[2] && r_cum_count_l_pipe[2] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_l_pipe[1] && r_cum_count_l_pipe[1] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_l_pipe[0] && r_cum_count_l_pipe[0] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组1: [4:7]
+      assign {w_group_vld_l[1], w_group_enc_l[1]} = 
+        (r_match_l_pipe[7] && r_cum_count_l_pipe[7] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_l_pipe[6] && r_cum_count_l_pipe[6] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_l_pipe[5] && r_cum_count_l_pipe[5] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_l_pipe[4] && r_cum_count_l_pipe[4] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组2: [8:11]
+      assign {w_group_vld_l[2], w_group_enc_l[2]} = 
+        (r_match_l_pipe[11] && r_cum_count_l_pipe[11] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_l_pipe[10] && r_cum_count_l_pipe[10] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_l_pipe[9] && r_cum_count_l_pipe[9] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_l_pipe[8] && r_cum_count_l_pipe[8] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
+            
+      // 组3: [12:15]
+      assign {w_group_vld_l[3], w_group_enc_l[3]} = 
+        (r_match_l_pipe[15] && r_cum_count_l_pipe[15] == (addr_i + 1)) ? {1'b1, 2'd3} :
+        (r_match_l_pipe[14] && r_cum_count_l_pipe[14] == (addr_i + 1)) ? {1'b1, 2'd2} :
+        (r_match_l_pipe[13] && r_cum_count_l_pipe[13] == (addr_i + 1)) ? {1'b1, 2'd1} :
+        (r_match_l_pipe[12] && r_cum_count_l_pipe[12] == (addr_i + 1)) ? {1'b1, 2'd0} : {1'b0, 2'd0};
 
-      assign {w_found_h, w_selected_addr_h} =
-             (w_match_h[0] && w_cum_count_h[0] == (addr_i + 1)) ? {1'b1, 4'd0} :
-             (w_match_h[1] && w_cum_count_h[1] == (addr_i + 1)) ? {1'b1, 4'd1} :
-             (w_match_h[2] && w_cum_count_h[2] == (addr_i + 1)) ? {1'b1, 4'd2} :
-             (w_match_h[3] && w_cum_count_h[3] == (addr_i + 1)) ? {1'b1, 4'd3} :
-             (w_match_h[4] && w_cum_count_h[4] == (addr_i + 1)) ? {1'b1, 4'd4} :
-             (w_match_h[5] && w_cum_count_h[5] == (addr_i + 1)) ? {1'b1, 4'd5} :
-             (w_match_h[6] && w_cum_count_h[6] == (addr_i + 1)) ? {1'b1, 4'd6} :
-             (w_match_h[7] && w_cum_count_h[7] == (addr_i + 1)) ? {1'b1, 4'd7} :
-             (w_match_h[8] && w_cum_count_h[8] == (addr_i + 1)) ? {1'b1, 4'd8} :
-             (w_match_h[9] && w_cum_count_h[9] == (addr_i + 1)) ? {1'b1, 4'd9} :
-             (w_match_h[10] && w_cum_count_h[10] == (addr_i + 1)) ? {1'b1, 4'd10} :
-             (w_match_h[11] && w_cum_count_h[11] == (addr_i + 1)) ? {1'b1, 4'd11} :
-             (w_match_h[12] && w_cum_count_h[12] == (addr_i + 1)) ? {1'b1, 4'd12} :
-             (w_match_h[13] && w_cum_count_h[13] == (addr_i + 1)) ? {1'b1, 4'd13} :
-             (w_match_h[14] && w_cum_count_h[14] == (addr_i + 1)) ? {1'b1, 4'd14} :
-             (w_match_h[15] && w_cum_count_h[15] == (addr_i + 1)) ? {1'b1, 4'd15} :
-             {1'b0, 4'd0};
+      // 最终4选1选择器（高4bit）
+      wire [3:0] w_final_addr_h;
+      wire w_final_found_h;
+      assign {w_final_found_h, w_final_addr_h} = 
+        w_group_vld_h[0] ? {1'b1, {2'd0, w_group_enc_h[0]}} :
+        w_group_vld_h[1] ? {1'b1, {2'd1, w_group_enc_h[1]}} :
+        w_group_vld_h[2] ? {1'b1, {2'd2, w_group_enc_h[2]}} :
+        w_group_vld_h[3] ? {1'b1, {2'd3, w_group_enc_h[3]}} : {1'b0, 4'd0};
 
-      // 低4bit优先级选择器
-      wire [3:0] w_selected_addr_l;
-      wire w_found_l;
+      // 最终4选1选择器（低4bit）
+      wire [3:0] w_final_addr_l;
+      wire w_final_found_l;
+      assign {w_final_found_l, w_final_addr_l} = 
+        w_group_vld_l[0] ? {1'b1, {2'd0, w_group_enc_l[0]}} :
+        w_group_vld_l[1] ? {1'b1, {2'd1, w_group_enc_l[1]}} :
+        w_group_vld_l[2] ? {1'b1, {2'd2, w_group_enc_l[2]}} :
+        w_group_vld_l[3] ? {1'b1, {2'd3, w_group_enc_l[3]}} : {1'b0, 4'd0};
 
-      assign {w_found_l, w_selected_addr_l} =
-             (w_match_l[0] && w_cum_count_l[0] == (addr_i + 1)) ? {1'b1, 4'd0} :
-             (w_match_l[1] && w_cum_count_l[1] == (addr_i + 1)) ? {1'b1, 4'd1} :
-             (w_match_l[2] && w_cum_count_l[2] == (addr_i + 1)) ? {1'b1, 4'd2} :
-             (w_match_l[3] && w_cum_count_l[3] == (addr_i + 1)) ? {1'b1, 4'd3} :
-             (w_match_l[4] && w_cum_count_l[4] == (addr_i + 1)) ? {1'b1, 4'd4} :
-             (w_match_l[5] && w_cum_count_l[5] == (addr_i + 1)) ? {1'b1, 4'd5} :
-             (w_match_l[6] && w_cum_count_l[6] == (addr_i + 1)) ? {1'b1, 4'd6} :
-             (w_match_l[7] && w_cum_count_l[7] == (addr_i + 1)) ? {1'b1, 4'd7} :
-             (w_match_l[8] && w_cum_count_l[8] == (addr_i + 1)) ? {1'b1, 4'd8} :
-             (w_match_l[9] && w_cum_count_l[9] == (addr_i + 1)) ? {1'b1, 4'd9} :
-             (w_match_l[10] && w_cum_count_l[10] == (addr_i + 1)) ? {1'b1, 4'd10} :
-             (w_match_l[11] && w_cum_count_l[11] == (addr_i + 1)) ? {1'b1, 4'd11} :
-             (w_match_l[12] && w_cum_count_l[12] == (addr_i + 1)) ? {1'b1, 4'd12} :
-             (w_match_l[13] && w_cum_count_l[13] == (addr_i + 1)) ? {1'b1, 4'd13} :
-             (w_match_l[14] && w_cum_count_l[14] == (addr_i + 1)) ? {1'b1, 4'd14} :
-             (w_match_l[15] && w_cum_count_l[15] == (addr_i + 1)) ? {1'b1, 4'd15} :
-             {1'b0, 4'd0};
+      // 第二级流水线锁存
+      always @(posedge i_clk or posedge i_rst) begin
+        if (i_rst) begin
+          r_addr_list_h_pipe[addr_i] <= 4'd0;
+          r_addr_list_l_pipe[addr_i] <= 4'd0;
+        end else begin
+          r_addr_list_h_pipe[addr_i] <= w_final_found_h ? w_final_addr_h : 4'd0;
+          r_addr_list_l_pipe[addr_i] <= w_final_found_l ? w_final_addr_l : 4'd0;
+        end
+      end
+    end
+  endgenerate
 
-      // 地址列表赋值
-      assign r_addr_list_h[addr_i] = w_found_h ? w_selected_addr_h : 4'd0;
-      assign r_addr_list_l[addr_i] = w_found_l ? w_selected_addr_l : 4'd0;
+  // 地址计数第二级流水线锁存
+  always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+      r_addr_count_h_pipe <= 5'd0;
+      r_addr_count_l_pipe <= 5'd0;
+    end else begin
+      r_addr_count_h_pipe <= r_cum_count_h_pipe[15];
+      r_addr_count_l_pipe <= r_cum_count_l_pipe[15];
+    end
+  end
+
+  /*---------------------------------------- 输出连接 ---------------------------------*/
+  generate
+    for (addr_i = 0; addr_i < 16; addr_i = addr_i + 1)
+    begin : gen_output_connect
+      assign r_addr_list_h[addr_i] = r_addr_list_h_pipe[addr_i];
+      assign r_addr_list_l[addr_i] = r_addr_list_l_pipe[addr_i];
     end
   endgenerate
 
   // 地址计数输出
-  assign r_addr_count_h = w_cum_count_h[15];
-  assign r_addr_count_l = w_cum_count_l[15];
-
-  //////////////////////////////////////////////////////////////////
-
+  assign r_addr_count_h = r_addr_count_h_pipe;
+  assign r_addr_count_l = r_addr_count_l_pipe; 
+///////////////////////////////////////////////////////
   // 输入信号打拍
   always @(posedge i_clk or posedge i_rst)
   begin
@@ -528,7 +624,7 @@ module cam_bram_mng #(
           WRITE_STATE_COLLECT;  // 等待数据收集完成
 
       WRITE_STATE_ADDR_GEN:
-        r_fsm_nxt_state =  WRITE_STATE_READ_ORIG ;  // 修改/删除表先查表
+        r_fsm_nxt_state = (r_state_cnt >= 16'd1) ? WRITE_STATE_READ_ORIG : WRITE_STATE_ADDR_GEN;  // 等待2个时钟周期的地址生成延迟
 
       WRITE_STATE_LOOKUP:
         r_fsm_nxt_state = r_state_cnt >= 16'd3 ? WRITE_STATE_DELETE_ALL :
@@ -543,7 +639,7 @@ module cam_bram_mng #(
 
       WRITE_STATE_WRITE_PAIR:
         r_fsm_nxt_state = r_state_cnt >= 16'd3 ?
-        (r_write_addr_h_idx >= (r_addr_count_h - 5'd1)) && (r_write_addr_l_idx >= (r_addr_count_l - 5'd1)) ?
+        r_write_done_flag ?
         WRITE_STATE_NEXT_CNT : WRITE_STATE_READ_ORIG :
             WRITE_STATE_WRITE_PAIR;
 
@@ -554,13 +650,23 @@ module cam_bram_mng #(
 
       WRITE_STATE_DONE:
         r_fsm_nxt_state =  r_current_op_type == OP_CONFIG ?
-        (r_action_cnt >= 2'd2 && w_any_write_req ) ? WRITE_STATE_IDLE : WRITE_STATE_DONE
+        (r_action_cnt >= 2'd2 && w_any_write_req == 1'd1 ) ? WRITE_STATE_IDLE : WRITE_STATE_DONE
           : WRITE_STATE_IDLE;  // 等待接收完3个8位数据(24位)后跳转到IDLE
 
       default:
         r_fsm_nxt_state = WRITE_STATE_IDLE;
     endcase
   end
+
+always@(posedge i_clk or posedge i_rst) begin
+    if(i_rst) begin
+        r_write_done_flag <= 1'd0;
+    end else begin
+        r_write_done_flag <= (r_write_addr_h_idx >= (r_addr_count_h - 5'd1)) && (r_write_addr_l_idx >= (r_addr_count_l - 5'd1));
+    end
+
+end 
+
 
   // 数据收集缓冲区控制 - 收集修改/删除表的完整数据
   always @(posedge i_clk or posedge i_rst)
@@ -929,7 +1035,7 @@ module cam_bram_mng #(
     end
     else
     begin
-      r_entry_index <= (r_fsm_cur_state == WRITE_STATE_DELETE_ALL && r_lookup_target_valid) ? r_lookup_target_index :  // 删除/修改表使用查表索引
+      r_entry_index <= (r_fsm_cur_state == WRITE_STATE_DELETE_ALL && r_lookup_target_valid == 1'd1) ? r_lookup_target_index :  // 删除/修改表使用查表索引
                     (r_fsm_cur_state == WRITE_STATE_DONE && r_action_cnt >= 2'd2 && w_any_write_req && r_write_op_type == OP_CONFIG && r_entry_index < (CAM_NUM - {{CAM_NUM_BITCNT-1{1'd0}}, 1'd1 })) ? r_entry_index + {{CAM_NUM_BITCNT-1{1'd0}}, 1'd1 } :  // 写表递增分配
                     r_entry_index;
     end
@@ -945,7 +1051,7 @@ module cam_bram_mng #(
     end
     else
     begin
-      if (r_fsm_cur_state == WRITE_STATE_DONE && w_any_write_req)
+      if (r_fsm_cur_state == WRITE_STATE_DONE && w_any_write_req == 1'd1)
       begin
         r_action_cnt <= (r_action_cnt >= 2'd2 ) ? 2'd0 : r_action_cnt + 2'd1;  // 接收3个8位数据
       end
@@ -1012,7 +1118,7 @@ module cam_bram_mng #(
     begin
       // 在接收完第3个8位数据时写入Action表（写表操作）
       // 或在修改表和删除表时直接写入Action表
-      r_action_wea <= ((r_fsm_cur_state == WRITE_STATE_DONE && w_any_write_req && r_action_cnt == 2'd2) ||
+      r_action_wea <= ((r_fsm_cur_state == WRITE_STATE_DONE && w_any_write_req == 1'd1 && r_action_cnt == 2'd2) ||
                        (r_fsm_cur_state == WRITE_STATE_DELETE_ALL && r_state_cnt == 16'd0)) ? 1'd1 : 1'd0;
     end
   end
@@ -1158,7 +1264,6 @@ module cam_bram_mng #(
   reg r_read_valid_1d;
   always @(posedge i_clk )
   begin
-
     r_read_valid_1d <= r_read_valid;
   end
 
@@ -1179,41 +1284,40 @@ module cam_bram_mng #(
 
   /*---------------------------------------- 时序控制逻辑 ---------------------------------*/
   // 将复杂的组合逻辑转换为时序逻辑，使用流水线降低逻辑深度
-
-  // 第一级：地址和使能信号生成
-  always @(posedge i_clk or posedge i_rst)
-  begin
+// 第一级：写使能信号生成
+always @(posedge i_clk or posedge i_rst)
+begin
     if (i_rst)
     begin
-      r_cam_wea[0] <= 1'b0;
-      r_cam_wea[1] <= 1'b0;
-      r_cam_addra_low4 <= 4'd0;
-      r_cam_addra_high4 <= 4'd0;
+        r_cam_wea[0] <= 1'b0;
+        r_cam_wea[1] <= 1'b0;
     end
     else
     begin
-      // 写使能控制 - 简化为基础使能
-      r_cam_wea[0] <= w_delete_write_enable || w_pair_write_enable;
-      r_cam_wea[1] <= w_delete_write_enable || w_pair_write_enable;
+        // 写使能控制 - 简化为基础使能
+        r_cam_wea[0] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1;
+        r_cam_wea[1] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1;
+    end
+end
 
-      // 地址控制 - 基于状态的多路选择器
-      if (w_delete_state_active)
-      begin
-        r_cam_addra_low4 <= r_delete_addr_idx_1d;
-        r_cam_addra_high4 <= r_delete_addr_idx_1d;
-      end
-      else if (w_read_orig_state_active || w_write_pair_state_active)
-      begin
-        r_cam_addra_low4 <= r_addr_list_l[r_write_addr_l_idx];
-        r_cam_addra_high4 <= r_addr_list_h[r_write_addr_h_idx];
-      end
-      else
-      begin
+// 第一级：地址生成
+always @(posedge i_clk or posedge i_rst)
+begin
+    if (i_rst)
+    begin
         r_cam_addra_low4 <= 4'd0;
         r_cam_addra_high4 <= 4'd0;
-      end
     end
-  end
+    else
+    begin
+        r_cam_addra_low4  <= w_delete_state_active ? r_delete_addr_idx_1d :
+                             (w_read_orig_state_active | w_write_pair_state_active) ? r_addr_list_l[r_write_addr_l_idx] :
+                             4'd0;
+        r_cam_addra_high4 <= w_delete_state_active ? r_delete_addr_idx_1d :
+                             (w_read_orig_state_active | w_write_pair_state_active) ? r_addr_list_h[r_write_addr_h_idx] :
+                             4'd0;
+    end
+end
 
   /*---------------------------------------- 数据路径控制 ---------------------------------*/
 
@@ -1234,33 +1338,23 @@ module cam_bram_mng #(
   end
 
   // 第二级：基础数据预加载
-  always @(posedge i_clk or posedge i_rst)
-  begin
+always @(posedge i_clk or posedge i_rst)
+begin
     if (i_rst)
     begin
-      r_base_data_low <= {CAM_NUM{1'd0}};
-      r_base_data_high <= {CAM_NUM{1'd0}};
+        r_base_data_low <= {CAM_NUM{1'd0}};
+        r_base_data_high <= {CAM_NUM{1'd0}};
     end
     else
     begin
-      // 预加载基础数据
-      if (w_delete_state_active)
-      begin
-        r_base_data_low <= w_cam_doutc[(r_delete_cnt_idx_1d << 1)];
-        r_base_data_high <= w_cam_doutc[(r_delete_cnt_idx_1d << 1) + 1'd1];
-      end
-      else if (w_write_pair_state_active == 1'd1 && r_read_valid == 1'd1)
-      begin
-        r_base_data_low <= w_cam_doutc[(r_write_cnt_idx << 1)];
-        r_base_data_high <= w_cam_doutc[(r_write_cnt_idx << 1) + 1'd1];
-      end
-      else
-      begin
-        r_base_data_low <= r_base_data_low ;
-        r_base_data_high <=r_base_data_high;
-      end
+        r_base_data_low  <= w_delete_state_active ? w_cam_doutc[(r_delete_cnt_idx_1d << 1)] :
+                                                (w_write_pair_state_active == 1'd1 && r_read_valid == 1'd1) ? w_cam_doutc[(r_write_cnt_idx << 1)] :
+                                                r_base_data_low;
+        r_base_data_high <= w_delete_state_active ? w_cam_doutc[(r_delete_cnt_idx_1d << 1) + 1'd1] :
+                                                (w_write_pair_state_active == 1'd1 && r_read_valid == 1'd1) ? w_cam_doutc[(r_write_cnt_idx << 1) + 1'd1] :
+                                                r_base_data_high;
     end
-  end
+end
 
   // 第三级：最终数据组装
   always @(posedge i_clk or posedge i_rst)
@@ -1296,7 +1390,7 @@ module cam_bram_mng #(
           end
         endcase
       end
-      else if (w_write_pair_state_active && w_pair_write_enable)
+      else if (w_write_pair_state_active == 1'd1 && w_pair_write_enable == 1'd1)
       begin
         r_cam_dina_low4[r_entry_index] <= 1'b1;
         r_cam_dina_high4[r_entry_index] <= 1'b1;
@@ -1311,9 +1405,9 @@ module cam_bram_mng #(
     begin : gen_cam_blocks
       // CAM块例化 - 支持双读通道
       wire w_wea ;
-      assign w_wea = ((gen_i % 2 == 0) ? r_cam_wea[0] : r_cam_wea[1]) &&
-             ((r_fsm_cur_state == WRITE_STATE_DELETE_ALL && (r_delete_cnt_idx_1d == (gen_i >> 1))) ||
-              (r_fsm_cur_state == WRITE_STATE_WRITE_PAIR && (r_write_cnt_idx == (gen_i >> 1))));
+      assign w_wea = r_cam_wea[gen_i % 2] &&
+             (((r_fsm_cur_state == WRITE_STATE_DELETE_ALL) && (r_delete_cnt_idx_1d == (gen_i >> 1))) ||
+              ((r_fsm_cur_state == WRITE_STATE_WRITE_PAIR) && (r_write_cnt_idx == (gen_i >> 1))));
       ram_simple2port #(
                         .RAM_WIDTH          ( CAM_NUM               ),
                         .RAM_DEPTH          ( 16                    ),  // 4bit地址，16深度
@@ -1327,9 +1421,7 @@ module cam_bram_mng #(
                         .clka               ( i_clk                 ),
                         .clkb               ( i_clk                 ),                                       // B通道时钟
                         .clkc               ( i_clk                 ),                                       // C通道时钟
-                        .wea                ( ((gen_i % 2 == 0) ? r_cam_wea[0] : r_cam_wea[1]) &&
-                                              ((r_fsm_cur_state == WRITE_STATE_DELETE_ALL && (r_delete_cnt_idx_1d == (gen_i >> 1))) ||
-                                               (r_fsm_cur_state == WRITE_STATE_WRITE_PAIR && (r_write_cnt_idx == (gen_i >> 1)))) ), // 删除状态或写入状态且对应CAM块对才使能写
+                        .wea                ( w_wea                 ), // 删除状态或写入状态且对应CAM块对才使能写
                         .enb                ( r_cam_enb[gen_i]      ),                                       // B通道读使能：查表用
                         .enc                ( r_cam_enc[gen_i]      ),                                       // C通道读使能：写表读-修改-写用
                         .rstb               ( i_rst                 ),                                       // B通道复位
