@@ -16,7 +16,7 @@ module dmac_mng #(
         parameter                           SIM_MODE                =      0                                        // 仿真模式：1=快速仿真模式，0=正常模式
 )(                      
         input               wire                                        i_clk                                   ,
-        input               wire                                        i_rst                                   , 
+        input               wire                                        i_rst                                  , 
         
         /*----------------------------- 寄存器写控制接口 ------------------------------*/     
         input               wire                                        i_reg_bus_we                            , // 寄存器写使能
@@ -71,12 +71,13 @@ localparam  REG_PORT_MOVE_STATISTICS    = 8'h07                             ; //
 
 /*---------------------------------------- 状态机定义 -------------------------------------------*/
 localparam  IDLE                        = 4'd0                              ; // 空闲状态
-localparam  DMAC_LOOKUP                 = 4'd1                              ; // DMAC查表状态
-localparam  DMAC_REFRESH                = 4'd2                              ; // DMAC命中老化时间刷新状态
-localparam  SMAC_LEARN_CHECK            = 4'd3                              ; // SMAC学习检查状态
-localparam  SMAC_LEARN_UPDATE           = 4'd4                              ; // SMAC学习更新状态
-localparam  AGE_SCAN                    = 4'd5                              ; // 老化扫描状态
-localparam  AGE_UPDATE                  = 4'd6                              ; // 老化更新状态
+localparam  FIFO_READ_WAIT              = 4'd1                              ; // FIFO读取等待状态（STD模式需要）
+localparam  DMAC_LOOKUP                 = 4'd2                              ; // DMAC查表状态
+localparam  DMAC_REFRESH                = 4'd3                              ; // DMAC命中老化时间刷新状态
+localparam  SMAC_LEARN_CHECK            = 4'd4                              ; // SMAC学习检查状态
+localparam  SMAC_LEARN_UPDATE           = 4'd5                              ; // SMAC学习更新状态
+localparam  AGE_SCAN                    = 4'd6                              ; // 老化扫描状态
+localparam  AGE_UPDATE                  = 4'd7                              ; // 老化更新状态
 
 /*---------------------------------------- 内部信号定义 -------------------------------------------*/
 // 输入数据FIFO相关参数和信号
@@ -84,13 +85,57 @@ localparam  INPUT_FIFO_DEPTH            = 8                                 ; //
 localparam  INPUT_DATA_WIDTH            = VLAN_ID_WIDTH + MAC_ADDR_WIDTH*2 + 
                                           HASH_DATA_WIDTH*2 + 2 + PORT_NUM_BIT ; // 输入数据位宽：VLAN+DMAC+SMAC+DMAC_HASH+SMAC_HASH+2个VLD+PORT
 
-// 输入FIFO接口信号
-wire                                    w_input_fifo_wr_en                  ; // FIFO写使能
-wire        [INPUT_DATA_WIDTH-1:0]      w_input_fifo_din                    ; // FIFO输入数据
-wire                                    w_input_fifo_full                   ; // FIFO满标志
-wire                                    w_input_fifo_rd_en                  ; // FIFO读使能
-wire        [INPUT_DATA_WIDTH-1:0]      w_input_fifo_dout                   ; // FIFO输出数据
-wire                                    w_input_fifo_empty                  ; // FIFO空标志
+// 5个分离FIFO的位宽定义
+localparam  FIFO1_WIDTH                 = VLAN_ID_WIDTH + PORT_NUM_BIT      ; // FIFO1: VLAN_ID + RX_PORT
+localparam  FIFO2_WIDTH                 = MAC_ADDR_WIDTH                    ; // FIFO2: DMAC
+localparam  FIFO3_WIDTH                 = MAC_ADDR_WIDTH                    ; // FIFO3: SMAC  
+localparam  FIFO4_WIDTH                 = HASH_DATA_WIDTH + 1               ; // FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
+localparam  FIFO5_WIDTH                 = HASH_DATA_WIDTH + 1               ; // FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
+
+// 5个分离FIFO的接口信号
+// FIFO1: VLAN_ID + RX_PORT
+wire                                    w_fifo1_wr_en                       ; // FIFO1写使能
+wire        [FIFO1_WIDTH-1:0]           w_fifo1_din                         ; // FIFO1输入数据
+wire                                    w_fifo1_full                        ; // FIFO1满标志
+wire                                    w_fifo1_rd_en                       ; // FIFO1读使能
+wire        [FIFO1_WIDTH-1:0]           w_fifo1_dout                        ; // FIFO1输出数据
+wire                                    w_fifo1_empty                       ; // FIFO1空标志
+
+// FIFO2: DMAC
+wire                                    w_fifo2_wr_en                       ; // FIFO2写使能
+wire        [FIFO2_WIDTH-1:0]           w_fifo2_din                         ; // FIFO2输入数据
+wire                                    w_fifo2_full                        ; // FIFO2满标志
+wire                                    w_fifo2_rd_en                       ; // FIFO2读使能
+wire        [FIFO2_WIDTH-1:0]           w_fifo2_dout                        ; // FIFO2输出数据
+wire                                    w_fifo2_empty                       ; // FIFO2空标志
+
+// FIFO3: SMAC  
+wire                                    w_fifo3_wr_en                       ; // FIFO3写使能
+wire        [FIFO3_WIDTH-1:0]           w_fifo3_din                         ; // FIFO3输入数据
+wire                                    w_fifo3_full                        ; // FIFO3满标志
+wire                                    w_fifo3_rd_en                       ; // FIFO3读使能
+wire        [FIFO3_WIDTH-1:0]           w_fifo3_dout                        ; // FIFO3输出数据
+wire                                    w_fifo3_empty                       ; // FIFO3空标志
+
+// FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
+wire                                    w_fifo4_wr_en                       ; // FIFO4写使能
+wire        [FIFO4_WIDTH-1:0]           w_fifo4_din                         ; // FIFO4输入数据
+wire                                    w_fifo4_full                        ; // FIFO4满标志
+wire                                    w_fifo4_rd_en                       ; // FIFO4读使能
+wire        [FIFO4_WIDTH-1:0]           w_fifo4_dout                        ; // FIFO4输出数据
+wire                                    w_fifo4_empty                       ; // FIFO4空标志
+
+// FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
+wire                                    w_fifo5_wr_en                       ; // FIFO5写使能
+wire        [FIFO5_WIDTH-1:0]           w_fifo5_din                         ; // FIFO5输入数据
+wire                                    w_fifo5_full                        ; // FIFO5满标志
+wire                                    w_fifo5_rd_en                       ; // FIFO5读使能
+wire        [FIFO5_WIDTH-1:0]           w_fifo5_dout                        ; // FIFO5输出数据
+wire                                    w_fifo5_empty                       ; // FIFO5空标志
+
+// 综合FIFO状态信号
+wire                                    w_all_fifo_full                     ; // 所有FIFO满标志
+wire                                    w_all_fifo_empty                    ; // 所有FIFO空标志
 
 // 从FIFO输出数据中解析各个字段
 wire        [VLAN_ID_WIDTH-1:0]         w_fifo_vlan_id                      ;
@@ -189,23 +234,28 @@ wire                                    w_entry_expired                     ; //
 // 上升沿检测寄存器
 reg                                     r_dmac_hash_vld_d1                  ; // DMAC哈希有效信号延迟一拍
 reg                                     r_smac_hash_vld_d1                  ; // SMAC哈希有效信号延迟一拍
-
+reg                                     r_entry_expired_flag                ;
 // 上升沿检测逻辑
 wire                                    w_dmac_hash_vld_posedge             ; // DMAC哈希有效上升沿
 wire                                    w_smac_hash_vld_posedge             ; // SMAC哈希有效上升沿
 wire                                    w_both_hash_valid                   ; // 两个hash都有效
 wire                                    w_new_packet_arrival                ; // 新报文到达信号
 wire                                    w_can_use_direct_path               ; // 可以使用直连路径信号
+wire                                    w_fifo_dmac_hash_vld                ;
+wire                                    w_fifo_smac_hash_vld                ;
 
-assign w_dmac_hash_vld_posedge = i_dmac_hash_vld && !r_dmac_hash_vld_d1     ;
-assign w_smac_hash_vld_posedge = i_smac_hash_vld && !r_smac_hash_vld_d1     ;
-assign w_both_hash_valid = w_dmac_hash_vld_posedge && w_smac_hash_vld_posedge;
+assign w_dmac_hash_vld_posedge = i_dmac_hash_vld == 1'd1 && r_dmac_hash_vld_d1 == 1'd0 ? 1'd1 : 1'd0      ;
+assign w_smac_hash_vld_posedge = i_smac_hash_vld == 1'd1 && r_smac_hash_vld_d1 == 1'd0 ? 1'd1 : 1'd0      ;
+assign w_both_hash_valid = w_dmac_hash_vld_posedge == 1'd1 && w_smac_hash_vld_posedge == 1'd1 ? 1'd1 : 1'd0;
 assign w_new_packet_arrival = w_both_hash_valid;
 
-// 直连路径判断：FIFO为空且模块空闲时可以直接处理
-assign w_can_use_direct_path = w_new_packet_arrival && w_input_fifo_empty && 
-                              (r_fsm_cur_state == IDLE) && !r_table_clear_req && !r_age_scan_en;
+// 综合FIFO状态信号
+assign w_all_fifo_full = (w_fifo1_full == 1'd1) || (w_fifo2_full == 1'd1) || (w_fifo3_full == 1'd1) || (w_fifo4_full == 1'd1) || (w_fifo5_full == 1'd1);
+assign w_all_fifo_empty = (w_fifo1_empty == 1'd1) && (w_fifo2_empty == 1'd1) && (w_fifo3_empty == 1'd1) && (w_fifo4_empty == 1'd1) && (w_fifo5_empty == 1'd1);
 
+// 直连路径判断：FIFO为空且模块空闲时可以直接处理
+assign w_can_use_direct_path = w_new_packet_arrival == 1'd1 && w_all_fifo_empty == 1'd1 && (r_fsm_cur_state == IDLE) && r_table_clear_req == 1'd0 && r_age_scan_en == 1'd0 
+                               ? 1'd1 : 1'd0;
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
@@ -217,32 +267,38 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// 输入数据打包：将所有输入信号组合成一个数据包写入FIFO
-assign w_input_fifo_din = {
-    i_vlan_id,           
-    i_dmac,              
-    i_smac,              
-    i_dmac_hash_addr,    
-    i_smac_hash_addr,    
-    i_dmac_hash_vld,     
-    i_smac_hash_vld,     
-    i_rx_port            
-};
+// 5个分离FIFO的数据打包：将输入信号分别写入对应的FIFO
+assign w_fifo1_din = {i_vlan_id, i_rx_port};                         // VLAN_ID + RX_PORT
+assign w_fifo2_din = i_dmac;                                         // DMAC
+assign w_fifo3_din = i_smac;                                         // SMAC
+assign w_fifo4_din = {i_dmac_hash_addr, i_dmac_hash_vld};           // DMAC_HASH_ADDR + DMAC_HASH_VLD
+assign w_fifo5_din = {i_smac_hash_addr, i_smac_hash_vld};           // SMAC_HASH_ADDR + SMAC_HASH_VLD
 
-assign w_input_fifo_wr_en = w_dmac_hash_vld_posedge && w_smac_hash_vld_posedge && !w_input_fifo_full &&
-                           !w_can_use_direct_path;
+// 5个FIFO的写使能：同时写入，只有当所有FIFO都不满时才写入
+assign w_fifo1_wr_en = (w_dmac_hash_vld_posedge == 1'd1) && (w_smac_hash_vld_posedge == 1'd1) && (w_all_fifo_full == 1'd0) && (w_can_use_direct_path == 1'd0);
+assign w_fifo2_wr_en = w_fifo1_wr_en;
+assign w_fifo3_wr_en = w_fifo1_wr_en;
+assign w_fifo4_wr_en = w_fifo1_wr_en;
+assign w_fifo5_wr_en = w_fifo1_wr_en;
 
-// 输出数据解包：从FIFO读出的数据解析成各个字段
-assign w_fifo_vlan_id = w_input_fifo_dout[INPUT_DATA_WIDTH-1 : INPUT_DATA_WIDTH-VLAN_ID_WIDTH];
-assign w_fifo_dmac = w_input_fifo_dout[INPUT_DATA_WIDTH-VLAN_ID_WIDTH-1 : INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH];
-assign w_fifo_smac = w_input_fifo_dout[INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH-1 : INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH*2];
-assign w_fifo_dmac_hash_addr = w_input_fifo_dout[INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH*2-1 : INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH*2-HASH_DATA_WIDTH];
-assign w_fifo_smac_hash_addr = w_input_fifo_dout[INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH*2-HASH_DATA_WIDTH-1 : INPUT_DATA_WIDTH-VLAN_ID_WIDTH-MAC_ADDR_WIDTH*2-HASH_DATA_WIDTH*2];
-assign w_fifo_rx_port = w_input_fifo_dout[PORT_NUM_BIT-1:0];
+// 从5个FIFO输出数据中解析各个字段
+assign w_fifo_vlan_id = w_fifo1_dout[FIFO1_WIDTH-1:PORT_NUM_BIT];
+assign w_fifo_rx_port = w_fifo1_dout[PORT_NUM_BIT-1:0];
+assign w_fifo_dmac = w_fifo2_dout;
+assign w_fifo_smac = w_fifo3_dout;
+assign w_fifo_dmac_hash_addr = w_fifo4_dout[FIFO4_WIDTH-1:1];
 
-// FIFO读使能：在IDLE状态且准备跳转到DMAC_LOOKUP时读取，并确保FIFO非空
-assign w_input_fifo_rd_en = (r_fsm_cur_state == IDLE) && !w_input_fifo_empty && 
-                           !r_table_clear_req && !r_age_scan_en;
+assign w_fifo_dmac_hash_vld = w_fifo4_dout[0];
+assign w_fifo_smac_hash_addr = w_fifo5_dout[FIFO5_WIDTH-1:1];
+
+assign w_fifo_smac_hash_vld = w_fifo5_dout[0];
+
+// 5个FIFO的读使能：同时读取，只有当所有FIFO都不空时才读取
+assign w_fifo1_rd_en = (r_fsm_cur_state == IDLE) && (w_all_fifo_empty == 1'd0) && (r_table_clear_req == 1'd0) && (r_age_scan_en == 1'd0) ? 1'd1 : 1'd0;
+assign w_fifo2_rd_en = w_fifo1_rd_en;
+assign w_fifo3_rd_en = w_fifo1_rd_en;
+assign w_fifo4_rd_en = w_fifo1_rd_en;
+assign w_fifo5_rd_en = w_fifo1_rd_en;
 
 
 // 锁存FIFO输出的当前处理数据
@@ -253,7 +309,20 @@ reg         [MAC_ADDR_WIDTH-1:0]        r_cur_smac                          ;
 reg         [HASH_DATA_WIDTH-1:0]       r_cur_smac_hash_addr                ;
 reg         [PORT_NUM_BIT-1:0]          r_cur_rx_port                       ;
 
+// STD模式FIFO读使能延迟寄存器，用于正确的数据锁存时序
+reg                                     r_fifo_rd_en_d1                     ; // 读使能延迟一拍
+
+// STD模式读使能延迟逻辑
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_fifo_rd_en_d1 <= 1'b0;
+    end else begin
+        r_fifo_rd_en_d1 <= w_fifo1_rd_en;
+    end
+end
+
 // 在读取FIFO或直连输入时锁存当前处理数据
+// STD模式：在rd_en的下一个周期数据才有效，所以使用延迟的rd_en信号
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_cur_vlan_id       <= {VLAN_ID_WIDTH{1'b0}};
@@ -262,14 +331,14 @@ always @(posedge i_clk) begin
         r_cur_smac          <= {MAC_ADDR_WIDTH{1'b0}};
         r_cur_smac_hash_addr<= {HASH_DATA_WIDTH{1'b0}};
         r_cur_rx_port       <= {PORT_NUM_BIT{1'b0}};
-    end else if (w_input_fifo_rd_en) begin
+    end else if (r_fifo_rd_en_d1 == 1'd1) begin  // 使用延迟的读使能信号
         r_cur_vlan_id       <= w_fifo_vlan_id;
         r_cur_dmac          <= w_fifo_dmac;
         r_cur_dmac_hash_addr<= w_fifo_dmac_hash_addr;
         r_cur_smac          <= w_fifo_smac;
         r_cur_smac_hash_addr<= w_fifo_smac_hash_addr;
         r_cur_rx_port       <= w_fifo_rx_port;
-    end else if (w_can_use_direct_path) begin
+    end else if (w_can_use_direct_path == 1'd1) begin
         r_cur_vlan_id       <= i_vlan_id;
         r_cur_dmac          <= i_dmac;
         r_cur_dmac_hash_addr<= i_dmac_hash_addr;
@@ -279,22 +348,107 @@ always @(posedge i_clk) begin
     end
 end
 
-/*---------------------------------------- sync_fifo实例化 -------------------------------------------*/
+/*---------------------------------------- 5个分离sync_fifo实例化 -------------------------------------------*/
+// FIFO1: VLAN_ID + RX_PORT
 sync_fifo #(
     .DEPTH                 ( INPUT_FIFO_DEPTH       ),
-    .WIDTH                 ( INPUT_DATA_WIDTH       ),
-    .ALMOST_FULL_THRESHOLD ( 0                      ),
-    .ALMOST_EMPTY_THRESHOLD( 0                      ),
-    .FLOP_DATA_OUT         ( 1                      )
-) u_input_fifo (
+    .WIDTH                 ( FIFO1_WIDTH            ),
+    .ALMOST_FULL_THRESHOLD ( 1                      ),
+    .ALMOST_EMPTY_THRESHOLD( 1                      ),
+    .FLOP_DATA_OUT         ( 0                      )  
+) u_fifo1_vlan_port (
     .CLK                   ( i_clk                  ),
     .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_input_fifo_wr_en     ),
-    .DIN                   ( w_input_fifo_din       ),
-    .FULL                  ( w_input_fifo_full      ),
-    .RD_EN                 ( w_input_fifo_rd_en     ),
-    .DOUT                  ( w_input_fifo_dout      ),
-    .EMPTY                 ( w_input_fifo_empty     ),
+    .WR_EN                 ( w_fifo1_wr_en          ),
+    .DIN                   ( w_fifo1_din            ),
+    .FULL                  ( w_fifo1_full           ),
+    .RD_EN                 ( w_fifo1_rd_en          ),
+    .DOUT                  ( w_fifo1_dout           ),
+    .EMPTY                 ( w_fifo1_empty          ),
+    .ALMOST_FULL           (                        ),
+    .ALMOST_EMPTY          (                        ),
+    .DATA_CNT              (                        )
+);
+
+// FIFO2: DMAC
+sync_fifo #(
+    .DEPTH                 ( INPUT_FIFO_DEPTH       ),
+    .WIDTH                 ( FIFO2_WIDTH            ),
+    .ALMOST_FULL_THRESHOLD ( 1                      ),
+    .ALMOST_EMPTY_THRESHOLD( 1                      ),
+    .FLOP_DATA_OUT         ( 0                      )  
+) u_fifo2_dmac (
+    .CLK                   ( i_clk                  ),
+    .RST                   ( i_rst                  ),
+    .WR_EN                 ( w_fifo2_wr_en          ),
+    .DIN                   ( w_fifo2_din            ),
+    .FULL                  ( w_fifo2_full           ),
+    .RD_EN                 ( w_fifo2_rd_en          ),
+    .DOUT                  ( w_fifo2_dout           ),
+    .EMPTY                 ( w_fifo2_empty          ),
+    .ALMOST_FULL           (                        ),
+    .ALMOST_EMPTY          (                        ),
+    .DATA_CNT              (                        )
+);
+
+// FIFO3: SMAC  
+sync_fifo #(
+    .DEPTH                 ( INPUT_FIFO_DEPTH       ),
+    .WIDTH                 ( FIFO3_WIDTH            ),
+    .ALMOST_FULL_THRESHOLD ( 1                      ),
+    .ALMOST_EMPTY_THRESHOLD( 1                      ),
+    .FLOP_DATA_OUT         ( 0                      )  
+) u_fifo3_smac (
+    .CLK                   ( i_clk                  ),
+    .RST                   ( i_rst                  ),
+    .WR_EN                 ( w_fifo3_wr_en          ),
+    .DIN                   ( w_fifo3_din            ),
+    .FULL                  ( w_fifo3_full           ),
+    .RD_EN                 ( w_fifo3_rd_en          ),
+    .DOUT                  ( w_fifo3_dout           ),
+    .EMPTY                 ( w_fifo3_empty          ),
+    .ALMOST_FULL           (                        ),
+    .ALMOST_EMPTY          (                        ),
+    .DATA_CNT              (                        )
+);
+
+// FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
+sync_fifo #(
+    .DEPTH                 ( INPUT_FIFO_DEPTH       ),
+    .WIDTH                 ( FIFO4_WIDTH            ),
+    .ALMOST_FULL_THRESHOLD ( 1                      ),
+    .ALMOST_EMPTY_THRESHOLD( 1                      ),
+    .FLOP_DATA_OUT         ( 0                      )  
+) u_fifo4_dmac_hash (
+    .CLK                   ( i_clk                  ),
+    .RST                   ( i_rst                  ),
+    .WR_EN                 ( w_fifo4_wr_en          ),
+    .DIN                   ( w_fifo4_din            ),
+    .FULL                  ( w_fifo4_full           ),
+    .RD_EN                 ( w_fifo4_rd_en          ),
+    .DOUT                  ( w_fifo4_dout           ),
+    .EMPTY                 ( w_fifo4_empty          ),
+    .ALMOST_FULL           (                        ),
+    .ALMOST_EMPTY          (                        ),
+    .DATA_CNT              (                        )
+);
+
+// FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
+sync_fifo #(
+    .DEPTH                 ( INPUT_FIFO_DEPTH       ),
+    .WIDTH                 ( FIFO5_WIDTH            ),
+    .ALMOST_FULL_THRESHOLD ( 1                      ),
+    .ALMOST_EMPTY_THRESHOLD( 1                      ),
+    .FLOP_DATA_OUT         ( 0                      )  
+) u_fifo5_smac_hash (
+    .CLK                   ( i_clk                  ),
+    .RST                   ( i_rst                  ),
+    .WR_EN                 ( w_fifo5_wr_en          ),
+    .DIN                   ( w_fifo5_din            ),
+    .FULL                  ( w_fifo5_full           ),
+    .RD_EN                 ( w_fifo5_rd_en          ),
+    .DOUT                  ( w_fifo5_dout           ),
+    .EMPTY                 ( w_fifo5_empty          ),
     .ALMOST_FULL           (                        ),
     .ALMOST_EMPTY          (                        ),
     .DATA_CNT              (                        )
@@ -309,18 +463,36 @@ assign w_entry_port     = w_mac_table_rdata[PORT_NUM+MAC_ADDR_WIDTH-1:MAC_ADDR_W
 assign w_entry_mac      = w_mac_table_rdata[MAC_ADDR_WIDTH-1:0]                                                               ;
 
 /*---------------------------------------- 匹配逻辑 ----------------------------------------------*/
-assign w_dmac_match     = (w_entry_valid && (w_entry_mac == r_cur_dmac) && (w_entry_vlan_id == r_cur_vlan_id))      ;
-assign w_smac_match     = (w_entry_valid && (w_entry_mac == r_cur_smac) && (w_entry_vlan_id == r_cur_vlan_id))      ;
-assign w_smac_port_match= (w_smac_match && (r_cur_rx_port < PORT_NUM) && (w_entry_port == ({{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port))) ;
+assign w_dmac_match     = (w_entry_valid == 1'd1 && (w_entry_mac == r_cur_dmac) && (w_entry_vlan_id == r_cur_vlan_id)) ? 1'd1 : 1'd0      ;
+assign w_smac_match     = (w_entry_valid == 1'd1 && (w_entry_mac == r_cur_smac) && (w_entry_vlan_id == r_cur_vlan_id)) ? 1'd1 : 1'd0      ;
+assign w_smac_port_match= (w_smac_match  == 1'd1 && (r_cur_rx_port < PORT_NUM) && (w_entry_port == ({{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port))) ? 1'd1 : 1'd0 ;
 
 // 老化检测逻辑：  当前时间戳减去表项时间戳的差值大于等于老化阈值时认为过期
-assign w_entry_expired  = w_entry_valid && ((r_global_timestamp - w_entry_age_time) >= r_age_time_threshold);
+assign w_entry_expired  = w_entry_valid == 1'd1 && (r_entry_expired_flag == 1'd1) ? 1'd1 : 1'd0 ;
 
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_entry_expired_flag <= 1'b0;
+    end else begin
+        r_entry_expired_flag <= (r_global_timestamp - w_entry_age_time) >= r_age_time_threshold ? 1'd1 : 1'd0;
+    end
+end
 /*---------------------------------------- 表满检测逻辑 -------------------------------------------*/
-assign w_table_full     = (r_table_entry_cnt >= r_table_full_threshold)                                 ;
+assign w_table_full     = (r_table_entry_cnt >= r_table_full_threshold) ? 1'd1 : 1'd0                   ;
 
 /*---------------------------------------- 老化扫描触发逻辑 -------------------------------------------*/
-assign w_age_scan_trigger = (r_age_scan_timer >= r_age_scan_interval) && (r_table_entry_cnt > 0)        ;
+// 32bit分成4段比较，每段8bit
+wire w_age_scan_flag0 ;
+wire w_age_scan_flag1 ;
+wire w_age_scan_flag2 ;
+wire w_age_scan_flag3 ;
+
+assign w_age_scan_flag0 = (r_age_scan_timer[7:0]   >= r_age_scan_interval[7:0]);
+assign w_age_scan_flag1 = (r_age_scan_timer[15:8]  >= r_age_scan_interval[15:8]);
+assign w_age_scan_flag2 = (r_age_scan_timer[23:16] >= r_age_scan_interval[23:16]);
+assign w_age_scan_flag3 = (r_age_scan_timer[31:24] >= r_age_scan_interval[31:24]);
+
+assign w_age_scan_trigger = (w_age_scan_flag0 == 1'd1 && w_age_scan_flag1 == 1'd1 && w_age_scan_flag2 == 1'd1 && w_age_scan_flag3 == 1'd1) && (r_table_entry_cnt > 15'd0) ? 1'd1 : 1'd0;
 
 /*---------------------------------------- 输出赋值 -------------------------------------------*/
 assign o_dmac_lookup_vld    = r_dmac_lookup_vld                                                           ;
@@ -355,30 +527,33 @@ always @(*) begin
     r_fsm_nxt_state = r_fsm_cur_state;   
     case (r_fsm_cur_state)
         IDLE: 
-            r_fsm_nxt_state = r_table_clear_req ? AGE_SCAN :       // 清表优先级最高
+            r_fsm_nxt_state = (r_table_clear_req == 1'd1) ? AGE_SCAN :       // 清表优先级最高
                               // 检查FIFO是否有数据可处理或有直连数据可用
-                              (!w_input_fifo_empty || w_can_use_direct_path) ? DMAC_LOOKUP :
-                              r_age_scan_en ? AGE_SCAN :           // 老化扫描
+                              (w_can_use_direct_path == 1'd1) ? DMAC_LOOKUP :  // 直连路径跳过等待状态
+                              (w_all_fifo_empty == 1'd0) ? FIFO_READ_WAIT :    // STD模式需要等待数据准备
+                              (r_age_scan_en == 1'd1) ? AGE_SCAN :             // 老化扫描
                               IDLE;
+        FIFO_READ_WAIT:   // STD模式FIFO读取等待状态
+            r_fsm_nxt_state = DMAC_LOOKUP;                                    // 等待一个周期后数据准备好，进入查表
         DMAC_LOOKUP:   
             r_fsm_nxt_state = (r_state_cnt == 16'd1) ? 
-                              (w_dmac_match ? DMAC_REFRESH : SMAC_LEARN_CHECK) : // 匹配则刷新老化时间 ，然后学习SMAC
+                              (w_dmac_match == 1'd1) ? DMAC_REFRESH : SMAC_LEARN_CHECK : // 匹配则刷新老化时间 ，然后学习SMAC
                               DMAC_LOOKUP;                                            
         DMAC_REFRESH: 
             r_fsm_nxt_state = SMAC_LEARN_CHECK;                     // 刷新完成，进入SMAC学习        
         SMAC_LEARN_CHECK: 
-            r_fsm_nxt_state = (w_smac_match || (!w_entry_valid && !w_table_full)) ? SMAC_LEARN_UPDATE :  // SMAC+VLAN匹配或空表项可学习
+            r_fsm_nxt_state = ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd0))) ? SMAC_LEARN_UPDATE :  // SMAC+VLAN匹配或空表项可学习
                               IDLE;                                  // 哈希冲突（MAC+VLAN不匹配）或表已满，返回空闲        
         SMAC_LEARN_UPDATE: 
             r_fsm_nxt_state = (r_state_cnt == 16'd1) ? IDLE : SMAC_LEARN_UPDATE;   // 等待1个时钟周期让RAM数据稳定后返回IDLE        
         AGE_SCAN: 
             r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :    // 扫描完成（包括清表完成）
-                              (!w_input_fifo_empty && (!r_table_clear_req || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // 有报文等待且(非清表模式 或 已达到突发限制)时才优先处理报文
-                              (w_entry_valid && w_entry_expired && !r_table_clear_req && r_state_cnt >= 16'd1) ? AGE_UPDATE :    // 需要老化更新（非清表模式），确保数据稳定
+                              ((w_all_fifo_empty == 1'd0) && ((r_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // 有报文等待且(非清表模式 或 已达到突发限制)时才优先处理报文
+                              ((w_entry_valid == 1'd1) && (w_entry_expired == 1'd1) && (r_table_clear_req == 1'd0) && (r_state_cnt >= 16'd1)) ? AGE_UPDATE :    // 需要老化更新（非清表模式），确保数据稳定
                               AGE_SCAN;                                              // 继续扫描下一个地址        
         AGE_UPDATE: 
             r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :  // 扫描完成
-                              (!w_input_fifo_empty && (!r_table_clear_req || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // 有报文等待且(非清表模式 或 已达到突发限制)时才优先处理报文
+                              ((w_all_fifo_empty == 1'd0) && ((r_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // 有报文等待且(非清表模式 或 已达到突发限制)时才优先处理报文
                               AGE_SCAN;                                                // 老化更新完成，继续扫描        
         default: 
             r_fsm_nxt_state = IDLE;
@@ -412,7 +587,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_age_time_threshold <= 10'd300;
     end else if(SIM_MODE == 1) begin
         r_age_time_threshold <= 10'd3;
-    end else if (r_reg_bus_we && r_reg_bus_data_vld && (r_reg_bus_addr == REG_AGE_TIME_THRESHOLD)) begin
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_AGE_TIME_THRESHOLD)) begin
         r_age_time_threshold <= r_reg_bus_data[AGE_TIME_WIDTH-1:0];
     end
 end
@@ -421,9 +596,9 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_table_clear_req <= 1'b0;
-    end else if (r_reg_bus_we && r_reg_bus_data_vld && (r_reg_bus_addr == REG_TABLE_CLEAR)) begin
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_TABLE_CLEAR)) begin
         r_table_clear_req <= r_reg_bus_data[0];
-    end else if (r_table_clear_req && (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) && (r_fsm_cur_state == AGE_SCAN)) begin
+    end else if ((r_table_clear_req == 1'd1) && (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) && (r_fsm_cur_state == AGE_SCAN)) begin
         r_table_clear_req <= 1'b0;
     end
 end
@@ -432,7 +607,7 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_table_full_threshold <= TABLE_FULL_THRESHOLD;
-    end else if (r_reg_bus_we && r_reg_bus_data_vld && (r_reg_bus_addr == REG_TABLE_FULL_THRESHOLD)) begin
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_TABLE_FULL_THRESHOLD)) begin
         r_table_full_threshold <= r_reg_bus_data[14:0];
     end
 end
@@ -441,7 +616,7 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_scan_interval <= AGE_SCAN_INTERVAL;
-    end else if (r_reg_bus_we && r_reg_bus_data_vld && (r_reg_bus_addr == REG_AGE_SCAN_INTERVAL)) begin
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_AGE_SCAN_INTERVAL)) begin
         r_age_scan_interval <= {{16{1'b0}}, r_reg_bus_data};
     end
 end
@@ -451,10 +626,10 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_learn_success_cnt <= 32'd0;
-    end else if (r_table_clear_req) begin
+    end else if (r_table_clear_req == 1'd1) begin
         r_learn_success_cnt <= 32'd0;
-    end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1) begin
-        if ((w_smac_match) || (!w_entry_valid && (r_cur_rx_port < PORT_NUM) && !w_table_full)) begin
+    end else if ((r_fsm_cur_state == SMAC_LEARN_UPDATE) && (r_state_cnt == 16'd1)) begin
+        if ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (r_cur_rx_port < PORT_NUM) && (w_table_full == 1'd0))) begin
             r_learn_success_cnt <= r_learn_success_cnt + 1'b1;
         end
     end
@@ -464,14 +639,14 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_learn_fail_cnt <= 32'd0;
-    end else if (r_table_clear_req) begin
+    end else if (r_table_clear_req == 1'd1) begin
         r_learn_fail_cnt <= 32'd0;
-    end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1) begin
-        if ((w_entry_valid && !w_smac_match) || (!w_entry_valid && w_table_full) || (r_cur_rx_port >= PORT_NUM)) begin
+    end else if ((r_fsm_cur_state == SMAC_LEARN_UPDATE) && (r_state_cnt == 16'd1)) begin
+        if (((w_entry_valid == 1'd1) && (w_smac_match == 1'd0)) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd1)) || (r_cur_rx_port >= PORT_NUM)) begin
             r_learn_fail_cnt <= r_learn_fail_cnt + 1'b1;
         end
     end else if (r_fsm_cur_state == SMAC_LEARN_CHECK) begin
-        if (!w_entry_valid && w_table_full) begin
+        if ((w_entry_valid == 1'd0) && (w_table_full == 1'd1)) begin
             r_learn_fail_cnt <= r_learn_fail_cnt + 1'b1;
         end
     end
@@ -483,9 +658,9 @@ always @(posedge i_clk or posedge i_rst) begin
         r_collision_cnt <= 32'd0;
     end else if (r_table_clear_req) begin
         r_collision_cnt <= 32'd0;
-    end else if (r_fsm_cur_state == DMAC_LOOKUP && r_state_cnt == 16'd1 && w_entry_valid && !w_dmac_match) begin
+    end else if (r_fsm_cur_state == DMAC_LOOKUP && r_state_cnt == 16'd1 && w_entry_valid == 1'd1 && w_dmac_match == 1'd0) begin
         r_collision_cnt <= r_collision_cnt + 1'b1;
-    end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1 && w_entry_valid && !w_smac_match) begin
+    end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1 && w_entry_valid == 1'd1 && w_smac_match == 1'd0) begin
         r_collision_cnt <= r_collision_cnt + 1'b1;
     end
 end
@@ -497,7 +672,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end else if (r_table_clear_req) begin
         r_port_move_cnt <= 32'd0;
     end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1) begin
-        if (w_smac_match && (r_cur_rx_port < PORT_NUM) && 
+        if (w_smac_match == 1'd1 && (r_cur_rx_port < PORT_NUM) && 
             (w_entry_port != ({{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port))) begin
             r_port_move_cnt <= r_port_move_cnt + 1'b1;
         end
@@ -511,11 +686,11 @@ always @(posedge i_clk or posedge i_rst) begin
         r_table_entry_cnt <= 15'd0;
     end else if (r_table_clear_req) begin
         r_table_entry_cnt <= 15'd0;
-    end else if (r_entry_add && !r_entry_del) begin
+    end else if (r_entry_add == 1'd1 && r_entry_del == 1'd0) begin
         if (r_table_entry_cnt < 15'h7FFF) begin  
             r_table_entry_cnt <= r_table_entry_cnt + 1'b1;  
         end
-    end else if (!r_entry_add && r_entry_del) begin
+    end else if (r_entry_add == 1'd0 && r_entry_del == 1'd1) begin
         if (r_table_entry_cnt > 15'd0) begin  
             r_table_entry_cnt <= r_table_entry_cnt - 1'b1; 
         end
@@ -621,7 +796,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_ms_pulse <= 1'b0;
     end else begin
-        r_ms_pulse <= r_us_pulse && (r_ms_cnt == MS_CNT_MAX - 1);
+        r_ms_pulse <= r_us_pulse == 1'd1 && (r_ms_cnt == MS_CNT_MAX - 1) ? 1'd1 : 1'd0;
     end
 end
 
@@ -643,7 +818,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_timer_pulse <= 1'b0;
     end else begin
-        r_age_timer_pulse <= r_ms_pulse && (r_s_cnt == S_CNT_MAX - 1);
+        r_age_timer_pulse <= r_ms_pulse == 1'd1 && (r_s_cnt == S_CNT_MAX - 1) ? 1'd1 : 1'd0;
     end
 end
 
@@ -672,9 +847,9 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_clear_burst_cnt <= 8'd0;
-    end else if (r_fsm_cur_state != AGE_SCAN || !r_table_clear_req) begin
+    end else if (r_fsm_cur_state != AGE_SCAN || r_table_clear_req == 1'd0) begin
         r_clear_burst_cnt <= 8'd0;
-    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req) begin
+    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req == 1'd1) begin
         if (r_clear_burst_cnt < CLEAR_BURST_LIMIT) begin
             r_clear_burst_cnt <= r_clear_burst_cnt + 1'b1;
         end
@@ -712,16 +887,20 @@ always @(posedge i_clk or posedge i_rst) begin
     end else begin
         case (r_fsm_cur_state)
             IDLE: begin
-                if (w_can_use_direct_path) begin
-                    r_mac_table_addr <= i_dmac_hash_addr;
-                end else if (!w_input_fifo_empty) begin
-                    r_mac_table_addr <= w_fifo_dmac_hash_addr;
+                if (w_can_use_direct_path == 1'd1) begin
+                    r_mac_table_addr <= i_dmac_hash_addr;  // 直连路径可以立即使用
+                end else if (w_all_fifo_empty == 1'd0) begin
+                    // STD模式：不能立即使用FIFO输出，需要等读取后再在FIFO_READ_WAIT状态设置
+                    r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};  // 先清零
                 end else begin
                     r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};
                 end
             end
+            FIFO_READ_WAIT: begin  // 在此状态设置从锁存数据中获取的地址
+                r_mac_table_addr <= r_cur_dmac_hash_addr;  // 使用已锁存的数据
+            end
             DMAC_LOOKUP: begin
-                r_mac_table_addr <= r_cur_dmac_hash_addr;
+                r_mac_table_addr <= r_cur_dmac_hash_addr;  // 使用已锁存的数据
             end
             DMAC_REFRESH: begin
                 r_mac_table_addr <= r_cur_smac_hash_addr;
@@ -733,14 +912,14 @@ always @(posedge i_clk or posedge i_rst) begin
                 if (r_fsm_cur_state == IDLE && (r_fsm_nxt_state == AGE_SCAN)) begin
                     r_mac_table_addr <= r_age_scan_breakpoint;  // 从断点恢复或从0开始
                 end else if (r_fsm_cur_state == AGE_SCAN) begin
-                    if (r_table_clear_req) begin
+                    if (r_table_clear_req == 1'd1) begin
                         if (r_mac_table_addr != {HASH_DATA_WIDTH{1'b1}}) begin
                             r_mac_table_addr <= r_mac_table_addr + 1'b1;
                         end
                     end else begin
                         if (r_fsm_nxt_state == AGE_UPDATE) begin
                             r_mac_table_addr <= r_mac_table_addr;
-                        end else if (r_mac_table_addr != {HASH_DATA_WIDTH{1'b1}} && r_agescan_cnt) begin
+                        end else if ((r_mac_table_addr != {HASH_DATA_WIDTH{1'b1}}) && (r_agescan_cnt == 1'd1)) begin
                             r_mac_table_addr <= r_mac_table_addr + 1'b1;
                         end
                     end
@@ -765,8 +944,8 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_agescan_cnt <= 1'd0;
-    end else if (r_mac_table_re && r_fsm_cur_state == AGE_SCAN) begin
-        r_agescan_cnt <= !r_agescan_cnt;
+    end else if (r_mac_table_re == 1'd1 && r_fsm_cur_state == AGE_SCAN) begin
+        r_agescan_cnt <= r_agescan_cnt == 1'd0 ? 1'd1 : 1'd0;
     end else begin
         r_agescan_cnt <= 1'd0;
     end
@@ -779,8 +958,10 @@ always @(posedge i_clk or posedge i_rst) begin
     end else begin
         case (r_fsm_cur_state)
             IDLE: begin
-                r_mac_table_re <= (w_can_use_direct_path || !w_input_fifo_empty) && 
-                                  !r_table_clear_req && !r_age_scan_en;
+                r_mac_table_re <= ((w_can_use_direct_path == 1'd1) || (w_all_fifo_empty == 1'd0)) && (r_table_clear_req == 1'd0) && (r_age_scan_en == 1'd0) ? 1'd1 : 1'd0;
+            end
+            FIFO_READ_WAIT: begin  // FIFO读取等待状态，启动RAM读取
+                r_mac_table_re <= 1'b1;
             end
             DMAC_LOOKUP, SMAC_LEARN_CHECK: begin
                 r_mac_table_re <= 1'b1;
@@ -792,9 +973,9 @@ always @(posedge i_clk or posedge i_rst) begin
                 r_mac_table_re <= 1'b0;
             end
             AGE_SCAN: begin
-                if (r_table_clear_req && r_fsm_nxt_state == AGE_UPDATE) begin
+                if ((r_table_clear_req == 1'd1) && (r_fsm_nxt_state == AGE_UPDATE)) begin
                     r_mac_table_re <= 1'b0;
-                end else if(((r_state_cnt == 1'd0) || !(w_entry_valid && w_entry_expired))  )begin
+                end else if(((r_state_cnt == 1'd0) || !((w_entry_valid == 1'd1) && (w_entry_expired == 1'd1)))  )begin
                     r_mac_table_re <= 1'b1;
                 end else begin
                     r_mac_table_re <= 1'b0;
@@ -821,7 +1002,7 @@ always @(posedge i_clk or posedge i_rst) begin
             end
             SMAC_LEARN_UPDATE: begin
                 if (r_state_cnt == 16'd1) begin
-                    r_mac_table_we <= (w_smac_match || (!w_entry_valid && (r_cur_rx_port < PORT_NUM) && !w_table_full));
+                    r_mac_table_we <= (w_smac_match || (w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0));
                 end else begin
                     r_mac_table_we <= 1'b0;  
                 end
@@ -866,7 +1047,7 @@ always @(posedge i_clk or posedge i_rst) begin
                                                 {{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port, 
                                                 r_cur_smac[MAC_ADDR_WIDTH-1:0]};
                         end
-                    end else if (!w_entry_valid && (r_cur_rx_port < PORT_NUM) && !w_table_full) begin
+                    end else if (w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0) begin
                         r_mac_table_wdata <= {1'b1, 
                                             r_global_timestamp[AGE_TIME_WIDTH-1:0], 
                                             r_cur_vlan_id[VLAN_ID_WIDTH-1:0], 
@@ -885,7 +1066,7 @@ always @(posedge i_clk or posedge i_rst) begin
             AGE_SCAN: begin
                 if (r_table_clear_req) begin
                     r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
-                end else if (w_entry_valid && w_entry_expired) begin
+                end else if (w_entry_valid == 1'd1 && w_entry_expired == 1'd1) begin
                     r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
                 end else begin
                     r_mac_table_wdata <= w_mac_table_rdata; 
@@ -904,7 +1085,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_entry_add <= 1'b0;
     end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1 && 
-                 !w_entry_valid && (r_cur_rx_port < PORT_NUM) && !w_table_full) begin
+                 w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0) begin
         r_entry_add <= 1'b1;
     end else begin
         r_entry_add <= 1'b0;
@@ -915,9 +1096,9 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_entry_del <= 1'b0;
-    end else if (r_fsm_cur_state == AGE_UPDATE && w_entry_valid && w_entry_expired) begin
+    end else if (r_fsm_cur_state == AGE_UPDATE && w_entry_valid == 1'd1 && w_entry_expired == 1'd1) begin
         r_entry_del <= 1'b1;
-    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req && w_entry_valid) begin
+    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req == 1'd1 && w_entry_valid == 1'd1) begin
         r_entry_del <= 1'b1;
     end else begin
         r_entry_del <= 1'b0;
@@ -967,7 +1148,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_lookup_clash <= 1'b0;
     end else if (r_fsm_cur_state == DMAC_LOOKUP && r_state_cnt == 16'd1) begin
-        r_lookup_clash <= w_entry_valid && !w_dmac_match;
+        r_lookup_clash <= w_entry_valid == 1'd1 && w_dmac_match == 1'd0;
     end else begin
         r_lookup_clash <= 1'b0;
     end
@@ -987,7 +1168,7 @@ ram_simple2port #(
     .clkb           (i_clk                      ), 
     .wea            (r_mac_table_we             ), 
     .enb            (r_mac_table_re             ), 
-    .rstb           (i_rst                      ), 
+    .rstb           (i_rst                     ), 
     .regceb         (1'b0                       ),
     .doutb          (w_mac_table_rdata          )  
 );
