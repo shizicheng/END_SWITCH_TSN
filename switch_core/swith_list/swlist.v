@@ -27,6 +27,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_cpu_port                       ,
     output              wire                                    o_tx_cpu_port_vld                   ,
+    output              wire   [1:0]                            o_tx_cpu_port_broadcast             , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC1
     input               wire   [11:0]                           i_vlan_id1                          , // VLAN ID值
@@ -39,6 +40,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_1_port                         ,
     output              wire                                    o_tx_1_port_vld                     ,
+    output              wire   [1:0]                            o_tx_1_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif  
 `ifdef MAC2
     input               wire   [11:0]                           i_vlan_id2                          , // VLAN ID值
@@ -51,6 +53,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_2_port                         ,
     output              wire                                    o_tx_2_port_vld                     ,
+    output              wire   [1:0]                            o_tx_2_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC3
     input               wire   [11:0]                           i_vlan_id3                          , // VLAN ID值
@@ -63,6 +66,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_3_port                          ,
     output              wire                                    o_tx_3_port_vld                      ,
+    output              wire   [1:0]                            o_tx_3_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC4
     input               wire   [11:0]                           i_vlan_id4                          , // VLAN ID值
@@ -75,6 +79,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_4_port                         ,
     output              wire                                    o_tx_4_port_vld                     ,
+    output              wire   [1:0]                            o_tx_4_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC5
     input               wire   [11:0]                           i_vlan_id5                          , // VLAN ID值
@@ -87,6 +92,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_5_port                         ,
     output              wire                                    o_tx_5_port_vld                     ,
+    output              wire   [1:0]                            o_tx_5_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC6
     input               wire   [11:0]                           i_vlan_id6                          , // VLAN ID值
@@ -99,6 +105,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_6_port                         ,
     output              wire                                    o_tx_6_port_vld                     ,
+    output              wire   [1:0]                            o_tx_6_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC7
     input               wire   [11:0]                           i_vlan_id7                          , // VLAN ID值
@@ -111,6 +118,7 @@ module swlist#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_7_port                         ,
     output              wire                                    o_tx_7_port_vld                     ,
+    output              wire   [1:0]                            o_tx_7_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif 
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     // 寄存器控制信号                     
@@ -143,6 +151,7 @@ module swlist#(
     wire                                    w_smac_vld                          ; // SMAC有效信号
     wire   [PORT_NUM - 1:0]                 w_tx_port                           ; // 最终输出端口
     wire                                    w_tx_port_vld                       ; // 最终输出端口有效信号
+    wire   [1:0]                            w_tx_port_broadcast                 ; // 01:组播 10：广播 11:泛洪
      
     // DMAC表读写接口信号
     wire   [11 : 0]                         w_dmac_item_vlan_id                 ; // DMAC表VLAN ID
@@ -177,74 +186,91 @@ module swlist#(
 
     // look_up_mng输出信号
     wire   [47 : 0]                         w_lookup_dmac_out                   ; // 查表引擎输出DMAC
+    wire   [11 : 0]                         w_lookup_vlan_id                    ; // 查表引擎输出VLAN ID
     wire                                    w_lookup_dmac_vld_out               ; // 查表引擎输出DMAC有效信号
 
     // key_arbit输出到各端口的信号  
 `ifdef CPU_MAC
     wire   [PORT_NUM : 0]                   w_tx_cpu_port                       ; // CPU端口输出
     wire                                    w_tx_cpu_port_vld                   ; // CPU端口输出有效
+    wire   [1:0]                            w_tx_cpu_port_broadcast             ; // CPU端口广播类型输出
 `endif
 `ifdef MAC1
     wire   [PORT_NUM : 0]                   w_tx_1_port                         ; // MAC1端口输出
     wire                                    w_tx_1_port_vld                     ; // MAC1端口输出有效
+    wire   [1:0]                            w_tx_1_port_broadcast               ; // MAC1端口广播类型输出
 `endif
 `ifdef MAC2
     wire   [PORT_NUM : 0]                   w_tx_2_port                         ; // MAC2端口输出
     wire                                    w_tx_2_port_vld                     ; // MAC2端口输出有效
+    wire   [1:0]                            w_tx_2_port_broadcast               ; // MAC2端口广播类型输出
 `endif
 `ifdef MAC3
     wire   [PORT_NUM : 0]                   w_tx_3_port                         ; // MAC3端口输出
     wire                                    w_tx_3_port_vld                     ; // MAC3端口输出有效
+    wire   [1:0]                            w_tx_3_port_broadcast               ; // MAC3端口广播类型输出
 `endif
 `ifdef MAC4
     wire   [PORT_NUM : 0]                   w_tx_4_port                         ; // MAC4端口输出
     wire                                    w_tx_4_port_vld                     ; // MAC4端口输出有效
+    wire   [1:0]                            w_tx_4_port_broadcast               ; // MAC4端口广播类型输出
 `endif
 `ifdef MAC5
     wire   [PORT_NUM : 0]                   w_tx_5_port                         ; // MAC5端口输出
     wire                                    w_tx_5_port_vld                     ; // MAC5端口输出有效
+    wire   [1:0]                            w_tx_5_port_broadcast               ; // MAC5端口广播类型输出
 `endif
 `ifdef MAC6
     wire   [PORT_NUM : 0]                   w_tx_6_port                         ; // MAC6端口输出
     wire                                    w_tx_6_port_vld                     ; // MAC6端口输出有效
+    wire   [1:0]                            w_tx_6_port_broadcast               ; // MAC6端口广播类型输出
 `endif
 `ifdef MAC7
     wire   [PORT_NUM : 0]                   w_tx_7_port                         ; // MAC7端口输出
     wire                                    w_tx_7_port_vld                     ; // MAC7端口输出有效
+    wire   [1:0]                            w_tx_7_port_broadcast               ; // MAC7端口广播类型输出
 `endif
     
     // 各端口输出连接
 `ifdef CPU_MAC
     assign o_tx_cpu_port = w_tx_cpu_port[PORT_NUM-1:0];                          // 连接CPU端口输出
     assign o_tx_cpu_port_vld = w_tx_cpu_port_vld;                                // 连接CPU端口有效信号
+    assign o_tx_cpu_port_broadcast = w_tx_cpu_port_broadcast;                    // 连接CPU端口广播类型信号
 `endif
 `ifdef MAC1
     assign o_tx_1_port = w_tx_1_port[PORT_NUM-1:0];                              // 连接MAC1端口输出
     assign o_tx_1_port_vld = w_tx_1_port_vld;                                    // 连接MAC1端口有效信号
+    assign o_tx_1_port_broadcast = w_tx_1_port_broadcast;                        // 连接MAC1端口广播类型信号
 `endif
 `ifdef MAC2
     assign o_tx_2_port = w_tx_2_port[PORT_NUM-1:0];                              // 连接MAC2端口输出
     assign o_tx_2_port_vld = w_tx_2_port_vld;                                    // 连接MAC2端口有效信号
+    assign o_tx_2_port_broadcast = w_tx_2_port_broadcast;                        // 连接MAC2端口广播类型信号
 `endif
 `ifdef MAC3
     assign o_tx_3_port = w_tx_3_port[PORT_NUM-1:0];                              // 连接MAC3端口输出
     assign o_tx_3_port_vld = w_tx_3_port_vld;                                    // 连接MAC3端口有效信号
+    assign o_tx_3_port_broadcast = w_tx_3_port_broadcast;                        // 连接MAC3端口广播类型信号
 `endif
 `ifdef MAC4
     assign o_tx_4_port = w_tx_4_port[PORT_NUM-1:0];                              // 连接MAC4端口输出
     assign o_tx_4_port_vld = w_tx_4_port_vld;                                    // 连接MAC4端口有效信号
+    assign o_tx_4_port_broadcast = w_tx_4_port_broadcast;                        // 连接MAC4端口广播类型信号
 `endif
 `ifdef MAC5
     assign o_tx_5_port = w_tx_5_port[PORT_NUM-1:0];                              // 连接MAC5端口输出
     assign o_tx_5_port_vld = w_tx_5_port_vld;                                    // 连接MAC5端口有效信号
+    assign o_tx_5_port_broadcast = w_tx_5_port_broadcast;                        // 连接MAC5端口广播类型信号
 `endif
 `ifdef MAC6
     assign o_tx_6_port = w_tx_6_port[PORT_NUM-1:0];                              // 连接MAC6端口输出
     assign o_tx_6_port_vld = w_tx_6_port_vld;                                    // 连接MAC6端口有效信号
+    assign o_tx_6_port_broadcast = w_tx_6_port_broadcast;                        // 连接MAC6端口广播类型信号
 `endif
 `ifdef MAC7
     assign o_tx_7_port = w_tx_7_port[PORT_NUM-1:0];                              // 连接MAC7端口输出
     assign o_tx_7_port_vld = w_tx_7_port_vld;                                    // 连接MAC7端口有效信号
+    assign o_tx_7_port_broadcast = w_tx_7_port_broadcast;                        // 连接MAC7端口广播类型信号
 `endif
     
 
@@ -270,6 +296,7 @@ key_arbit #(
     .i_smac_cpu_vld             (i_smac_cpu_vld             ),
     .o_tx_cpu_port              (w_tx_cpu_port              ), 
     .o_tx_cpu_port_vld          (w_tx_cpu_port_vld          ), 
+    .o_tx_cpu_port_broadcast    (w_tx_cpu_port_broadcast    ),
 `endif
 `ifdef MAC1
     .i_vlan_id1                 (i_vlan_id1                 ),
@@ -281,6 +308,7 @@ key_arbit #(
     .i_smac1_vld                (i_smac1_vld                ),
     .o_tx_1_port                (w_tx_1_port                ), 
     .o_tx_1_port_vld            (w_tx_1_port_vld            ), 
+    .o_tx_1_port_broadcast      (w_tx_1_port_broadcast      ),
 `endif
 `ifdef MAC2
     .i_vlan_id2                 (i_vlan_id2                 ),
@@ -292,6 +320,7 @@ key_arbit #(
     .i_smac2_vld                (i_smac2_vld                ),
     .o_tx_2_port                (w_tx_2_port                ), 
     .o_tx_2_port_vld            (w_tx_2_port_vld            ), 
+    .o_tx_2_port_broadcast      (w_tx_2_port_broadcast      ),
 `endif
 `ifdef MAC3
     .i_vlan_id3                 (i_vlan_id3                 ),
@@ -303,6 +332,7 @@ key_arbit #(
     .i_smac3_vld                (i_smac3_vld                ),
     .o_tx_3_port                (w_tx_3_port                ), 
     .o_tx_3_port_vld            (w_tx_3_port_vld            ), 
+    .o_tx_3_port_broadcast      (w_tx_3_port_broadcast      ),
 `endif
 `ifdef MAC4
     .i_vlan_id4                 (i_vlan_id4                 ),
@@ -314,6 +344,7 @@ key_arbit #(
     .i_smac4_vld                (i_smac4_vld                ),
     .o_tx_4_port                (w_tx_4_port                ), 
     .o_tx_4_port_vld            (w_tx_4_port_vld            ), 
+    .o_tx_4_port_broadcast      (w_tx_4_port_broadcast      ),
 `endif
 `ifdef MAC5
     .i_vlan_id5                 (i_vlan_id5                 ),
@@ -325,6 +356,7 @@ key_arbit #(
     .i_smac5_vld                (i_smac5_vld                ),
     .o_tx_5_port                (w_tx_5_port                ), 
     .o_tx_5_port_vld            (w_tx_5_port_vld            ), 
+    .o_tx_5_port_broadcast      (w_tx_5_port_broadcast      ),
 `endif
 `ifdef MAC6
     .i_vlan_id6                 (i_vlan_id6                 ),
@@ -336,6 +368,7 @@ key_arbit #(
     .i_smac6_vld                (i_smac6_vld                ),
     .o_tx_6_port                (w_tx_6_port                ), 
     .o_tx_6_port_vld            (w_tx_6_port_vld            ), 
+    .o_tx_6_port_broadcast      (w_tx_6_port_broadcast      ),
 `endif
 `ifdef MAC7
     .i_vlan_id7                 (i_vlan_id7                 ),
@@ -347,6 +380,7 @@ key_arbit #(
     .i_smac7_vld                (i_smac7_vld                ),
     .o_tx_7_port                (w_tx_7_port                ), 
     .o_tx_7_port_vld            (w_tx_7_port_vld            ), 
+    .o_tx_7_port_broadcast      (w_tx_7_port_broadcast      ),
 `endif
     // 仲裁输出
     .o_dmac_port                (w_dmac_port                ),
@@ -359,7 +393,8 @@ key_arbit #(
     .o_smac_vld                 (w_smac_vld                 ),
     // 查表结果输入
     .i_tx_port                  (w_tx_port                  ),
-    .i_tx_port_vld              (w_tx_port_vld              )
+    .i_tx_port_vld              (w_tx_port_vld              ),
+    .i_tx_port_broadcast        (w_tx_port_broadcast        )
 );
 
 // 从仲裁模块输入，通过查找引擎分发到三个查表模块，三个查表模块返回查表结果，经过仲裁得到最终的查表结果并返回给上一级
@@ -383,6 +418,7 @@ look_up_mng #(
     
     .o_tx_port                  (w_tx_port                    ), 
     .o_tx_port_vld              (w_tx_port_vld                ), 
+    .o_tx_port_broadcast        (w_tx_port_broadcast          ),
     /*----------------------------- SMAC 表读写接口 ------------------------*/         
     .o_dmac                     (w_lookup_dmac_out            ), 
     .o_vlan_id                  (w_lookup_vlan_id             ),

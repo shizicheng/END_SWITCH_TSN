@@ -39,8 +39,9 @@ module key_arbit#(
     input               wire   [47 : 0]                         i_smac_cpu                          , // 源 mac 的值
     input               wire                                    i_smac_cpu_vld                      , // smac_vld
 
-    output              wire   [PORT_WIDTH - 1:0]               o_tx_cpu_port                         ,
-    output              wire                                    o_tx_cpu_port_vld                     ,
+    output              wire   [PORT_WIDTH - 1:0]               o_tx_cpu_port                       ,
+    output              wire                                    o_tx_cpu_port_vld                   ,
+    output              wire   [1:0]                            o_tx_cpu_port_broadcast             , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC1
     input               wire   [11:0]                           i_vlan_id1                          , // VLAN ID值
@@ -53,6 +54,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_1_port                         ,
     output              wire                                    o_tx_1_port_vld                     ,
+    output              wire   [1:0]                            o_tx_1_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif  
 `ifdef MAC2
     input               wire   [11:0]                           i_vlan_id2                          , // VLAN ID值
@@ -65,6 +67,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_2_port                         ,
     output              wire                                    o_tx_2_port_vld                     ,
+    output              wire   [1:0]                            o_tx_2_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC3
     input               wire   [11:0]                           i_vlan_id3                          , // VLAN ID值
@@ -77,6 +80,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_3_port                          ,
     output              wire                                    o_tx_3_port_vld                      ,
+    output              wire   [1:0]                            o_tx_3_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC4
     input               wire   [11:0]                           i_vlan_id4                          , // VLAN ID值
@@ -89,6 +93,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_4_port                         ,
     output              wire                                    o_tx_4_port_vld                     ,
+    output              wire   [1:0]                            o_tx_4_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC5
     input               wire   [11:0]                           i_vlan_id5                          , // VLAN ID值
@@ -101,6 +106,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_5_port                         ,
     output              wire                                    o_tx_5_port_vld                     ,
+    output              wire   [1:0]                            o_tx_5_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC6
     input               wire   [11:0]                           i_vlan_id6                          , // VLAN ID值
@@ -113,6 +119,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_6_port                         ,
     output              wire                                    o_tx_6_port_vld                     ,
+    output              wire   [1:0]                            o_tx_6_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif
 `ifdef MAC7
     input               wire   [11:0]                           i_vlan_id7                          , // VLAN ID值
@@ -125,6 +132,7 @@ module key_arbit#(
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_7_port                         ,
     output              wire                                    o_tx_7_port_vld                     ,
+    output              wire   [1:0]                            o_tx_7_port_broadcast               , // 01:组播 10：广播 11:泛洪
 `endif 
     /*---------------------------------------- 仲裁输出 -------------------------------------------*/
     output              wire   [PORT_WIDTH - 1:0]               o_dmac_port                         , // 仲裁的端口 
@@ -137,7 +145,8 @@ module key_arbit#(
     output              wire                                    o_smac_vld                          , // smac_vld
 
     input               wire   [PORT_WIDTH - 1:0]               i_tx_port                           ,
-    input               wire                                    i_tx_port_vld                        
+    input               wire                                    i_tx_port_vld                       ,
+    input               wire   [1:0]                            i_tx_port_broadcast                   // 01:组播 10：广播 11:泛洪
     
 );
 
@@ -245,6 +254,7 @@ reg                                      ri_smac7_vld                           
 // 转发端口信息输入寄存器
 reg     [PORT_WIDTH - 1:0]               ri_tx_port                                                  ; // 转发端口输入寄存器
 reg                                      ri_tx_port_vld                                              ; // 转发端口有效输入寄存器
+reg     [1:0]                            ri_tx_port_broadcast                                        ; // 转发端口广播类型输入寄存器
 
 // 仲裁逻辑寄存器
 reg     [2:0]                            arbit_port_sel                                              ; // 仲裁选择的端口号
@@ -262,6 +272,7 @@ reg     [2:0]                            port_map_sel                           
 reg                                      port_map_vld                                                ; // 端口映射有效信号
 reg     [PORT_WIDTH - 1:0]               ri_tx_port_d1                                               ; // 延迟一拍的转发端口信息
 reg                                      ri_tx_port_vld_d1                                           ; // 延迟一拍的转发端口有效信号
+reg     [1:0]                            ri_tx_port_broadcast_d1                                     ; // 延迟一拍的转发端口广播类型信号
 
 // 主输出寄存器
 reg     [PORT_WIDTH - 1:0]               ro_dmac_port                                                ; // 仲裁端口输出寄存器
@@ -277,34 +288,42 @@ reg                                      ro_smac_vld                            
 `ifdef CPU_MAC
 reg     [PORT_WIDTH - 1:0]               ro_tx_cpu_port                                              ; // CPU端口转发端口输出寄存器
 reg                                      ro_tx_cpu_port_vld                                          ; // CPU端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_cpu_port_broadcast                                    ; // CPU端口转发广播类型输出寄存器
 `endif
 `ifdef MAC1
 reg     [PORT_WIDTH - 1:0]               ro_tx_1_port                                                ; // MAC1端口转发端口输出寄存器
 reg                                      ro_tx_1_port_vld                                            ; // MAC1端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_1_port_broadcast                                      ; // MAC1端口转发广播类型输出寄存器
 `endif
 `ifdef MAC2
 reg     [PORT_WIDTH - 1:0]               ro_tx_2_port                                                ; // MAC2端口转发端口输出寄存器
 reg                                      ro_tx_2_port_vld                                            ; // MAC2端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_2_port_broadcast                                      ; // MAC2端口转发广播类型输出寄存器
 `endif
 `ifdef MAC3
 reg     [PORT_WIDTH - 1:0]               ro_tx_3_port                                                ; // MAC3端口转发端口输出寄存器
 reg                                      ro_tx_3_port_vld                                            ; // MAC3端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_3_port_broadcast                                      ; // MAC3端口转发广播类型输出寄存器
 `endif
 `ifdef MAC4
 reg     [PORT_WIDTH - 1:0]               ro_tx_4_port                                                ; // MAC4端口转发端口输出寄存器
 reg                                      ro_tx_4_port_vld                                            ; // MAC4端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_4_port_broadcast                                      ; // MAC4端口转发广播类型输出寄存器
 `endif
 `ifdef MAC5
 reg     [PORT_WIDTH - 1:0]               ro_tx_5_port                                                ; // MAC5端口转发端口输出寄存器
 reg                                      ro_tx_5_port_vld                                            ; // MAC5端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_5_port_broadcast                                      ; // MAC5端口转发广播类型输出寄存器
 `endif
 `ifdef MAC6
 reg     [PORT_WIDTH - 1:0]               ro_tx_6_port                                                ; // MAC6端口转发端口输出寄存器
 reg                                      ro_tx_6_port_vld                                            ; // MAC6端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_6_port_broadcast                                      ; // MAC6端口转发广播类型输出寄存器
 `endif
 `ifdef MAC7
 reg     [PORT_WIDTH - 1:0]               ro_tx_7_port                                                ; // MAC7端口转发端口输出寄存器
 reg                                      ro_tx_7_port_vld                                            ; // MAC7端口转发有效输出寄存器
+reg     [1:0]                            ro_tx_7_port_broadcast                                      ; // MAC7端口转发广播类型输出寄存器
 `endif 
 /*========================================================================================================*/
 /*                                           Assign信号连接                                               */
@@ -313,7 +332,7 @@ reg                                      ro_tx_7_port_vld                       
 /*---------------------------------------- FIFO控制信号连接 -------------------------------------------*/
 assign fifo_wr_en   = arbit_vld;                            // FIFO写使能：仲裁有效时写入端口号
 assign fifo_wr_data = arbit_port_sel;                       // FIFO写数据：仲裁选择的端口号
-assign fifo_rd_en   = ri_tx_port_vld && (!fifo_empty);      // FIFO读使能：有转发端口且FIFO非空时读取
+assign fifo_rd_en   = ri_tx_port_vld == 1'd1 && (fifo_empty == 1'd0);      // FIFO读使能：有转发端口且FIFO非空时读取
 
 /*---------------------------------------- 主输出信号连接 -------------------------------------------*/
 assign o_dmac_port     = ro_dmac_port    ;                  // 仲裁端口输出
@@ -329,34 +348,42 @@ assign o_smac_vld      = ro_smac_vld     ;                  // 源MAC有效输�
 `ifdef CPU_MAC
 assign o_tx_cpu_port     = ro_tx_cpu_port    ;                // CPU端口转发端口输出
 assign o_tx_cpu_port_vld = ro_tx_cpu_port_vld;                // CPU端口转发有效输出
+assign o_tx_cpu_port_broadcast = ro_tx_cpu_port_broadcast;    // CPU端口转发广播类型输出
 `endif
 `ifdef MAC1
 assign o_tx_1_port     = ro_tx_1_port    ;                  // MAC1端口转发端口输出
 assign o_tx_1_port_vld = ro_tx_1_port_vld;                  // MAC1端口转发有效输出
+assign o_tx_1_port_broadcast = ro_tx_1_port_broadcast;      // MAC1端口转发广播类型输出
 `endif
 `ifdef MAC2
 assign o_tx_2_port     = ro_tx_2_port    ;                  // MAC2端口转发端口输出
 assign o_tx_2_port_vld = ro_tx_2_port_vld;                  // MAC2端口转发有效输出
+assign o_tx_2_port_broadcast = ro_tx_2_port_broadcast;      // MAC2端口转发广播类型输出
 `endif
 `ifdef MAC3
 assign o_tx_3_port     = ro_tx_3_port    ;                  // MAC3端口转发端口输出
 assign o_tx_3_port_vld = ro_tx_3_port_vld;                  // MAC3端口转发有效输出
+assign o_tx_3_port_broadcast = ro_tx_3_port_broadcast;      // MAC3端口转发广播类型输出
 `endif
 `ifdef MAC4
 assign o_tx_4_port     = ro_tx_4_port    ;                  // MAC4端口转发端口输出
 assign o_tx_4_port_vld = ro_tx_4_port_vld;                  // MAC4端口转发有效输出
+assign o_tx_4_port_broadcast = ro_tx_4_port_broadcast;      // MAC4端口转发广播类型输出
 `endif
 `ifdef MAC5
 assign o_tx_5_port     = ro_tx_5_port    ;                  // MAC5端口转发端口输出
 assign o_tx_5_port_vld = ro_tx_5_port_vld;                  // MAC5端口转发有效输出
+assign o_tx_5_port_broadcast = ro_tx_5_port_broadcast;      // MAC5端口转发广播类型输出
 `endif
 `ifdef MAC6
 assign o_tx_6_port     = ro_tx_6_port    ;                  // MAC6端口转发端口输出
 assign o_tx_6_port_vld = ro_tx_6_port_vld;                  // MAC6端口转发有效输出
+assign o_tx_6_port_broadcast = ro_tx_6_port_broadcast;      // MAC6端口转发广播类型输出
 `endif
 `ifdef MAC7
 assign o_tx_7_port     = ro_tx_7_port    ;                  // MAC7端口转发端口输出
 assign o_tx_7_port_vld = ro_tx_7_port_vld;                  // MAC7端口转发有效输出
+assign o_tx_7_port_broadcast = ro_tx_7_port_broadcast;      // MAC7端口转发广播类型输出
 `endif 
 
 /*========================================================================================================*/
@@ -369,6 +396,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ri_tx_port     <= {PORT_WIDTH{1'b0}};
         ri_tx_port_vld <= 1'b0;
+        ri_tx_port_broadcast <= 2'b0;
 `ifdef CPU_MAC
         ri_vlan_id_cpu       <= 12'b0;
         ri_dmac_cpu_hash_key <= {HASH_DATA_WIDTH{1'b0}};
@@ -445,6 +473,7 @@ always @(posedge i_clk or posedge i_rst) begin
     else begin
         ri_tx_port           <= i_tx_port;
         ri_tx_port_vld       <= i_tx_port_vld;
+        ri_tx_port_broadcast <= i_tx_port_broadcast;
 `ifdef CPU_MAC
         ri_vlan_id_cpu       <= i_vlan_id_cpu;
         ri_dmac_cpu_hash_key <= i_dmac_cpu_hash_key;
@@ -734,10 +763,12 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ri_tx_port_d1     <= {PORT_WIDTH{1'b0}};
         ri_tx_port_vld_d1 <= 1'b0;
+        ri_tx_port_broadcast_d1 <= 2'b0;
     end
     else begin
         ri_tx_port_d1     <= ri_tx_port;
         ri_tx_port_vld_d1 <= ri_tx_port_vld;
+        ri_tx_port_broadcast_d1 <= ri_tx_port_broadcast;
     end
 end
 
@@ -761,15 +792,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_cpu_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_cpu_port_vld <= 1'b0;
+        ro_tx_cpu_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd0)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd0)) begin
             ro_tx_cpu_port     <= ri_tx_port_d1;
             ro_tx_cpu_port_vld <= 1'b1;
+            ro_tx_cpu_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_cpu_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_cpu_port_vld <= 1'b0;
+            ro_tx_cpu_port_broadcast <= 2'b0;
         end
     end
 end
@@ -780,15 +814,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_1_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_1_port_vld <= 1'b0;
+        ro_tx_1_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd1)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd1)) begin
             ro_tx_1_port     <= ri_tx_port_d1;
             ro_tx_1_port_vld <= 1'b1;
+            ro_tx_1_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_1_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_1_port_vld <= 1'b0;
+            ro_tx_1_port_broadcast <= 2'b0;
         end
     end
 end
@@ -799,15 +836,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_2_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_2_port_vld <= 1'b0;
+        ro_tx_2_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd2)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd2)) begin
             ro_tx_2_port     <= ri_tx_port_d1;
             ro_tx_2_port_vld <= 1'b1;
+            ro_tx_2_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_2_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_2_port_vld <= 1'b0;
+            ro_tx_2_port_broadcast <= 2'b0;
         end
     end
 end
@@ -818,15 +858,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_3_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_3_port_vld <= 1'b0;
+        ro_tx_3_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd3)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd3)) begin
             ro_tx_3_port     <= ri_tx_port_d1;
             ro_tx_3_port_vld <= 1'b1;
+            ro_tx_3_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_3_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_3_port_vld <= 1'b0;
+            ro_tx_3_port_broadcast <= 2'b0;
         end
     end
 end
@@ -837,15 +880,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_4_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_4_port_vld <= 1'b0;
+        ro_tx_4_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd4)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd4)) begin
             ro_tx_4_port     <= ri_tx_port_d1;
             ro_tx_4_port_vld <= 1'b1;
+            ro_tx_4_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_4_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_4_port_vld <= 1'b0;
+            ro_tx_4_port_broadcast <= 2'b0;
         end
     end
 end
@@ -856,15 +902,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_5_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_5_port_vld <= 1'b0;
+        ro_tx_5_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd5)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd5)) begin
             ro_tx_5_port     <= ri_tx_port_d1;
             ro_tx_5_port_vld <= 1'b1;
+            ro_tx_5_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_5_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_5_port_vld <= 1'b0;
+            ro_tx_5_port_broadcast <= 2'b0;
         end
     end
 end
@@ -875,15 +924,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_6_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_6_port_vld <= 1'b0;
+        ro_tx_6_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd6)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd6)) begin
             ro_tx_6_port     <= ri_tx_port_d1;
             ro_tx_6_port_vld <= 1'b1;
+            ro_tx_6_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_6_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_6_port_vld <= 1'b0;
+            ro_tx_6_port_broadcast <= 2'b0;
         end
     end
 end
@@ -894,15 +946,18 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ro_tx_7_port     <= {PORT_WIDTH{1'b0}};
         ro_tx_7_port_vld <= 1'b0;
+        ro_tx_7_port_broadcast <= 2'b0;
     end
     else begin
-        if (port_map_vld && (port_map_sel == 3'd7)) begin
+        if (port_map_vld == 1'd1 && (port_map_sel == 3'd7)) begin
             ro_tx_7_port     <= ri_tx_port_d1;
             ro_tx_7_port_vld <= 1'b1;
+            ro_tx_7_port_broadcast <= ri_tx_port_broadcast_d1;
         end
         else begin
             ro_tx_7_port     <= {PORT_WIDTH{1'b0}};
             ro_tx_7_port_vld <= 1'b0;
+            ro_tx_7_port_broadcast <= 2'b0;
         end
     end
 end

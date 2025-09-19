@@ -16,8 +16,9 @@ module look_up_mng #(
         input               wire   [47 : 0]                         i_smac                      ,   // 源 mac 的值
         input               wire                                    i_smac_vld                  ,   // smac_vld
 
-        output              wire   [PORT_NUM  :0 ]                  o_tx_port                   ,  // 最高位为1表明为自己MAC的，不需要查表
-        output              wire                                    o_tx_port_vld               , 
+        output              wire   [PORT_NUM  :0 ]                  o_tx_port                   ,   // 最高位为1表明为自己MAC的，不需要查表
+        output              wire                                    o_tx_port_vld               ,  
+        output              wire   [1:0]                            o_tx_port_broadcast         ,   // 01:组播 10：广播 11:泛洪
         /*----------------------------- SMAC 表读写接口 ------------------------------*/         
         output              wire   [47 : 0]                         o_dmac                      ,   // 目的 mac 的值
         output              wire   [11 : 0]                         o_vlan_id                   ,   // vlan_id 值
@@ -77,9 +78,9 @@ reg                                     ri_clash_tx_port_vld         ;   // 冲�
 // 所有输出信号直接使用已有寄存器，无需额外输出寄存器
 
 // 中间逻辑信号
-reg                                     r_dmac_req_en                ;   // DMAC表请求使能
-reg                                     r_smac_req_en                ;   // SMAC表请求使能
-reg                                     r_clash_req_en               ;   // 冲突表请求使能
+wire                                    w_dmac_req_en                ;   // DMAC表请求使能
+wire                                    w_smac_req_en                ;   // SMAC表请求使能
+wire                                    w_clash_req_en               ;   // 冲突表请求使能
 reg                                     r_is_self_mac                ;   // 是否为自己MAC标识
 reg    [PORT_NUM-1:0]                   r_final_tx_port              ;   // 最终输出端口
 reg                                     r_final_tx_port_vld          ;   // 最终输出端口有效
@@ -93,28 +94,39 @@ reg    [PORT_NUM-1:0]                   r_dmac_lookup_result         ;   // DMAC
 reg    [PORT_NUM-1:0]                   r_clash_lookup_result        ;   // CLASH查表结果
 reg    [PORT_NUM-1:0]                   r_flood_port                 ;   // 泛洪端口
 
+// MAC地址类型检测相关信号
+reg    [1:0]                            r_mac_type                   ;   // MAC地址类型：00-单播，01-组播，10-广播
+reg                                     r_is_broadcast               ;   // 是否为广播地址
+reg                                     r_is_multicast               ;   // 是否为组播地址
+reg    [1:0]                            r_broadcast_result           ;   // 广播类型结果
+// 广播地址检测 (全F地址)
+reg                                     r_is_broadcast_flag1         ;
+reg                                     r_is_broadcast_flag2         ;
+reg                                     r_is_broadcast_flag3         ;
+
 // 本地MAC地址 - 参数化配置
 wire   [47:0]                           w_local_mac                  ;   // 本地MAC地址
 
 /*======================= 输出信号连接 ===========================*/
 assign o_tx_port                    = r_is_self_mac ? {{1'b1}, {PORT_NUM{1'b0}}} : {{1'b0}, r_final_tx_port};
 assign o_tx_port_vld                = r_is_self_mac ? 1'b1 : r_final_tx_port_vld;
+assign o_tx_port_broadcast          = r_broadcast_result;
 assign o_dmac                       = ri_dmac;
 assign o_vlan_id                    = ri_vlan_id;
 assign o_dmac_vld                   = ri_dmac_vld;
 assign o_dmac_item_dmac_addr        = ri_dmac_hash_key;
-assign o_dmac_item_dmac_addr_vld    = r_dmac_req_en;
+assign o_dmac_item_dmac_addr_vld    = w_dmac_req_en;
 assign o_dmac_item_dmac             = ri_dmac;
 assign o_dmac_item_smac_addr        = ri_smac_hash_key;
-assign o_dmac_item_smac_addr_vld    = r_smac_req_en;
+assign o_dmac_item_smac_addr_vld    = w_smac_req_en;
 assign o_dmac_item_smac             = ri_smac;
 assign o_dmac_item_mac_rx_port      = ri_dmac_port;
 assign o_dmac_item_vlan_id          = ri_vlan_id;
 assign o_clash_item_dmac_addr       = ri_dmac_hash_key;
-assign o_clash_item_dmac_addr_vld   = r_clash_req_en;
+assign o_clash_item_dmac_addr_vld   = w_clash_req_en;
 assign o_clash_item_dmac            = ri_dmac;
 assign o_clash_item_smac_addr       = ri_smac_hash_key;
-assign o_clash_item_smac_addr_vld   = r_smac_req_en;
+assign o_clash_item_smac_addr_vld   = w_smac_req_en;
 assign o_clash_item_smac            = ri_smac;
 assign o_clash_item_mac_rx_port     = ri_dmac_port;
 assign o_clash_item_vlan_id         = ri_vlan_id;
@@ -161,39 +173,84 @@ end
 
 /*======================= 查表请求分发逻辑 =======================*/
 // DMAC表请求使能
-always @(*) begin
-    if (!i_rst)
-        r_dmac_req_en = 1'b0;
-    else
-        r_dmac_req_en = ri_dmac_vld;
-end
+assign w_dmac_req_en = ri_dmac_vld;
 
 // SMAC表请求使能
-always @(*) begin
-    if (!i_rst)
-        r_smac_req_en = 1'b0;
-    else
-        r_smac_req_en = ri_smac_vld;
-end
+assign w_smac_req_en = ri_smac_vld;
 
 // 冲突表请求使能
-always @(*) begin
-    if (!i_rst)
-        r_clash_req_en = 1'b0;
-    else
-        r_clash_req_en = ri_dmac_vld;
-end
+assign w_clash_req_en = ri_dmac_vld;
 
 /*======================= 自己MAC检查逻辑 =======================*/
 // 本地MAC地址参数化配置
 assign w_local_mac = LOCAL_MAC;
 
 // 是否为自己MAC检查
+// 分组比较ri_dmac和w_local_mac的每16位
+wire w_mac_eq_0 = (ri_dmac[47:32] == w_local_mac[47:32]);
+wire w_mac_eq_1 = (ri_dmac[31:16] == w_local_mac[31:16]);
+wire w_mac_eq_2 = (ri_dmac[15:0]  == w_local_mac[15:0]);
+wire w_mac_eq_all = w_mac_eq_0 == 1'd1 && w_mac_eq_1 == 1'd1 && w_mac_eq_2 == 1'd1;
+
 always @(posedge i_clk or negedge i_rst) begin
     if (!i_rst)
         r_is_self_mac <= 1'b0;
     else
-        r_is_self_mac <= (ri_dmac == w_local_mac) ? 1'b1 : 1'b0;
+        r_is_self_mac <= w_mac_eq_all ? 1'b1 : 1'b0;
+end
+
+/*======================= MAC地址类型检测逻辑 =======================*/
+
+
+// 广播地址检测标志位
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst) begin
+        r_is_broadcast_flag1 <= 1'b0;
+        r_is_broadcast_flag2 <= 1'b0;
+        r_is_broadcast_flag3 <= 1'b0;
+    end
+    else begin 
+        r_is_broadcast_flag1 <= (ri_dmac[47:32] == 16'hFFFF) ? 1'd1 : 1'd0;
+        r_is_broadcast_flag2 <= (ri_dmac[31:16] == 16'hFFFF) ? 1'd1 : 1'd0;
+        r_is_broadcast_flag3 <= (ri_dmac[15:0]  == 16'hFFFF) ? 1'd1 : 1'd0;
+    end
+end
+
+// 所有标志位都为1时，r_is_broadcast拉高
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_is_broadcast <= 1'b0;
+    else
+        r_is_broadcast <= r_is_broadcast_flag1 == 1'd1 && r_is_broadcast_flag2 == 1'd1 && r_is_broadcast_flag3 == 1'd1;
+end
+
+// 组播地址检测 (最高字节最低位为1)
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_is_multicast <= 1'b0;
+    else
+        r_is_multicast <= ri_dmac[40] ? 1'b1 : 1'b0;  // 第40位(最高字节最低位)
+end
+
+// MAC地址类型编码
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_mac_type <= 2'b00;
+    else
+        r_mac_type <= r_is_broadcast ? 2'b10 : 
+                     (r_is_multicast ? 2'b01 : 2'b00);
+end
+
+// 最终广播类型结果 - 结合查表结果
+always @(posedge i_clk or negedge i_rst) begin
+    if (!i_rst)
+        r_broadcast_result <= 2'b00;
+    else
+        r_broadcast_result <= r_all_results_ready ? 
+                             (r_mac_type == 2'b10 ? 2'b10 :
+                             (r_mac_type == 2'b01 ? 2'b01 :
+                             ((r_final_tx_port == r_flood_port) && (r_final_tx_port != {PORT_NUM{1'b0}}) ? 2'b11 : 2'b00))) :
+                             r_broadcast_result;
 end
 
 /*======================= 查表结果收集逻辑 =======================*/
@@ -203,7 +260,7 @@ always @(posedge i_clk or negedge i_rst) begin
         r_smac_result_ready <= 1'b0;
         r_smac_lookup_result <= {PORT_NUM{1'b0}};
     end
-    else if (r_all_results_ready && r_final_tx_port_vld) begin
+    else if (r_all_results_ready == 1'd1 && r_final_tx_port_vld == 1'd1) begin
         r_smac_result_ready <= 1'b0;
         r_smac_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -219,7 +276,7 @@ always @(posedge i_clk or negedge i_rst) begin
         r_dmac_result_ready <= 1'b0;
         r_dmac_lookup_result <= {PORT_NUM{1'b0}};
     end
-    else if (r_all_results_ready && r_final_tx_port_vld) begin
+    else if (r_all_results_ready == 1'd1 && r_final_tx_port_vld == 1'd1) begin
         r_dmac_result_ready <= 1'b0;
         r_dmac_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -235,7 +292,7 @@ always @(posedge i_clk or negedge i_rst) begin
         r_clash_result_ready <= 1'b0;
         r_clash_lookup_result <= {PORT_NUM{1'b0}};
     end
-    else if (r_all_results_ready && r_final_tx_port_vld) begin
+    else if (r_all_results_ready == 1'd1 && r_final_tx_port_vld == 1'd1) begin
         r_clash_result_ready <= 1'b0;
         r_clash_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -250,7 +307,7 @@ always @(posedge i_clk or negedge i_rst) begin
     if (!i_rst)
         r_all_results_ready <= 1'b0;
     else
-        r_all_results_ready <= r_smac_result_ready & r_dmac_result_ready & r_clash_result_ready;
+        r_all_results_ready <= r_smac_result_ready == 1'd1 && r_dmac_result_ready == 1'd1 && r_clash_result_ready == 1'd1;
 end
 
 // 泛洪端口生成 - 除了输入端口外，其他端口全为1
@@ -268,7 +325,7 @@ always @(posedge i_clk or negedge i_rst) begin
         r_final_tx_port <= {PORT_NUM{1'b0}};
     else if (r_all_results_ready)
         r_final_tx_port <= (r_smac_lookup_result != {PORT_NUM{1'b0}}) ? r_smac_lookup_result :
-                          ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) & !ri_dmac_lookup_clash) ? r_dmac_lookup_result :
+                          ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) && ri_dmac_lookup_clash == 1'd0) ? r_dmac_lookup_result :
                           (r_clash_lookup_result != {PORT_NUM{1'b0}}) ? r_clash_lookup_result : 
                           r_flood_port;
 end

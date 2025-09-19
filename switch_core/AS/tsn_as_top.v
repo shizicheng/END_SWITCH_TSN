@@ -7,6 +7,7 @@ module tsn_as_top#(
     parameter                                                   METADATA_WIDTH          =      64       ,  // 信息流（METADATA）的位宽
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,
     parameter                                                   PORT_FIFO_PRI_NUM       =      8        , 
+    parameter                                                   TIMESTAMP_WIDTH         =      80       ,
     parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // 聚合总线输出 
 )(
     input               wire                                    i_clk                               ,   // 250MHz
@@ -29,8 +30,7 @@ module tsn_as_top#(
     /*-------------------- RXMAC 输入数据流 -----------------------*/
 `ifdef CPU_MAC
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac0_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac0_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac0_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac0_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac0_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac0_cross_axi_data_valid         , // 端口数据有效
@@ -44,8 +44,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC1
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac1_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac1_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac1_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac1_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac1_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac1_cross_axi_data_valid         , // 端口数据有效
@@ -59,8 +58,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC2
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac2_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac2_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac2_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac2_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac2_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac2_cross_axi_data_valid         , // 端口数据有效
@@ -74,8 +72,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC3
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac3_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac3_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac3_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac3_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac3_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac3_cross_axi_data_valid         , // 端口数据有效
@@ -89,8 +86,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC4
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac4_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac4_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac4_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac4_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac4_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac4_cross_axi_data_valid         , // 端口数据有效
@@ -104,8 +100,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC5
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac5_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac5_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac5_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac5_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac5_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac5_cross_axi_data_valid         , // 端口数据有效
@@ -119,8 +114,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC6
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac6_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac6_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac6_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac6_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac6_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac6_cross_axi_data_valid         , // 端口数据有效
@@ -134,8 +128,7 @@ module tsn_as_top#(
 `endif
 `ifdef MAC7
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    input               wire                                    i_mac7_cross_port_link              , // 端口的连接状态
-    input               wire   [1:0]                            i_mac7_cross_port_speed             , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    input               wire                                    i_mac7_cross_port_link              , // 端口的连接状态 
     input               wire   [CROSS_DATA_WIDTH:0]             i_mac7_cross_port_axi_data          , // 端口数据流，最高位表示crcerr
     input               wire   [(CROSS_DATA_WIDTH/8)-1:0]       i_mac7_cross_axi_data_keep          , // 端口数据流掩码，有效字节指示
     input               wire                                    i_mac7_cross_axi_data_valid         , // 端口数据有效
@@ -147,10 +140,8 @@ module tsn_as_top#(
     input              wire                                     i_mac7_cross_metadata_last          , // 信息流结束标识
     output             wire                                     o_mac7_cross_metadata_ready         , // 下游模块反压流水线 
 `endif
-    /*-------------------- 输出数据流重新进入CROSSBAR交换平面 -----------------------*/
     /*---------------------------------------- 单 PORT 输出数据流 -------------------------------------------*/
-    output              wire                                    o_tsn_as_cross_port_link            , // 端口的连接状态
-    output              wire   [1:0]                            o_tsn_as_cross_port_speed           , // 端口速率信息，00-10M，01-100M，10-1000M，10-10G 
+    output              wire                                    o_tsn_as_cross_port_link            , // 端口的连接状态 
     output              wire   [CROSS_DATA_WIDTH:0]             o_tsn_as_cross_port_axi_data        , // 端口数据流，最高位表示crcerr
     output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_tsn_as_cross_axi_data_keep        , // 端口数据流掩码，有效字节指示
     output              wire                                    o_tsn_as_cross_axi_data_valid       , // 端口数据有效
@@ -160,8 +151,9 @@ module tsn_as_top#(
     output             wire   [METADATA_WIDTH-1:0]              o_tsn_as_cross_metadata             , // 总线 metadata 数据
     output             wire                                     o_tsn_as_cross_metadata_valid       , // 总线 metadata 数据有效信号
     output             wire                                     o_tsn_as_cross_metadata_last        , // 信息流结束标识
-    input              wire                                     i_tsn_as_cross_metadata_ready         // 下游模块反压流水线 
+    input              wire                                     i_tsn_as_cross_metadata_ready       ,  // 下游模块反压流水线 
 
+    output             wire   [TIMESTAMP_WIDTH-1:0]             o_tsn_as_timestamp                  
 
 );
 
