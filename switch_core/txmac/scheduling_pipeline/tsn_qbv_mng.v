@@ -8,6 +8,7 @@ module  tsn_qbv_mng #(
     input               wire                                    i_clk                            ,   // 250MHz
     input               wire                                    i_rst                            ,
     /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú --------------------------------------*/
+	input				wire   [PORT_FIFO_PRI_NUM-1:0]			i_fifoc_empty					 ,
     input               wire                                    i_refresh_list_pulse             ,
     input               wire   [79:0]                           i_current_time                   ,
     input               wire   [79:0]                           i_Base_time                      ,
@@ -65,7 +66,8 @@ reg                                 ro_control_list_emp_err;
 
 reg     [PORT_FIFO_PRI_NUM:0]       ri_queque;
 reg                                 ri_queque_vld;
-
+reg     [PORT_FIFO_PRI_NUM:0]       rri_queque;
+reg                                 rri_queque_vld;
 reg                                 r_admin_ConfigChange;
 reg     [PORT_FIFO_PRI_NUM-1:0]     r_admin_ControlList;
 reg     [7:0]                       r_admin_ControlList_len;
@@ -135,6 +137,17 @@ always @(posedge i_clk or posedge i_rst) begin
     end else begin
         ri_queque       <= (i_queque_vld == 1'b1) ? i_queque : ri_queque;
         ri_queque_vld   <= (i_queque_vld == 1'b1) ? 1'b1 : 1'b0;
+    end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        rri_queque       <= 8'd0;
+        rri_queque_vld   <= 1'b0;
+    end else begin
+        rri_queque       <= (i_qbv_en == 1'b1 && i_queque_vld == 1'b1) ? i_queque : rri_queque;
+        rri_queque_vld   <= (i_qbv_en == 1'b1 && i_queque_vld == 1'b1) ? 1'b1 : 
+							 i_fifoc_empty == {PORT_FIFO_PRI_NUM{1'b1}} ? 1'b0 : rri_queque_vld;
     end
 end
 
@@ -455,11 +468,11 @@ always @(posedge i_clk or posedge i_rst) begin
     if(i_rst) begin
         ro_ControlList_state_vld <= 1'b0;
     end else begin
-        ro_ControlList_state_vld <= (r_admin_qbv_en == 1'b1) ? r_dout_vld[1] : ri_queque_vld;
+        ro_ControlList_state_vld <= (r_admin_qbv_en == 1'b1) ? r_dout_vld[1] & rri_queque_vld : ri_queque_vld;
     end
 end
 
-assign w_ControlList_state = (r_admin_qbv_en == 1'b1) ? ro_ControlList_state & ri_queque : ri_queque;
+assign w_ControlList_state = (r_admin_qbv_en == 1'b1) ? (ro_ControlList_state & rri_queque) : ri_queque;
 
 // ------------
 ram_simple2port #(

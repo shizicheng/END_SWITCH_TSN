@@ -92,6 +92,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_sche <= 1'b0;
     end else begin
         r_sche <= //(r0_config_proc == 1'b1 && r_config_proc == 1'b0 && i_mac_tx_axis_valid == 1'b0) ? 1'b1 :
+				  (r_sche == 1'b1 && i_scheduing_rst_vld == 1'b1 && i_scheduing_rst == {PORT_FIFO_PRI_NUM{1'b0}}) ? 1'b0:
                   (i_fifoc_empty != {PORT_FIFO_PRI_NUM{1'b1}} && i_mac_tx_axis_valid == 1'b0) ? 1'b1 : 
                   (r_sche == 1'b1 && i_mac_tx_axis_valid == 1'b1 && i_mac_tx_axis_last == 1'b1) ? 1'b0 : r_sche;
     end
