@@ -1272,8 +1272,8 @@ reg    			[3:0]                       r_port_100m_interval_num_regs_6     ;  // 
 reg    			[3:0]                       r_port_1g_interval_num_regs_7       ;  // ¶Ë¿Ú8Ç§Õ×Ä£Ê½·¢ËÍÖ¡¼ä¸ô×Ö½ÚÊýÅäÖÃÖµ
 reg    			[3:0]                       r_port_100m_interval_num_regs_7     ;  // ¶Ë¿Ú8°ÙÕ×Ä£Ê½·¢ËÍÖ¡¼ä¸ô×Ö½ÚÊýÅäÖÃÖµ
 /*---------------------------------------- Qbv¼Ä´æÆ÷ÐÅºÅ¶¨Òå ------------------------------------------*/
-reg             [PORT_NUM-1:0]              r_qbv_enable                      ;
-reg             [PORT_NUM-1:0]              r_base_time_vld                   ;
+reg             [8-1:0]              		r_qbv_enable                      ;
+reg             [8-1:0]              		r_base_time_vld                   ;
 // ¶Ë¿Ú1¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_0                    ;
 reg             [15:0]                      r_base_time1_0                    ;
@@ -1285,6 +1285,7 @@ reg             [7:0]                       r_controllist_len_0               ;
 reg             [7:0]                       r_controllist_val_0               ;
 //reg                                       r_configchange_0                  ;
 reg                                         r_controllist_vld_0               ;
+//reg 			[7:0] 						r_controllist_cnt_0				  ;
 // ¶Ë¿Ú2¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_1                    ;
 reg             [15:0]                      r_base_time1_1                    ;
@@ -1296,6 +1297,7 @@ reg             [7:0]                       r_controllist_len_1               ;
 reg             [7:0]                       r_controllist_val_1               ;
 //reg                                       r_configchange_1                  ;
 reg                                         r_controllist_vld_1               ;
+//reg 			[7:0] 						r_controllist_cnt_1				  ;
 // ¶Ë¿Ú3¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_2                    ;
 reg             [15:0]                      r_base_time1_2                    ;
@@ -1306,6 +1308,7 @@ reg             [15:0]                      r_cycle_time_2                    ;
 reg             [7:0]                       r_controllist_len_2               ;
 reg             [7:0]                       r_controllist_val_2               ;
 reg                                         r_controllist_vld_2               ;
+//reg 			[7:0] 						r_controllist_cnt_2				  ;
 // ¶Ë¿Ú4¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_3                    ;
 reg             [15:0]                      r_base_time1_3                    ;
@@ -1316,6 +1319,7 @@ reg             [15:0]                      r_cycle_time_3                    ;
 reg             [7:0]                       r_controllist_len_3               ;
 reg             [7:0]                       r_controllist_val_3               ;
 reg                                         r_controllist_vld_3               ;
+//reg 			[7:0] 						r_controllist_cnt_3				  ;
 // ¶Ë¿Ú5¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_4                    ;
 reg             [15:0]                      r_base_time1_4                    ;
@@ -1326,6 +1330,7 @@ reg             [15:0]                      r_cycle_time_4                    ;
 reg             [7:0]                       r_controllist_len_4               ;
 reg             [7:0]                       r_controllist_val_4               ;
 reg                                         r_controllist_vld_4               ;
+//reg 			[7:0] 						r_controllist_cnt_4				  ;
 // ¶Ë¿Ú6¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_5                    ;
 reg             [15:0]                      r_base_time1_5                    ;
@@ -1336,6 +1341,7 @@ reg             [15:0]                      r_cycle_time_5                    ;
 reg             [7:0]                       r_controllist_len_5               ;
 reg             [7:0]                       r_controllist_val_5               ;
 reg                                         r_controllist_vld_5               ;
+//reg 			[7:0] 						r_controllist_cnt_5				  ;
 // ¶Ë¿Ú7¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_6                    ;
 reg             [15:0]                      r_base_time1_6                    ;
@@ -1346,6 +1352,7 @@ reg             [15:0]                      r_cycle_time_6                    ;
 reg             [7:0]                       r_controllist_len_6               ;
 reg             [7:0]                       r_controllist_val_6               ;
 reg                                         r_controllist_vld_6               ;
+//reg 			[7:0] 						r_controllist_cnt_6				  ;
 // ¶Ë¿Ú8¼Ä´æÆ÷
 reg             [15:0]                      r_base_time0_7                    ;
 reg             [15:0]                      r_base_time1_7                    ;
@@ -1356,6 +1363,7 @@ reg             [15:0]                      r_cycle_time_7                    ;
 reg             [7:0]                       r_controllist_len_7               ;
 reg             [7:0]                       r_controllist_val_7               ;
 reg                                         r_controllist_vld_7               ;
+//reg 			[7:0] 						r_controllist_cnt_7				  ;
 /*---------------------------------------- Qav¼Ä´æÆ÷ÐÅºÅ¶¨Òå ------------------------------------------*/
 reg             [PORT_NUM-1:0]              r_qav_enable                      ;
 // ¶Ë¿Ú1¼Ä´æÆ÷
@@ -1400,7 +1408,7 @@ reg             [16-1:0]                    r_qav_hthreshold_7[0:PORT_FIFO_PRI_N
 reg             [16-1:0]                    r_qav_lthreshold_7[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_config_vld                  ;
 /*---------------------------------------- Qav¼Ä´æÆ÷ÐÅºÅ¶¨Òå ------------------------------------------*/
-reg             [PORT_NUM-1:0]              r_qos_enable                      ;
+reg             [8-1:0]              		r_qos_enable                      ;
 reg             [3:0]                       r_qos_sche_0                      ;
 reg             [3:0]                       r_qos_sche_1                      ;
 reg             [3:0]                       r_qos_sche_2                      ;
@@ -1699,11 +1707,26 @@ end
 /*========================================  qbv¼Ä´æÆ÷Ð´¿ØÖÆÂß¼­ ========================================*/
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        r_qbv_enable          <= {PORT_FIFO_PRI_NUM{1'b0}};
-        r_base_time_vld       <= {PORT_FIFO_PRI_NUM{1'b0}};  
+        r_qbv_enable          <= {8{1'b0}};
+        r_base_time_vld       <= {8{1'b0}};  
     end else begin
-        r_qbv_enable          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_ENABLE ? r_reg_bus_data : r_qbv_enable;
-        r_base_time_vld       <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data : r_base_time_vld;
+        r_qbv_enable          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_ENABLE ? r_reg_bus_data[7:0] : r_qbv_enable;
+        r_base_time_vld[0]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[0] : 
+								 r_reg_bus_data[0] == 1'b1 ? 1'b0 : r_base_time_vld[0];
+		r_base_time_vld[1]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[1] : 
+								 r_reg_bus_data[1] == 1'b1 ? 1'b0 : r_base_time_vld[1];
+		r_base_time_vld[2]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[2] : 
+								 r_reg_bus_data[2] == 1'b1 ? 1'b0 : r_base_time_vld[2];
+		r_base_time_vld[3]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[3] : 
+								 r_reg_bus_data[3] == 1'b1 ? 1'b0 : r_base_time_vld[3];                                                    
+		r_base_time_vld[4]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[4] : 
+								 r_reg_bus_data[4] == 1'b1 ? 1'b0 : r_base_time_vld[4];                                                    
+		r_base_time_vld[5]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[5] : 
+								 r_reg_bus_data[5] == 1'b1 ? 1'b0 : r_base_time_vld[5];                                                    
+		r_base_time_vld[6]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[6] : 
+								 r_reg_bus_data[6] == 1'b1 ? 1'b0 : r_base_time_vld[6];                                                    
+		r_base_time_vld[7]    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_BASETIME_VLD ? r_reg_bus_data[7] : 
+								 r_reg_bus_data[7] == 1'b1 ? 1'b0 : r_base_time_vld[7];
     end
 end
 
@@ -1751,9 +1774,10 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
 		r_controllist_vld_0 <= 1'b0;
     end else begin
-        r_controllist_vld_0 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_0 ? 1'b1 : 1'b0;
+        r_controllist_vld_0 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_0  ? 1'b1 : 1'b0 ;
 	end
 end
+
 
 assign o_Base_time_0        = {r_base_time4_0,r_base_time3_0,r_base_time2_0,r_base_time1_0,r_base_time0_0};
 assign o_cycle_time_0       = r_cycle_time_0;
@@ -1791,6 +1815,18 @@ always @(posedge i_clk or posedge i_rst) begin
 	end
 end
 
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_1 <= 8'b0;
+    end else begin
+        r_controllist_cnt_1 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_1 && (r_controllist_cnt_1 != r_controllist_len_1 - 1'b1) ? r_controllist_cnt_1 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_1 && (r_controllist_cnt_1 == r_controllist_len_1 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_1;
+	end
+end
+*/
+
 assign o_Base_time_1        = {r_base_time4_1,r_base_time3_1,r_base_time2_1,r_base_time1_1,r_base_time0_1};
 assign o_cycle_time_1       = r_cycle_time_1;
 assign o_ControlList_1      = r_controllist_val_1;
@@ -1826,6 +1862,18 @@ always @(posedge i_clk or posedge i_rst) begin
         r_controllist_vld_2 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_2 ? 1'b1 : 1'b0;
 	end
 end
+
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_2 <= 8'b0;
+    end else begin
+        r_controllist_cnt_2 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_2 && (r_controllist_cnt_2 != r_controllist_len_2 - 1'b1) ? r_controllist_cnt_2 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_2 && (r_controllist_cnt_2 == r_controllist_len_2 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_2;
+	end
+end
+*/
 
 assign o_Base_time_2        = {r_base_time4_2,r_base_time3_2,r_base_time2_2,r_base_time1_2,r_base_time0_2};
 assign o_cycle_time_2       = r_cycle_time_2;
@@ -1864,6 +1912,18 @@ always @(posedge i_clk or posedge i_rst) begin
 	end
 end
 
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_2 <= 8'b0;
+    end else begin
+        r_controllist_cnt_2 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_2 && (r_controllist_cnt_2 != r_controllist_len_2 - 1'b1) ? r_controllist_cnt_2 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_2 && (r_controllist_cnt_2 == r_controllist_len_2 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_2;
+	end
+end
+*/
+
 assign o_Base_time_3        = {r_base_time4_3,r_base_time3_3,r_base_time2_3,r_base_time1_3,r_base_time0_3};
 assign o_cycle_time_3       = r_cycle_time_3;
 assign o_ControlList_3      = r_controllist_val_3;
@@ -1901,6 +1961,18 @@ always @(posedge i_clk or posedge i_rst) begin
 	end
 end
 
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_4 <= 8'b0;
+    end else begin
+        r_controllist_cnt_4 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_4 && (r_controllist_cnt_4 != r_controllist_len_4 - 1'b1) ? r_controllist_cnt_4 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_4 && (r_controllist_cnt_4 == r_controllist_len_4 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_4;
+	end
+end
+*/
+
 assign o_Base_time_4        = {r_base_time4_4,r_base_time3_4,r_base_time2_4,r_base_time1_4,r_base_time0_4};
 assign o_cycle_time_4       = r_cycle_time_4;
 assign o_ControlList_4      = r_controllist_val_4;
@@ -1936,6 +2008,18 @@ always @(posedge i_clk or posedge i_rst) begin
         r_controllist_vld_5 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_5 ? 1'b1 : 1'b0;
 	end
 end
+
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_5 <= 8'b0;
+    end else begin
+        r_controllist_cnt_5 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_5 && (r_controllist_cnt_5 != r_controllist_len_5 - 1'b1) ? r_controllist_cnt_5 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_5 && (r_controllist_cnt_5 == r_controllist_len_5 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_5;
+	end
+end
+*/
 
 assign o_Base_time_5        = {r_base_time4_5,r_base_time3_5,r_base_time2_5,r_base_time1_5,r_base_time0_5};
 assign o_cycle_time_5       = r_cycle_time_5;
@@ -1973,6 +2057,18 @@ always @(posedge i_clk or posedge i_rst) begin
 	end
 end
 
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_6 <= 8'b0;
+    end else begin
+        r_controllist_cnt_6 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_6 && (r_controllist_cnt_6 != r_controllist_len_6 - 1'b1) ? r_controllist_cnt_6 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_6 && (r_controllist_cnt_6 == r_controllist_len_6 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_6;
+	end
+end
+*/
+
 assign o_Base_time_6        = {r_base_time4_6,r_base_time3_6,r_base_time2_6,r_base_time1_6,r_base_time0_6};
 assign o_cycle_time_6       = r_cycle_time_6;
 assign o_ControlList_6      = r_controllist_val_6;
@@ -2008,6 +2104,18 @@ always @(posedge i_clk or posedge i_rst) begin
         r_controllist_vld_7 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_7 ? 1'b1 : 1'b0;
 	end
 end
+
+/*
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_controllist_cnt_7 <= 8'b0;
+    end else begin
+        r_controllist_cnt_7 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_7 && (r_controllist_cnt_7 != r_controllist_len_7 - 1'b1) ? r_controllist_cnt_7 + 1'b1 : 
+							   r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBV_CONTROLIST_VALUE_7 && (r_controllist_cnt_7 == r_controllist_len_7 - 1'b1) ? 8'b0 :
+							   r_controllist_cnt_7;
+	end
+end
+*/
 
 assign o_Base_time_7        = {r_base_time4_7,r_base_time3_7,r_base_time2_7,r_base_time1_7,r_base_time0_7};
 assign o_cycle_time_7       = r_cycle_time_7;
