@@ -1361,43 +1361,43 @@ reg             [PORT_NUM-1:0]              r_qav_enable                      ;
 // ¶Ë¿Ú1¼Ä´æÆ÷
 reg             [8-1:0]                     r_qav_idleslope_0[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_0[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_0[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_0[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_0[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_0[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú2¼Ä´æÆ÷                                               
 reg             [8-1:0]                     r_qav_idleslope_1[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_1[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_1[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_1[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_1[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_1[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú3¼Ä´æÆ÷                                               
 reg             [8-1:0]                     r_qav_idleslope_2[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_2[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_2[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_2[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_2[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_2[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú4¼Ä´æÆ÷                                               
 reg             [8-1:0]                     r_qav_idleslope_3[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_3[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_3[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_3[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_3[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_3[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú5¼Ä´æÆ÷                                              
 reg             [8-1:0]                     r_qav_idleslope_4[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_4[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_4[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_4[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_4[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_4[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú6¼Ä´æÆ÷                                               
 reg             [8-1:0]                     r_qav_idleslope_5[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_5[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_5[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_5[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_5[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_5[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú7¼Ä´æÆ÷                                                
 reg             [8-1:0]                     r_qav_idleslope_6[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_6[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_6[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_6[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_6[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_6[0:PORT_FIFO_PRI_NUM-1];
 // ¶Ë¿Ú8¼Ä´æÆ÷                                                
 reg             [8-1:0]                     r_qav_idleslope_7[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_sendslope_7[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_hthreshold_7[0:PORT_FIFO_PRI_NUM-1];
-reg             [8-1:0]                     r_qav_lthreshold_7[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_hthreshold_7[0:PORT_FIFO_PRI_NUM-1];
+reg             [16-1:0]                    r_qav_lthreshold_7[0:PORT_FIFO_PRI_NUM-1];
 reg             [8-1:0]                     r_qav_config_vld                  ;
 /*---------------------------------------- Qav¼Ä´æÆ÷ÐÅºÅ¶¨Òå ------------------------------------------*/
 reg             [PORT_NUM-1:0]              r_qos_enable                      ;
