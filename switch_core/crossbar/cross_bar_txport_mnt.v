@@ -1133,8 +1133,8 @@ cross_data_cache #(
     ,.i_data0_last              ( r_pri_data_last[0]            )
     ,.i_meta_data0_pri          ( r_pri_meta_data[0]            )
     ,.i_meta_data0_pri_vld      ( r_pri_meta_data_vld[0]        )
-    ,.o_data0_ready             ( w_pri_ready[0]                              )
-    ,.o_data0_busy              ( w_fifio_data_busy[0]                )
+    ,.o_data0_ready             ( w_pri_ready[0]                )
+    ,.o_data0_busy              ( w_fifio_data_busy[0]          )
 
     ,.i_data1                   ( r_pri_data[1]                 )
     ,.i_data1_keep              ( r_pri_data_keep[1]            )
@@ -1143,8 +1143,8 @@ cross_data_cache #(
     ,.i_data1_last              ( r_pri_data_last[1]            )
     ,.i_meta_data1_pri          ( r_pri_meta_data[1]            )
     ,.i_meta_data1_pri_vld      ( r_pri_meta_data_vld[1]        )
-    ,.o_data1_ready             ( w_pri_ready[1]                  )
-    ,.o_data1_busy              ( w_fifio_data_busy[1]                )
+    ,.o_data1_ready             ( w_pri_ready[1]                )
+    ,.o_data1_busy              ( w_fifio_data_busy[1]          )
 
     ,.i_data2                   ( r_pri_data[2]                 )
     ,.i_data2_keep              ( r_pri_data_keep[2]            )
@@ -1218,14 +1218,15 @@ cross_data_cache #(
     ,.o_pmac_tx_axis_keep       ( o_pmac_tx_axis_keep           )    
     ,.o_pmac_tx_axis_last       ( o_pmac_tx_axis_last           )    
     ,.o_pmac_tx_axis_valid      ( o_pmac_tx_axis_valid          )     
-    ,.i_pmac_tx_axis_ready      ( i_pmac_tx_axis_ready          )    
+    ,.i_pmac_tx_axis_ready      ( i_pmac_tx_axis_ready          )   
     //emac通道数据                      
+	,.i_emac_tx_axis_user		( o_emac_tx_axis_user			)
     ,.o_emac_tx_axis_data       (           )    
     ,.o_emac_tx_axis_user       (           )    
     ,.o_emac_tx_axis_keep       (           )    
     ,.o_emac_tx_axis_last       (           )    
     ,.o_emac_tx_axis_valid      (           )    
-    ,.i_emac_tx_axis_ready      (           )    
+    ,.i_emac_tx_axis_ready      (  1'b0     )    
 );
 
 emac_data_handle #(

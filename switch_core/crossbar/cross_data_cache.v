@@ -112,6 +112,7 @@ module cross_data_cache #(
     output          wire                                   o_pmac_tx_axis_valid     , 
     input           wire                                   i_pmac_tx_axis_ready     ,
     //emac通道数据                      
+	input			wire	[15:0]						   i_emac_tx_axis_user		,
     output          wire    [CROSS_DATA_WIDTH - 1:0]       o_emac_tx_axis_data      , 
     output          wire    [15:0]                         o_emac_tx_axis_user      , 
     output          wire    [(CROSS_DATA_WIDTH/8)-1:0]     o_emac_tx_axis_keep      , 
@@ -647,7 +648,7 @@ end
             ro_pmac_tx_axis_last_t <= 1'b0;
         end else begin
             ri_scheduing_rst_vld <= i_scheduing_rst_vld;//
-            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 ) ? 1'b1 : scheduing_work_flag;
+            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst != {PORT_FIFO_PRI_NUM{1'b0}}) ? 1'b1 : scheduing_work_flag;
             ro_emac_tx_axis_last_t <= ro_emac_tx_axis_last;
             ro_pmac_tx_axis_last_t <= ro_pmac_tx_axis_last;
         end
@@ -682,14 +683,23 @@ end
     end
 
     // meta 信息头 qbu flag 标识
-    always @(posedge i_clk or posedge i_rst) begin
+    /*
+	always @(posedge i_clk or posedge i_rst) begin
         if (i_rst == 1'b1) begin
             r_c_fifo0_qbu_flag <= 1'b0;
         end else begin
             r_c_fifo0_qbu_flag <= (  r_c_fifo0_vld == 1'b1 ) ? 1'b0 : ( i_meta_data0_pri_vld == 1'b1 ) ? i_meta_data0_pri[11] : r_c_fifo0_qbu_flag;
         end
     end
-
+	*/
+		always @(posedge i_clk or posedge i_rst) begin
+        if (i_rst == 1'b1) begin
+            r_c_fifo0_qbu_flag <= 1'b0;
+        end else begin
+            r_c_fifo0_qbu_flag <= (  r_c_fifo0_vld == 1'b1 ) ? 1'b0 : ( i_meta_data0_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo0_qbu_flag;
+        end
+    end
+	
     // meta 信息头 qos 字段
     always @(posedge i_clk or posedge i_rst) begin
         if (i_rst == 1'b1) begin
@@ -837,7 +847,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo1_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo1_qbu_flag <= (  r_c_fifo1_vld == 1'b1 ) ? 1'b0 : ( i_meta_data1_pri_vld == 1'b1 ) ? i_meta_data1_pri[11] : r_c_fifo1_qbu_flag;
+            r_c_fifo1_qbu_flag <= (  r_c_fifo1_vld == 1'b1 ) ? 1'b0 : ( i_meta_data1_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo1_qbu_flag;
         end
     end
 
@@ -978,7 +988,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo2_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo2_qbu_flag <= (  r_c_fifo2_vld == 1'b1 ) ? 1'b0 : ( i_meta_data2_pri_vld == 1'b1 ) ? i_meta_data2_pri[11] : r_c_fifo2_qbu_flag;
+            r_c_fifo2_qbu_flag <= (  r_c_fifo2_vld == 1'b1 ) ? 1'b0 : ( i_meta_data2_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo2_qbu_flag;
         end
     end
 
@@ -1121,7 +1131,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo3_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo3_qbu_flag <= (  r_c_fifo3_vld == 1'b1 ) ? 1'b0 : ( i_meta_data3_pri_vld == 1'b1 ) ? i_meta_data3_pri[11] : r_c_fifo3_qbu_flag;
+            r_c_fifo3_qbu_flag <= (  r_c_fifo3_vld == 1'b1 ) ? 1'b0 : ( i_meta_data3_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo3_qbu_flag;
         end
     end
 
@@ -1262,7 +1272,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo4_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo4_qbu_flag <= (  r_c_fifo4_vld == 1'b1 ) ? 1'b0 : ( i_meta_data4_pri_vld == 1'b1 ) ? i_meta_data4_pri[11] : r_c_fifo4_qbu_flag;
+            r_c_fifo4_qbu_flag <= (  r_c_fifo4_vld == 1'b1 ) ? 1'b0 : ( i_meta_data4_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo4_qbu_flag;
         end
     end
 
@@ -1403,7 +1413,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo5_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo5_qbu_flag <= (  r_c_fifo5_vld == 1'b1 ) ? 1'b0 : ( i_meta_data5_pri_vld == 1'b1 ) ? i_meta_data5_pri[11] : r_c_fifo5_qbu_flag;
+            r_c_fifo5_qbu_flag <= (  r_c_fifo5_vld == 1'b1 ) ? 1'b0 : ( i_meta_data5_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo5_qbu_flag;
         end
     end
 
@@ -1544,7 +1554,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo6_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo6_qbu_flag <= (  r_c_fifo6_vld == 1'b1 ) ? 1'b0 : ( i_meta_data6_pri_vld == 1'b1 ) ? i_meta_data6_pri[11] : r_c_fifo6_qbu_flag;
+            r_c_fifo6_qbu_flag <= (  r_c_fifo6_vld == 1'b1 ) ? 1'b0 : ( i_meta_data6_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo6_qbu_flag;
         end
     end
 
@@ -1684,7 +1694,7 @@ end
         if (i_rst == 1'b1) begin
             r_c_fifo7_qbu_flag <= 1'b0;
         end else begin
-            r_c_fifo7_qbu_flag <= (  r_c_fifo7_vld == 1'b1 ) ? 1'b0 : ( i_meta_data7_pri_vld == 1'b1 ) ? i_meta_data7_pri[11] : r_c_fifo7_qbu_flag;
+            r_c_fifo7_qbu_flag <= (  r_c_fifo7_vld == 1'b1 ) ? 1'b0 : ( i_meta_data7_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo7_qbu_flag;
         end
     end
 
