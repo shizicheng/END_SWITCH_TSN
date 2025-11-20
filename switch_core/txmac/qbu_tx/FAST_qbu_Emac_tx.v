@@ -40,6 +40,7 @@ module FAST_qbu_Emac_tx#(
     input           wire                                i_pmac_send_apply           ,//Pmac数据发送申请
     output          wire                                o_emac_send_busy            ,//eamc忙信号，表示emac正在发数据
     output 		    wire 								o_emac_send_apply           ,//emac数据发送申请
+    output          wire                                o_emac_data_noempty         , // emac中有数据，需要发送，防止pmac发送新帧
     //PMAC2NEXT
     input   				         					i_rx_ready                  ,//组帧模块准备好了信号
     output  				[15:0]   					o_send_type                 ,//协议类型（参照mac帧格式）
@@ -112,6 +113,7 @@ wire  [31:0]  								write_fifo_data                     ;//(i_info_vld,i_smd_t
 wire    									write_fifo_en                       ;
 wire  [31:0]  								read_fifo_data                      ;
 reg     									read_fifo_en                        ;
+reg     									r_read_fifo_en                      ;
 wire    									empty                               ;
 reg     									write_fifo_en_flag                  ;//第一次写FIFO后该标志一直拉高
 reg     									last_flag                           ;//接收到最后一个数据标志
@@ -158,19 +160,19 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD (0                     ),
     .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
 ) inst_sync_fifo (
-    .CLK                    (i_clk                 ),
-    .RST                    (i_rst                 ),
-    .WR_EN                  (write_fifo_en         ),
-    .DIN                    (write_fifo_data       ),
-    .RD_EN                  (read_fifo_en          ),
-    .DOUT                   (read_fifo_data        ),
-    .FULL                   (                      ),
-    .EMPTY                  (empty                 ),
-    .ALMOST_FULL            (                      ),
-    .ALMOST_EMPTY           (                      ),
-    .DATA_CNT               (                      )
+    .i_clk                  (i_clk                 ),
+    .i_rst                  (i_rst                 ),
+    .i_wr_en                (write_fifo_en         ),
+    .i_din                  (write_fifo_data       ),
+    .i_rd_en                (read_fifo_en          ),
+    .o_dout                 (read_fifo_data        ),
+    .o_full                 (                      ),
+    .o_empty                (empty                 ),
+    .o_almost_full          (                      ),
+    .o_almost_empty         (                      ),
+    .o_data_cnt             (                      )
 );
-
+ 
     // my_xpm_fifo_sync #(
     //         .DATAWIDTH(DATAWIDTH),
     //         .DEPT_W(DEPT_W),
@@ -210,13 +212,14 @@ assign r_mux_ready = i_rx_ready || read_ram_en;
 
 //输出//剩余没有发的数据的数量
 //assign data_len_supply = read_fifo_en ? data_len : (read_ram_en ? data_len_supply-1 : data_len_supply); //嵌套的太多，改成时序逻辑了
-assign o_top_Emac_tx_axis_ready 	=ram_data_suppy<=1500 	     	    ;  //ram没有达到最大的量所以可以接收
+assign o_top_Emac_tx_axis_ready 	= ram_data_suppy<=1500 	     	    ;  //ram没有达到最大的量所以可以接收
 //assign o_top_Emac_tx_axis_ready 	=write_ram_addr<=4095 	   ;//改成了地址没有达到最大的量所以可以接收
 assign o_send_type   				= read_fifo_data[15:0]			 	;
 assign o_send_data   				= read_ram_data					 	;
 assign o_send_last_q   				= data_len_supply==1                ;    
 assign o_send_valid  				= r_read_ram_en					 	;
 assign o_emac_send_busy             = read_ram_en                       ;
+assign o_emac_data_noempty          = empty == 1'b0 ? 1'd1 : 1'b0       ;
 //若数据正在发则不申请发送，当fifo中有数据且pmac正在发送时申请发送
 assign o_emac_send_apply = read_ram_en ? 1'b0 : empty==0&&i_pmac_send_busy==1;		
 //data_len 总的一组数据的长度，从fifo中都出来后保存在寄存器中。
@@ -233,7 +236,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         o_send_len <= 'b0;
     end
-    else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&& r_mux_ready)begin
+    else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==1 && r_mux_ready)begin
         o_send_len <= read_fifo_data[31:16];
     end
     else begin
@@ -247,7 +250,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         data_len <= 'b0;
     end
-    else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&& r_mux_ready)begin
+    else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==1 && r_mux_ready)begin
         data_len <= read_fifo_data[31:16];
     end
     else begin
@@ -293,7 +296,7 @@ always @(posedge i_clk or posedge i_rst) begin
         data_len_supply <= 'b0;
     end
     else if (read_fifo_en) begin
-         data_len_supply <=data_len-1;
+         data_len_supply <= read_fifo_data[31:16]-1;
     end
     else if (read_ram_en)begin
          data_len_supply <=data_len_supply-1;
@@ -444,7 +447,9 @@ always @(posedge i_clk or posedge i_rst) begin
         read_fifo_en<=1'b0;
     end
 end
-
+always @(posedge i_clk ) begin
+    r_read_fifo_en <= read_fifo_en;
+end
 //send_data_cnt 已经发送的一组数据的长度(计数器)当ram读使能有效的时候开始自加，当加到最大长度是归零。
 
 always @(posedge i_clk or posedge i_rst) begin

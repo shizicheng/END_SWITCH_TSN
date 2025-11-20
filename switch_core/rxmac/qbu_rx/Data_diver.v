@@ -24,9 +24,10 @@ module Data_diver #(
 )(
         input          wire                                    i_clk                 ,
         input          wire                                    i_rst                 ,
+		input		   wire									   i_qbu_frm			 ,
         // SGRAM
         input         wire    [DWIDTH - 1:0]                   i_Sgram_rx_axis_data  ,//数据信号       
-        input         wire    [15:0]                           i_Sgram_rx_axis_user  ,//数据信息(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,3'b0)      
+        input         wire    [15:0]                           i_Sgram_rx_axis_user  ,//数据信息(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,i_qbu_frm,2'b0)      
         input         wire    [(DWIDTH/8)-1:0]                 i_Sgram_rx_axis_keep  ,//数据掩码       
         input         wire                                     i_Sgram_rx_axis_last  ,//数据截至信号       
         input         wire                                     i_Sgram_rx_axis_valid ,//数据有效信号 
@@ -93,7 +94,7 @@ localparam           CRC           =        2'b01;
 wire           [7:0]                          ri_smd_type        ;
 wire           [1:0]                          ri_frag_cnt        ;
 wire           [1:0]                          ri_crc_vld         ;// CRC 检测 0bit 是 CRC 有效位，1bit 是 mCRC 有效位
-wire                                          ri_info_vld        ;       
+wire                                          ri_info_vld        ;     
 /***************component*************/
 
 /***************assign****************/
@@ -103,25 +104,25 @@ assign ri_info_vld  =   i_Sgram_rx_axis_user[15];
 assign ri_smd_type  =   i_Sgram_rx_axis_user[14:7];
 assign ri_frag_cnt  =   i_Sgram_rx_axis_user[6:5];
 assign ri_crc_vld   =   i_Sgram_rx_axis_user[4:3];
-
 // SGRAM
 assign o_Sgram_rx_axis_ready = i_Emac_rx_axis_ready | i_Pmac_rx_axis_ready | i_R_rx_axis_ready | i_V_rx_axis_ready;
 
 reg [15:0] data_cnt;
 
 
+
 // EMAC AXIS
 //数据有效且数据类型满足条件且crc正确就传输数据
 
-assign o_Emac_rx_axis_data  =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_crc_vld== CRC?  i_Sgram_rx_axis_data   :   'b0;
+assign o_Emac_rx_axis_data  =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && ri_crc_vld== CRC?  i_Sgram_rx_axis_data   :   'b0;
         
-assign o_Emac_rx_axis_user  =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_crc_vld== CRC?  i_Sgram_rx_axis_valid ? i_data_len : 0  :   'b0;
+assign o_Emac_rx_axis_user  =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && ri_crc_vld== CRC?  i_Sgram_rx_axis_valid ? {4'b0000,i_data_len} : 0  :   'b0;
         
-assign o_Emac_rx_axis_keep  =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_crc_vld== CRC?  i_Sgram_rx_axis_keep   :   'b0;
+assign o_Emac_rx_axis_keep  =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && ri_crc_vld== CRC?  i_Sgram_rx_axis_keep   :   'b0;
         
-assign o_Emac_rx_axis_last  =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_crc_vld== CRC?  i_Sgram_rx_axis_last   :   'b0;
+assign o_Emac_rx_axis_last  =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && ri_crc_vld== CRC?  i_Sgram_rx_axis_last   :   'b0;
         
-assign o_Emac_rx_axis_valid =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_crc_vld== CRC?  i_Sgram_rx_axis_valid  :   'b0;
+assign o_Emac_rx_axis_valid =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && ri_crc_vld== CRC?  i_Sgram_rx_axis_valid  :   'b0;
 
 
 
@@ -130,7 +131,7 @@ assign o_Emac_rx_axis_valid =  ri_info_vld &&  ri_smd_type      ==  SMD_E && ri_
 
 assign o_Pmac_rx_axis_data  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_data   :   'b0;
                     
-assign o_Pmac_rx_axis_user  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_user   :   'b0;
+assign o_Pmac_rx_axis_user  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  {4'b0000,i_Sgram_rx_axis_user[15:3]}   :   'b0;
                     
 assign o_Pmac_rx_axis_keep  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_keep   :   'b0;
                     

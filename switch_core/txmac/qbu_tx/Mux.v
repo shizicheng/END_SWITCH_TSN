@@ -24,64 +24,64 @@ module Mux#(
     input                                                  i_clk                    ,
     input                                                  i_rst                    ,
     // Eth_to_MUX
-    input          wire    [AXIS_DATA_WIDTH - 1:0]         i_eth_send_data          ,//æ•°æ®ä¿¡å·  
-    input          wire    [15:0]                          i_eth_send_user          ,//æ•°æ®ä¿¡æ¯  
-    input          wire    [(AXIS_DATA_WIDTH/8)-1:0]       i_eth_send_keep          ,//æ•°æ®æ©ç   
-    input          wire                                    i_eth_send_last          ,//æ•°æ®æˆªè‡³ä¿¡å·
-    input          wire                                    i_eth_send_valid         ,//æ•°æ®æœ‰æ•ˆä¿¡å· 
-    output         wire                                    o_eth_send_ready         ,//å‡†å¤‡ä¿¡å·
-    input          wire    [15:0]                          i_eth_send_type          ,//æ•°æ®ç±»å‹
-    input          wire    [ 7:0]                          i_eth_smd                ,//SMDç¼–ç 
-    input          wire                                    i_eth_smd_val            ,//SMDç¼–ç æœ‰æ•ˆä¿¡å·
+    input          wire    [AXIS_DATA_WIDTH - 1:0]         i_eth_send_data          ,//Êı¾İĞÅºÅ  
+    input          wire    [15:0]                          i_eth_send_user          ,//Êı¾İĞÅÏ¢  
+    input          wire    [(AXIS_DATA_WIDTH/8)-1:0]       i_eth_send_keep          ,//Êı¾İÑÚÂë  
+    input          wire                                    i_eth_send_last          ,//Êı¾İ½ØÖÁĞÅºÅ
+    input          wire                                    i_eth_send_valid         ,//Êı¾İÓĞĞ§ĞÅºÅ 
+    output         wire                                    o_eth_send_ready         ,//×¼±¸ĞÅºÅ
+    input          wire    [15:0]                          i_eth_send_type          ,//Êı¾İÀàĞÍ
+    input          wire    [ 7:0]                          i_eth_smd                ,//SMD±àÂë
+    input          wire                                    i_eth_smd_val            ,//SMD±àÂëÓĞĞ§ĞÅºÅ
     //verified_to_Mux        
-    input          wire    [AXIS_DATA_WIDTH - 1:0]         i_verify_send_data       ,//æ•°æ®ä¿¡å·  
-    input          wire    [15:0]                          i_verify_send_user       ,//æ•°æ®ä¿¡æ¯  
-    input          wire    [(AXIS_DATA_WIDTH/8)-1:0]       i_verify_send_keep       ,//æ•°æ®æ©ç   
-    input          wire                                    i_verify_send_last       ,//æ•°æ®æˆªè‡³ä¿¡å·
-    input          wire                                    i_verify_send_valid      ,//æ•°æ®æœ‰æ•ˆä¿¡å· 
-    output         wire                                    o_verify_send_ready      ,//å‡†å¤‡ä¿¡å·
-    input          wire    [ 7:0]                          i_verify_smd             ,//SMDç¼–ç 
-    input          wire                                    i_verify_smd_val         ,//SMDç¼–ç æœ‰æ•ˆä¿¡å·
+    input          wire    [AXIS_DATA_WIDTH - 1:0]         i_verify_send_data       ,//Êı¾İĞÅºÅ  
+    input          wire    [15:0]                          i_verify_send_user       ,//Êı¾İĞÅÏ¢  
+    input          wire    [(AXIS_DATA_WIDTH/8)-1:0]       i_verify_send_keep       ,//Êı¾İÑÚÂë  
+    input          wire                                    i_verify_send_last       ,//Êı¾İ½ØÖÁĞÅºÅ
+    input          wire                                    i_verify_send_valid      ,//Êı¾İÓĞĞ§ĞÅºÅ 
+    output         wire                                    o_verify_send_ready      ,//×¼±¸ĞÅºÅ
+    input          wire    [ 7:0]                          i_verify_smd             ,//SMD±àÂë
+    input          wire                                    i_verify_smd_val         ,//SMD±àÂëÓĞĞ§ĞÅºÅ
     
-    input          wire                                    i_verify_succ            ,//éªŒè¯æˆåŠŸä¿¡å·
-    input          wire                                    i_verify_succ_val        ,//éªŒè¯æˆåŠŸæœ‰æ•ˆä¿¡å·
+    input          wire                                    i_verify_succ            ,//ÑéÖ¤³É¹¦ĞÅºÅ
+    input          wire                                    i_verify_succ_val        ,//ÑéÖ¤³É¹¦ÓĞĞ§ĞÅºÅ
      //PMAC_to_Mux
-    output         wire                                    o_pmac_rx_ready          ,//æ­¤æ¨¡å—å‡†å¤‡å¥½äº†
-    input          wire    [15:0]                          i_pmac_send_type         ,//æ•°æ®ç±»å‹
-    input          wire    [AXIS_DATA_WIDTH-1 :0]          i_pmac_send_data         ,//æ•°æ®
-    input          wire                                    i_pmac_send_last         ,//æ•°æ®æˆªè‡³ä¿¡å·
-    input          wire                                    i_pmac_send_valid        ,//æ•°æ®æœ‰æ•ˆä¿¡å·
-    input          wire    [15:0]                          i_pmac_send_len          ,//æ•°æ®é•¿åº¦
+    output         wire                                    o_pmac_rx_ready          ,//´ËÄ£¿é×¼±¸ºÃÁË
+    input          wire    [15:0]                          i_pmac_send_type         ,//Êı¾İÀàĞÍ
+    input          wire    [AXIS_DATA_WIDTH-1 :0]          i_pmac_send_data         ,//Êı¾İ
+    input          wire                                    i_pmac_send_last         ,//Êı¾İ½ØÖÁĞÅºÅ
+    input          wire                                    i_pmac_send_valid        ,//Êı¾İÓĞĞ§ĞÅºÅ
+    input          wire    [15:0]                          i_pmac_send_len          ,//Êı¾İ³¤¶È
     input          wire    [ 7:0]                          i_pmac_smd               ,//SMD
-    input          wire    [7:0]                           i_pmac_fra               ,//å¸§è®¡æ•°å™¨
-    input          wire                                    i_pmac_smd_vld           ,//SMDæœ‰æ•ˆä¿¡å·
-    input          wire                                    i_pmac_fra_vld           ,//å¸§è®¡æ•°å™¨æœ‰æ•ˆä¿¡å·
-    input          wire                                    i_pmac_crc               ,//ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrcã€‚
+    input          wire    [7:0]                           i_pmac_fra               ,//Ö¡¼ÆÊıÆ÷
+    input          wire                                    i_pmac_smd_vld           ,//SMDÓĞĞ§ĞÅºÅ
+    input          wire                                    i_pmac_fra_vld           ,//Ö¡¼ÆÊıÆ÷ÓĞĞ§ĞÅºÅ
+    input          wire                                    i_pmac_crc               ,//Îª1ÔòÎªcrc·ñÔòÎªmcrc¡£
     //EMAC_to_Mux
-    output                                                 o_emac_rx_ready          ,//ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†ä¿¡å·
-    input                  [15:0]                          i_emac_send_type         ,//åè®®ç±»å‹ï¼ˆå‚ç…§macå¸§æ ¼å¼ï¼‰
-    input                  [AXIS_DATA_WIDTH-1 :0]          i_emac_send_data         ,//æ•°æ®ä¿¡å·
-    input                                                  i_emac_send_last         ,//æœ€åä¸€ä¸ªæ•°æ®ä¿¡å·
-    input                                                  i_emac_send_valid        ,//æ•°æ®æœ‰æ•ˆä¿¡å·
-    input          wire                                    i_emac_smd_val           ,//SMDç¼–ç æœ‰æ•ˆä¿¡å·
-    input          wire    [ 7:0]                          i_emac_smd               ,//SMDç¼–ç 
-    input          wire    [15:0]                          i_emac_send_len          ,//æ•°æ®é•¿åº¦
+    output                                                 o_emac_rx_ready          ,//×éÖ¡Ä£¿é×¼±¸ºÃÁËĞÅºÅ
+    input                  [15:0]                          i_emac_send_type         ,//Ğ­ÒéÀàĞÍ£¨²ÎÕÕmacÖ¡¸ñÊ½£©
+    input                  [AXIS_DATA_WIDTH-1 :0]          i_emac_send_data         ,//Êı¾İĞÅºÅ
+    input                                                  i_emac_send_last         ,//×îºóÒ»¸öÊı¾İĞÅºÅ
+    input                                                  i_emac_send_valid        ,//Êı¾İÓĞĞ§ĞÅºÅ
+    input          wire                                    i_emac_smd_val           ,//SMD±àÂëÓĞĞ§ĞÅºÅ
+    input          wire    [ 7:0]                          i_emac_smd               ,//SMD±àÂë
+    input          wire    [15:0]                          i_emac_send_len          ,//Êı¾İ³¤¶È
 
     //user
-    // input                  [15:0]                          i_user_set               ,//ç”¨æˆ·è®¾ç½®(æš‚å®šæœ€é«˜ä½ä¸º)
-    // input                                                  i_user_set_val           ,//ç”¨æˆ·è®¾ç½®æœ‰æ•ˆä¿¡å·
+    // input                  [15:0]                          i_user_set               ,//ÓÃ»§ÉèÖÃ(Ôİ¶¨×î¸ßÎ»Îª)
+    // input                                                  i_user_set_val           ,//ÓÃ»§ÉèÖÃÓĞĞ§ĞÅºÅ
     //Mux_to_Mac
-    input                                                  i_mac_rx_ready           ,//æ­¤ç»„å¸§å‡†å¤‡å¥½äº†
-    output         reg     [15:0]                          o_mac_send_type          ,//æ•°æ®ç±»å‹
-    output         reg     [AXIS_DATA_WIDTH-1 :0]          o_mac_send_data          ,//æ•°æ®
-    output         reg                                     o_mac_send_last          ,//æ•°æ®æˆªè‡³ä¿¡å·
-    output         reg                                     o_mac_send_valid         ,//æ•°æ®æœ‰æ•ˆä¿¡å·
-    output         reg     [15:0]                          o_mac_send_len           ,//æ•°æ®é•¿åº¦
+    input                                                  i_mac_rx_ready           ,//´Ë×éÖ¡×¼±¸ºÃÁË
+    output         reg     [15:0]                          o_mac_send_type          ,//Êı¾İÀàĞÍ
+    output         reg     [AXIS_DATA_WIDTH-1 :0]          o_mac_send_data          ,//Êı¾İ
+    output         reg                                     o_mac_send_last          ,//Êı¾İ½ØÖÁĞÅºÅ
+    output         reg                                     o_mac_send_valid         ,//Êı¾İÓĞĞ§ĞÅºÅ
+    output         reg     [15:0]                          o_mac_send_len           ,//Êı¾İ³¤¶È
     output         reg     [7:0]                           o_mac_smd                ,//SMD
-    output         reg     [7:0]                           o_mac_fra                ,//å¸§è®¡æ•°å™¨
-    output         reg                                     o_mac_smd_vld            ,//SMDæœ‰æ•ˆä¿¡å·
-    output         reg                                     o_mac_fra_vld            ,//å¸§è®¡æ•°å™¨æœ‰æ•ˆä¿¡å·
-    output         reg                                     o_mac_crc                 //ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrc
+    output         reg     [7:0]                           o_mac_fra                ,//Ö¡¼ÆÊıÆ÷
+    output         reg                                     o_mac_smd_vld            ,//SMDÓĞĞ§ĞÅºÅ
+    output         reg                                     o_mac_fra_vld            ,//Ö¡¼ÆÊıÆ÷ÓĞĞ§ĞÅºÅ
+    output         reg                                     o_mac_crc                 //Îª1ÔòÎªcrc·ñÔòÎªmcrc
 
  
 );
@@ -98,11 +98,11 @@ module Mux#(
 /***************reg*******************/
 
 /***************wire******************/
-reg       [1:0]     r_set;//æ¨¡å¼è®¾ç½®
+reg       [1:0]     r_set;//Ä£Ê½ÉèÖÃ
 /***************component*************/
 
 /***************assign****************/
-//è¾“å‡º
+//Êä³ö
 //assign          r_set                   =       i_user_set[15:14]    ;
 
 assign          o_emac_rx_ready         =       i_mac_rx_ready       ;
@@ -112,7 +112,7 @@ assign          o_eth_send_ready        =       i_mac_rx_ready       ;
 
 /***************always****************/
 
-//æ ¹æ®åˆ¤æ–­å½“å‰çš„æ¨¡å¼ä»¥åŠæ˜¯å¦éªŒè¯æˆåŠŸï¼Œä»¥åŠä¸Šå±‚æ¨¡å—æ˜¯å¦å‘é€æ•°æ®æ¥åˆ¤æ–­æ¥æ”¶æ•°æ®
+//¸ù¾İÅĞ¶Ïµ±Ç°µÄÄ£Ê½ÒÔ¼°ÊÇ·ñÑéÖ¤³É¹¦£¬ÒÔ¼°ÉÏ²ãÄ£¿éÊÇ·ñ·¢ËÍÊı¾İÀ´ÅĞ¶Ï½ÓÊÕÊı¾İ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin  
         o_mac_send_type     <= 'b0 ;
@@ -125,8 +125,8 @@ always @(posedge i_clk or posedge i_rst) begin
     
     else begin
         case (r_set) 
-            2'b00,2'b01:  begin                            //å»æ‰i_mac_rx_readyä½œä¸ºåˆ¤æ–­æ¡ä»¶ï¼Œæ­¤æ¡ä»¶ä¸Šå±‚ä¼šè‡ªå·±è¿›è¡Œåˆ¤æ–­ã€‚
-                    if (i_verify_succ_val&&i_verify_succ&&i_emac_send_valid) begin//é»˜è®¤çŠ¶æ€ï¼Œä¸”éªŒè¯æˆåŠŸ,ä¸”emacåœ¨å‘é€æ•°æ®
+            2'b00,2'b01:  begin                            //È¥µôi_mac_rx_ready×÷ÎªÅĞ¶ÏÌõ¼ş£¬´ËÌõ¼şÉÏ²ã»á×Ô¼º½øĞĞÅĞ¶Ï¡£
+                    if (i_verify_succ_val&&i_verify_succ&&i_emac_send_valid) begin//Ä¬ÈÏ×´Ì¬£¬ÇÒÑéÖ¤³É¹¦,ÇÒemacÔÚ·¢ËÍÊı¾İ
                             o_mac_send_type     <= i_emac_send_type  ;
                             o_mac_send_data     <= i_emac_send_data  ;
                             o_mac_send_last     <= i_emac_send_last  ;
@@ -134,7 +134,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_send_len      <= i_emac_send_len   ;    
                             o_mac_crc           <= 'b1               ;
                      end
-                     else if(i_verify_succ_val&&i_verify_succ&&i_pmac_send_valid) begin//é»˜è®¤çŠ¶æ€ï¼Œä¸”éªŒè¯æˆåŠŸ,ä¸”pmacåœ¨å‘é€æ•°æ®
+                     else if(i_verify_succ_val&&i_verify_succ&&i_pmac_send_valid) begin//Ä¬ÈÏ×´Ì¬£¬ÇÒÑéÖ¤³É¹¦,ÇÒpmacÔÚ·¢ËÍÊı¾İ
                             o_mac_send_type     <= i_pmac_send_type  ;                         
                             o_mac_send_data     <= i_pmac_send_data  ;
                             o_mac_send_last     <= i_pmac_send_last  ;
@@ -142,7 +142,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_send_len      <= i_pmac_send_len   ;
                             o_mac_crc           <= i_pmac_crc        ;
                      end
-                     else if(i_verify_succ_val&&i_verify_succ==0&&i_eth_send_valid) begin//é»˜è®¤çŠ¶æ€ï¼Œä¸”éªŒè¯å¤±è´¥,è½¬ä¸ºæ™®é€šæ¨¡å¼
+                     else if(i_verify_succ_val&&i_verify_succ==0&&i_eth_send_valid) begin//Ä¬ÈÏ×´Ì¬£¬ÇÒÑéÖ¤Ê§°Ü,×ªÎªÆÕÍ¨Ä£Ê½
                             o_mac_send_type     <= i_eth_send_type  ;                         
                             o_mac_send_data     <= i_eth_send_data  ;
                             o_mac_send_last     <= i_eth_send_last  ;
@@ -150,7 +150,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_send_len      <= i_eth_send_user  ;
                             o_mac_crc           <= 'b1              ;
                      end
-                     else if(i_verify_succ_val==0) begin//é»˜è®¤çŠ¶æ€ï¼Œè¿˜æ²¡æœ‰éªŒè¯,å°±å»éªŒè¯
+                     else if(i_verify_succ_val==0) begin//Ä¬ÈÏ×´Ì¬£¬»¹Ã»ÓĞÑéÖ¤,¾ÍÈ¥ÑéÖ¤
                             o_mac_send_type     <= 'b0                  ;                         
                             o_mac_send_data     <= i_verify_send_data   ;
                             o_mac_send_last     <= i_verify_send_last   ;
@@ -159,7 +159,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_crc           <= 'b1                  ;
                      end
                      else begin
-                            o_mac_send_type     <= 'b0                  ;     //ç”±åŸæ¥çš„ä¿æŒå˜æˆäº†ç½®é›¶                     
+                            o_mac_send_type     <= 'b0                  ;     //ÓÉÔ­À´µÄ±£³Ö±ä³ÉÁËÖÃÁã                     
                             o_mac_send_data     <= 'b0                  ;
                             o_mac_send_last     <= 'b0                  ;
                             o_mac_send_valid    <= 'b0                  ;
@@ -168,7 +168,7 @@ always @(posedge i_clk or posedge i_rst) begin
                      end
                     end        
             2'b10:  begin
-                    if (i_emac_send_valid) begin//QBUçŠ¶æ€ï¼Œemacåœ¨å‘é€æ•°æ®
+                    if (i_emac_send_valid) begin//QBU×´Ì¬£¬emacÔÚ·¢ËÍÊı¾İ
                             o_mac_send_type     <= i_emac_send_type  ;
                             o_mac_send_data     <= i_emac_send_data  ;
                             o_mac_send_last     <= i_emac_send_last  ;
@@ -176,7 +176,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_send_len      <= i_emac_send_len   ;
                             o_mac_crc           <= 'b1               ;
                      end
-                     else if(i_pmac_send_valid) begin//QBUçŠ¶æ€ï¼Œpmacåœ¨å‘é€æ•°æ®
+                     else if(i_pmac_send_valid) begin//QBU×´Ì¬£¬pmacÔÚ·¢ËÍÊı¾İ
                             o_mac_send_type     <= i_pmac_send_type  ;                         
                             o_mac_send_data     <= i_pmac_send_data  ;
                             o_mac_send_last     <= i_pmac_send_last  ;
@@ -185,7 +185,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_crc           <= i_pmac_crc        ;
                      end
                      else begin
-                            o_mac_send_type     <= 'b0              ; //ç”±åŸæ¥çš„ä¿æŒå˜æˆäº†ç½®é›¶                         
+                            o_mac_send_type     <= 'b0              ; //ÓÉÔ­À´µÄ±£³Ö±ä³ÉÁËÖÃÁã                         
                             o_mac_send_data     <= 'b0              ;
                             o_mac_send_last     <= 'b0              ;
                             o_mac_send_valid    <= 'b0              ;
@@ -195,7 +195,7 @@ always @(posedge i_clk or posedge i_rst) begin
                 
                     end
             2'b11:  begin
-                    if(i_emac_send_valid) begin//æ™®é€šçŠ¶æ€
+                    if(i_emac_send_valid) begin//ÆÕÍ¨×´Ì¬
                             o_mac_send_type     <= i_emac_send_type  ;                         
                             o_mac_send_data     <= i_emac_send_data  ;
                             o_mac_send_last     <= i_emac_send_last  ;
@@ -204,7 +204,7 @@ always @(posedge i_clk or posedge i_rst) begin
                             o_mac_crc           <= 'b1               ;
                      end
                      else begin
-                            o_mac_send_type     <= 'b0              ;//ç”±åŸæ¥çš„ä¿æŒå˜æˆäº†ç½®é›¶                         
+                            o_mac_send_type     <= 'b0              ;//ÓÉÔ­À´µÄ±£³Ö±ä³ÉÁËÖÃÁã                         
                             o_mac_send_data     <= 'b0              ;
                             o_mac_send_last     <= 'b0              ;
                             o_mac_send_valid    <= 'b0              ;
@@ -241,7 +241,7 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//å½“pmacå‘é€æ•°æ®ä»¥åŠå¸§è®¡æ•°å™¨æœ‰æ•ˆåˆ™ä¼ é€’å¸§è®¡æ•°å™¨å‚æ•°
+//µ±pmac·¢ËÍÊı¾İÒÔ¼°Ö¡¼ÆÊıÆ÷ÓĞĞ§Ôò´«µİÖ¡¼ÆÊıÆ÷²ÎÊı
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         o_mac_fra       <= 'b0  ;
@@ -252,24 +252,24 @@ always @(posedge i_clk or posedge i_rst) begin
         o_mac_fra_vld   <= i_pmac_fra_vld;
     end
     else begin
-        o_mac_fra       <= 'b0  ;//ç”±åŸæ¥çš„ä¿æŒå˜æˆäº†ç½®é›¶ 
+        o_mac_fra       <= 'b0  ;//ÓÉÔ­À´µÄ±£³Ö±ä³ÉÁËÖÃÁã 
         o_mac_fra_vld   <= 'b0  ;
     end
 end
 
 
 
-//SMDæ•°å€¼ä»¥åŠæœ‰æ•ˆä¿¡å·ï¼Œåˆ¤æ–­é‚£ç§ä¿¡å·æ­£åœ¨å‘ï¼Œåœ¨åˆ¤æ–­SMDçš„æœ‰æ•ˆä¿¡å·ã€‚
+//SMDÊıÖµÒÔ¼°ÓĞĞ§ĞÅºÅ£¬ÅĞ¶ÏÄÇÖÖĞÅºÅÕıÔÚ·¢£¬ÔÚÅĞ¶ÏSMDµÄÓĞĞ§ĞÅºÅ¡£
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         o_mac_smd     <= 'b0;
         o_mac_smd_vld <= 'b0;
     end
-    else if(i_eth_smd_val && i_eth_send_valid) begin//æ™®é€šæ¨¡å¼å‘é€
+    else if(i_eth_smd_val && i_eth_send_valid) begin//ÆÕÍ¨Ä£Ê½·¢ËÍ
         o_mac_smd     <= i_eth_smd;
         o_mac_smd_vld <= i_eth_smd_val;
     end
-    else if(i_verify_smd_val&&i_verify_send_valid &&(r_set == 2'b00 || r_set == 2'b01) ) begin//éªŒè¯
+    else if(i_verify_smd_val&&i_verify_send_valid &&(r_set == 2'b00 || r_set == 2'b01) ) begin//ÑéÖ¤
         o_mac_smd     <= i_verify_smd;
         o_mac_smd_vld <= i_verify_smd_val;
     end
@@ -282,7 +282,7 @@ always @(posedge i_clk or posedge i_rst) begin
         o_mac_smd_vld <= i_pmac_smd_vld;
     end
     else begin
-        o_mac_smd     <= 'b0 ;//ç”±åŸæ¥çš„ä¿æŒå˜æˆäº†ç½®é›¶ 
+        o_mac_smd     <= 'b0 ;//ÓÉÔ­À´µÄ±£³Ö±ä³ÉÁËÖÃÁã 
         o_mac_smd_vld <= 'b0 ;
     end
 end

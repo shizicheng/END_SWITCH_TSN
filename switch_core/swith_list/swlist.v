@@ -1,288 +1,330 @@
+`define CPU_MAC
+`define MAC1
+`define MAC2
+`define MAC3
+`define MAC4
+`define MAC5
+`define MAC6
+`define MAC7
 module swlist#(
-    parameter                                                   PORT_NUM                =      8        ,  // äº¤æ¢æœºçš„ç«¯å£æ•°
-    parameter                                                   PORT_WIDTH              =      PORT_NUM ,  // ç«¯å£ä½å®½ï¼Œç­‰äºç«¯å£æ•°
-    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨åœ°å€ä½å®½
-    parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨æ•°æ®ä½å®½
-    parameter                                                   METADATA_WIDTH          =      64       ,  // ä¿¡æ¯æµï¼ˆMETADATAï¼‰çš„ä½å®½
-    parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng æ•°æ®ä½å®½ 
-    parameter                                                   HASH_DATA_WIDTH         =      15       ,  // å“ˆå¸Œè®¡ç®—çš„å€¼çš„ä½å®½
-    parameter                                                   ADDR_WIDTH              =      6        ,  // åœ°å€è¡¨çš„æ·±åº¦ 
-    parameter                                                   VLAN_ID_WIDTH           =      12       ,  // VLAN IDä½å®½
-    parameter                                                   MAC_ADDR_WIDTH          =      48       ,  // MACåœ°å€ä½å®½
-    parameter                                                   STATIC_RAM_SIZE         =      256      ,  // é™æ€MACè¡¨çš„ä½å®½ 
-    parameter                                                   AGE_SCAN_INTERVAL       =      5        ,  // è€åŒ–æ‰«æé—´éš”ï¼ˆç§’ï¼‰
-    parameter                                                   SIM_MODE                =      0        ,  // ä»¿çœŸæ¨¡å¼ï¼š1=å¿«é€Ÿä»¿çœŸæ¨¡å¼ï¼Œ0=æ­£å¸¸æ¨¡å¼
-    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH*PORT_NUM // èšåˆæ€»çº¿è¾“å‡º 
+    parameter                                                   PORT_NUM                =      8        ,  // ½»»»»úµÄ¶Ë¿Ú??
+    parameter                                                   PORT_WIDTH              =      PORT_NUM ,  // ¶Ë¿ÚÎ»¿í£¬µÈÓÚ¶Ë¿ÚÊı
+    parameter                                                   PORTBIT_WIDTH           =      clog2(PORT_NUM), // ¶Ë¿ÚÎ»¿í
+    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØ??Î»¿í
+    parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êı¾İÎ»??
+    parameter                                                   METADATA_WIDTH          =      64       ,  // ĞÅÏ¢Á÷£¨METADATA£©µÄÎ»¿í
+    parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng Êı¾İÎ»¿í 
+    parameter                                                   HASH_DATA_WIDTH         =      15       ,  // ¹şÏ£¼ÆËãµÄ???µÄÎ»¿í
+    parameter                                                   ADDR_WIDTH              =      6        ,  // µØÖ·±íµÄÉî¶È 
+    parameter                                                   VLAN_ID_WIDTH           =      12       ,  // VLAN IDÎ»¿í
+    parameter                                                   MAC_ADDR_WIDTH          =      48       ,  // MACµØÖ·Î»¿í
+    parameter                                                   STATIC_RAM_SIZE         =      256      ,  // ¾²???MAC±íµÄÎ»¿í 
+    parameter                                                   AGE_SCAN_INTERVAL       =      5        ,  // ÀÏ»¯É¨Ãè¼ä¸ô£¨Ãë??
+    parameter                                                   SIM_MODE                =      0        ,  // ·ÂÕæÄ£Ê½??1=¿ì???·ÂÕæÄ£Ê½£¬0=Õı³£Ä£Ê½
+    parameter                                                   AGE_TIME_WIDTH          =      10       ,
+    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH*PORT_NUM // ¾ÛºÏ×ÜÏßÊä³ö 
 )(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,   
 `ifdef CPU_MAC
-    input               wire   [11:0]                           i_vlan_id_cpu                       , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac_cpu_hash_key                 , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac_cpu                          , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id_cpu                       , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac_cpu_hash_key                 , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac_cpu                          , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac_cpu_vld                      , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac_cpu_hash_key                 , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac_cpu                          , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac_cpu_hash_key                 , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac_cpu                          , // ?? mac µÄ???
     input               wire                                    i_smac_cpu_vld                      , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_cpu_port                       ,
     output              wire                                    o_tx_cpu_port_vld                   ,
-    output              wire   [1:0]                            o_tx_cpu_port_broadcast             , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_cpu_port_broadcast             , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC1
-    input               wire   [11:0]                           i_vlan_id1                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac1_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac1                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id1                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac1_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac1                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac1_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac1_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac1                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac1_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac1                             , // ?? mac µÄ???
     input               wire                                    i_smac1_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_1_port                         ,
     output              wire                                    o_tx_1_port_vld                     ,
-    output              wire   [1:0]                            o_tx_1_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_1_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif  
 `ifdef MAC2
-    input               wire   [11:0]                           i_vlan_id2                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac2_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac2                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id2                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac2_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac2                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac2_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac2_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac2                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac2_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac2                             , // ?? mac µÄ???
     input               wire                                    i_smac2_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_2_port                         ,
     output              wire                                    o_tx_2_port_vld                     ,
-    output              wire   [1:0]                            o_tx_2_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_2_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC3
-    input               wire   [11:0]                           i_vlan_id3                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac3_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac3                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id3                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac3_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac3                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac3_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac3_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac3                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac3_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac3                             , // ?? mac µÄ???
     input               wire                                    i_smac3_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_3_port                          ,
     output              wire                                    o_tx_3_port_vld                      ,
-    output              wire   [1:0]                            o_tx_3_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_3_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC4
-    input               wire   [11:0]                           i_vlan_id4                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac4_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac4                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id4                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac4_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac4                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac4_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac4_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac4                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac4_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac4                             , // ?? mac µÄ???
     input               wire                                    i_smac4_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_4_port                         ,
     output              wire                                    o_tx_4_port_vld                     ,
-    output              wire   [1:0]                            o_tx_4_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_4_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC5
-    input               wire   [11:0]                           i_vlan_id5                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac5_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac5                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id5                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac5_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac5                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac5_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac5_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac5                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac5_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac5                             , // ?? mac µÄ???
     input               wire                                    i_smac5_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_5_port                         ,
     output              wire                                    o_tx_5_port_vld                     ,
-    output              wire   [1:0]                            o_tx_5_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_5_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC6
-    input               wire   [11:0]                           i_vlan_id6                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac6_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac6                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id6                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac6_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac6                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac6_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac6_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac6                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac6_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac6                             , // ?? mac µÄ???
     input               wire                                    i_smac6_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_6_port                         ,
     output              wire                                    o_tx_6_port_vld                     ,
-    output              wire   [1:0]                            o_tx_6_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_6_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif
 `ifdef MAC7
-    input               wire   [11:0]                           i_vlan_id7                          , // VLAN IDå€¼
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac7_hash_key                    , // ç›®çš„ mac çš„å“ˆå¸Œå€¼
-    input               wire   [47 : 0]                         i_dmac7                             , // ç›®çš„ mac çš„å€¼
+    input               wire   [11:0]                           i_vlan_id7                          , // VLAN ID??
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_dmac7_hash_key                    , // Ä¿µÄ mac µÄ¹şÏ£???
+    input               wire   [47 : 0]                         i_dmac7                             , // Ä¿µÄ mac µÄ???
     input               wire                                    i_dmac7_vld                         , // dmac_vld
-    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac7_hash_key                    , // æº mac çš„å€¼æœ‰æ•ˆæ ‡è¯†
-    input               wire   [47 : 0]                         i_smac7                             , // æº mac çš„å€¼
+    input               wire   [HASH_DATA_WIDTH - 1 : 0]        i_smac7_hash_key                    , // ?? mac µÄ???ÓĞĞ§±ê??
+    input               wire   [47 : 0]                         i_smac7                             , // ?? mac µÄ???
     input               wire                                    i_smac7_vld                         , // smac_vld
 
     output              wire   [PORT_WIDTH - 1:0]               o_tx_7_port                         ,
     output              wire                                    o_tx_7_port_vld                     ,
-    output              wire   [1:0]                            o_tx_7_port_broadcast               , // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+    output              wire   [1:0]                            o_tx_7_port_broadcast               , // 01:×é²¥ 10£º¹ã?? 11:·ººé
 `endif 
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ -------------------------------------------*/
-    // å¯„å­˜å™¨æ§åˆ¶ä¿¡å·                     
-    input               wire                                    i_refresh_list_pulse                , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    input               wire                                    i_switch_err_cnt_clr                , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    input               wire                                    i_switch_err_cnt_stat               , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    input               wire                                    i_switch_reg_bus_we                 , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // å¯„å­˜å™¨å†™åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // å¯„å­˜å™¨å†™æ•°æ®
-    input               wire                                    i_switch_reg_bus_we_din_v           , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£     
-    input               wire                                    i_switch_reg_bus_rd                 , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // å¯„å­˜å™¨è¯»åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_we_dout            , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    output              wire                                    o_switch_reg_bus_we_dout_v            // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó?? -------------------------------------------*/
+    // ¼Ä´æÆ÷¿ØÖÆĞÅ??                     
+    input               wire                                    i_refresh_list_pulse                , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´???¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷??
+    input               wire                                    i_switch_err_cnt_clr                , // Ë¢ĞÂ´íÎó¼ÆÊı??
+    input               wire                                    i_switch_err_cnt_stat               , // Ë¢ĞÂ´íÎó×´???¼Ä´æÆ÷
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    input               wire                                    i_switch_reg_bus_we                 , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // ¼Ä´æÆ÷Ğ´µØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    input               wire                                    i_switch_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    input               wire                                    i_switch_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // ¶Á³ö¼Ä´æÆ÷Êı??
+    output              wire                                    o_switch_reg_bus_rd_dout_v            // ¶ÁÊı¾İÓĞĞ§Ê¹??
 );
 
-// åŒ…å«å¤´æ–‡ä»¶
+// °üº¬Í·ÎÄ??
 `include "synth_cmd_define.vh"
 
-// key_arbitæ¨¡å—è¾“å‡ºçš„ä»²è£ç»“æœä¿¡å·
-    wire   [11 : 0]                         w_vlan_id                           ; // VLAN IDä¿¡å·
-    wire   [PORT_NUM - 1:0]                 w_dmac_port                         ; // ä»²è£è¾“å‡ºçš„DMACç«¯å£
-    wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac_hash_key                     ; // ç›®çš„MACçš„å“ˆå¸Œå€¼
-    wire   [47 : 0]                         w_dmac                              ; // ç›®çš„MACçš„å€¼
-    wire                                    w_dmac_vld                          ; // DMACæœ‰æ•ˆä¿¡å·
-    wire   [HASH_DATA_WIDTH - 1 : 0]        w_smac_hash_key                     ; // æºMACçš„å“ˆå¸Œå€¼
-    wire   [47 : 0]                         w_smac                              ; // æºMACçš„å€¼
-    wire                                    w_smac_vld                          ; // SMACæœ‰æ•ˆä¿¡å·
-    wire   [PORT_NUM - 1:0]                 w_tx_port                           ; // æœ€ç»ˆè¾“å‡ºç«¯å£
-    wire                                    w_tx_port_vld                       ; // æœ€ç»ˆè¾“å‡ºç«¯å£æœ‰æ•ˆä¿¡å·
-    wire   [1:0]                            w_tx_port_broadcast                 ; // 01:ç»„æ’­ 10ï¼šå¹¿æ’­ 11:æ³›æ´ª
+/*---------------------------------------- clog2¼ÆËãº¯Êı -------------------------------------------*/
+function integer clog2;
+    input integer value;
+    integer temp;
+    begin
+        temp = value - 1;
+        for (clog2 = 0; temp > 0; clog2 = clog2 + 1)
+            temp = temp >> 1;
+    end
+endfunction 
+
+// key_arbitÄ£¿éÊä³öµÄÖÙ²Ã½á¹ûĞÅ??
+    wire   [11 : 0]                         w_vlan_id                           ; // VLAN IDĞÅºÅ
+    wire   [PORT_WIDTH - 1:0]               w_dmac_port                         ; // ÖÙ²ÃÊä³öµÄDMAC¶Ë¿Ú
+    wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac_hash_key                     ; // Ä¿µÄMACµÄ¹şÏ£???
+    wire   [47 : 0]                         w_dmac                              ; // Ä¿µÄMACµÄ???
+    wire                                    w_dmac_vld                          ; // DMACÓĞĞ§ĞÅºÅ
+    wire   [HASH_DATA_WIDTH - 1 : 0]        w_smac_hash_key                     ; // Ô´MACµÄ¹şÏ£???
+    wire   [47 : 0]                         w_smac                              ; // Ô´MACµÄ???
+    wire                                    w_smac_vld                          ; // SMACÓĞĞ§ĞÅºÅ
+    wire   [PORT_NUM - 1:0]                 w_tx_port                           ; // ??ÖÕÊä³ö¶Ë??
+    wire                                    w_tx_port_vld                       ; // ??ÖÕÊä³ö¶Ë¿ÚÓĞĞ§ĞÅ??
+    wire   [1:0]                            w_tx_port_broadcast                 ; // 01:×é²¥ 10£º¹ã?? 11:·ººé
      
-    // DMACè¡¨è¯»å†™æ¥å£ä¿¡å·
-    wire   [11 : 0]                         w_dmac_item_vlan_id                 ; // DMACè¡¨VLAN ID
-    wire   [HASH_DATA_WIDTH-1:0]            w_dmac_item_dmac_addr               ; // DMACåœ°å€è¡¨é¡¹
-    wire                                    w_dmac_item_dmac_addr_vld           ; // DMACåœ°å€è¡¨é¡¹æœ‰æ•ˆä½
-    wire   [47:0]                           w_dmac_item_dmac_in                 ; // DMACè¾“å…¥
-    wire   [HASH_DATA_WIDTH-1:0]            w_dmac_item_smac_addr               ; // SMACåœ°å€è¡¨é¡¹
-    wire                                    w_dmac_item_smac_addr_vld           ; // SMACåœ°å€è¡¨é¡¹æœ‰æ•ˆä½
-    wire   [47:0]                           w_dmac_item_smac_in                 ; // SMACè¾“å…¥
-    wire   [PORT_NUM - 1:0]                 w_dmac_item_mac_rx_port             ; // DMACè¾“å…¥ç«¯å£
+    // DMAC±í¶ÁĞ´½Ó¿ÚĞÅ??
+    wire   [11 : 0]                         w_dmac_item_vlan_id                 ; // DMAC±íVLAN ID
+    wire   [HASH_DATA_WIDTH-1:0]            w_dmac_item_dmac_addr               ; // DMACµØÖ·±íÏî
+    wire                                    w_dmac_item_dmac_addr_vld           ; // DMACµØÖ·±íÏîÓĞĞ§??
+    wire   [47:0]                           w_dmac_item_dmac_in                 ; // DMACÊäÈë
+    wire   [HASH_DATA_WIDTH-1:0]            w_dmac_item_smac_addr               ; // SMACµØÖ·±íÏî
+    wire                                    w_dmac_item_smac_addr_vld           ; // SMACµØÖ·±íÏîÓĞĞ§??
+    wire   [47:0]                           w_dmac_item_smac_in                 ; // SMACÊäÈë
+    wire   [PORT_NUM - 1:0]                 w_dmac_item_mac_rx_port             ; // DMACÊäÈë¶Ë¿Ú
     
-    // CLASHå†²çªè¡¨è¯»å†™æ¥å£ä¿¡å·
-    wire   [11 : 0]                         w_clash_item_vlan_id                ; // CLASHè¡¨VLAN ID
-    wire   [HASH_DATA_WIDTH-1:0]            w_clash_item_dmac_addr              ; // CLASH DMACåœ°å€è¡¨é¡¹
-    wire                                    w_clash_item_dmac_addr_vld          ; // CLASH DMACåœ°å€è¡¨é¡¹æœ‰æ•ˆä½
-    wire   [47:0]                           w_clash_item_dmac_in                ; // CLASH DMACè¾“å…¥
-    wire   [HASH_DATA_WIDTH-1:0]            w_clash_item_smac_addr              ; // CLASH SMACåœ°å€è¡¨é¡¹
-    wire                                    w_clash_item_smac_addr_vld          ; // CLASH SMACåœ°å€è¡¨é¡¹æœ‰æ•ˆä½
-    wire   [47:0]                           w_clash_item_smac_in                ; // CLASH SMACè¾“å…¥
-    wire   [PORT_NUM - 1:0]                 w_clash_item_mac_rx_port            ; // CLASHè¾“å…¥ç«¯å£
+    // CLASH³åÍ»±í¶ÁĞ´½Ó¿ÚĞÅ??
+    wire   [11 : 0]                         w_clash_item_vlan_id                ; // CLASH±íVLAN ID
+    wire   [HASH_DATA_WIDTH-1:0]            w_clash_item_dmac_addr              ; // CLASH DMACµØÖ·±íÏî
+    wire                                    w_clash_item_dmac_addr_vld          ; // CLASH DMACµØÖ·±íÏîÓĞĞ§??
+    wire   [47:0]                           w_clash_item_dmac_in                ; // CLASH DMACÊäÈë
+    wire   [HASH_DATA_WIDTH-1:0]            w_clash_item_smac_addr              ; // CLASH SMACµØÖ·±íÏî
+    wire                                    w_clash_item_smac_addr_vld          ; // CLASH SMACµØÖ·±íÏîÓĞĞ§??
+    wire   [47:0]                           w_clash_item_smac_in                ; // CLASH SMACÊäÈë
+    wire   [PORT_NUM - 1:0]                 w_clash_item_mac_rx_port            ; // CLASHÊäÈë¶Ë¿Ú
 
-    // æŸ¥è¡¨ç»“æœä¿¡å·
-    wire   [PORT_NUM : 0]                   w_smac_tx_port_rslt                 ; // SMACæŸ¥è¡¨ç»“æœç«¯å£å‘é‡
-    wire                                    w_smac_tx_port_vld                  ; // SMACæŸ¥è¡¨ç»“æœæœ‰æ•ˆä¿¡å·
+    // ²é±í½á¹ûĞÅºÅ
+    wire   [PORT_NUM-1: 0]                  w_smac_tx_port_rslt                 ; // SMAC²é±í½á¹û¶Ë¿ÚÏòÁ¿
+    wire                                    w_smac_tx_port_vld                  ; // SMAC²é±í½á¹ûÓĞĞ§ĞÅºÅ
 
-    wire                                    w_dmac_find_out_en                  ; // DMACæŸ¥æ‰¾è¾“å‡ºä½¿èƒ½
-    wire   [PORT_NUM:0]                     w_dmac_find_rslt                    ; // DMACæŸ¥æ‰¾ç»“æœç«¯å£å‘é‡
-    wire                                    w_dmac_find_out_clash               ; // DMACæŸ¥æ‰¾å†²çªæ ‡å¿—
+    wire                                    w_dmac_find_out_en                  ; // DMAC²éÕÒÊä³öÊ¹ÄÜ
+    wire   [PORT_NUM-1:0]                   w_dmac_find_rslt                    ; // DMAC²éÕÒ½á¹û¶Ë¿ÚÏòÁ¿
+    wire                                    w_dmac_find_out_clash               ; // DMAC²éÕÒ³åÍ»±êÖ¾
 
-    wire   [PORT_NUM:0]                     w_clash_tx_port_rslt                ; // å†²çªè¡¨æŸ¥è¡¨ç»“æœç«¯å£å‘é‡
-    wire                                    w_clash_tx_port_vld                 ; // å†²çªè¡¨æŸ¥è¡¨ç»“æœæœ‰æ•ˆä¿¡å·
+    wire   [PORT_NUM-1:0]                   w_clash_tx_port_rslt                ; // ³åÍ»±í²é±í½á¹û¶Ë¿ÚÏò??
+    wire                                    w_clash_tx_port_vld                 ; // ³åÍ»±í²é±í½á¹ûÓĞĞ§ĞÅ??
 
-    // look_up_mngè¾“å‡ºä¿¡å·
-    wire   [47 : 0]                         w_lookup_dmac_out                   ; // æŸ¥è¡¨å¼•æ“è¾“å‡ºDMAC
-    wire   [11 : 0]                         w_lookup_vlan_id                    ; // æŸ¥è¡¨å¼•æ“è¾“å‡ºVLAN ID
-    wire                                    w_lookup_dmac_vld_out               ; // æŸ¥è¡¨å¼•æ“è¾“å‡ºDMACæœ‰æ•ˆä¿¡å·
+    // look_up_mngÊä³öĞÅºÅ
+    wire   [47 : 0]                         w_lookup_dmac_out                   ; // ²é±íÒıÇæÊä³öDMAC
+    wire   [11 : 0]                         w_lookup_vlan_id                    ; // ²é±íÒıÇæÊä³öVLAN ID
+    wire                                    w_lookup_dmac_vld_out               ; // ²é±íÒıÇæÊä³öDMACÓĞĞ§ĞÅºÅ
 
-    // key_arbitè¾“å‡ºåˆ°å„ç«¯å£çš„ä¿¡å·  
+    // key_arbitÊä³öµ½¸÷¶Ë¿ÚµÄĞÅ??  
 `ifdef CPU_MAC
-    wire   [PORT_NUM : 0]                   w_tx_cpu_port                       ; // CPUç«¯å£è¾“å‡º
-    wire                                    w_tx_cpu_port_vld                   ; // CPUç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_cpu_port_broadcast             ; // CPUç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_cpu_port                       ; // CPU¶Ë¿ÚÊä³ö
+    wire                                     w_tx_cpu_port_vld                   ; // CPU¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_cpu_port_broadcast             ; // CPU¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC1
-    wire   [PORT_NUM : 0]                   w_tx_1_port                         ; // MAC1ç«¯å£è¾“å‡º
-    wire                                    w_tx_1_port_vld                     ; // MAC1ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_1_port_broadcast               ; // MAC1ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_1_port                         ; // MAC1¶Ë¿ÚÊä³ö
+    wire                                     w_tx_1_port_vld                     ; // MAC1¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_1_port_broadcast               ; // MAC1¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC2
-    wire   [PORT_NUM : 0]                   w_tx_2_port                         ; // MAC2ç«¯å£è¾“å‡º
-    wire                                    w_tx_2_port_vld                     ; // MAC2ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_2_port_broadcast               ; // MAC2ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_2_port                         ; // MAC2¶Ë¿ÚÊä³ö
+    wire                                     w_tx_2_port_vld                     ; // MAC2¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_2_port_broadcast               ; // MAC2¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC3
-    wire   [PORT_NUM : 0]                   w_tx_3_port                         ; // MAC3ç«¯å£è¾“å‡º
-    wire                                    w_tx_3_port_vld                     ; // MAC3ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_3_port_broadcast               ; // MAC3ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_3_port                         ; // MAC3¶Ë¿ÚÊä³ö
+    wire                                     w_tx_3_port_vld                     ; // MAC3¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_3_port_broadcast               ; // MAC3¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC4
-    wire   [PORT_NUM : 0]                   w_tx_4_port                         ; // MAC4ç«¯å£è¾“å‡º
-    wire                                    w_tx_4_port_vld                     ; // MAC4ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_4_port_broadcast               ; // MAC4ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_4_port                         ; // MAC4¶Ë¿ÚÊä³ö
+    wire                                     w_tx_4_port_vld                     ; // MAC4¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_4_port_broadcast               ; // MAC4¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC5
-    wire   [PORT_NUM : 0]                   w_tx_5_port                         ; // MAC5ç«¯å£è¾“å‡º
-    wire                                    w_tx_5_port_vld                     ; // MAC5ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_5_port_broadcast               ; // MAC5ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_5_port                         ; // MAC5¶Ë¿ÚÊä³ö
+    wire                                     w_tx_5_port_vld                     ; // MAC5¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_5_port_broadcast               ; // MAC5¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC6
-    wire   [PORT_NUM : 0]                   w_tx_6_port                         ; // MAC6ç«¯å£è¾“å‡º
-    wire                                    w_tx_6_port_vld                     ; // MAC6ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_6_port_broadcast               ; // MAC6ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_6_port                         ; // MAC6¶Ë¿ÚÊä³ö
+    wire                                     w_tx_6_port_vld                     ; // MAC6¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_6_port_broadcast               ; // MAC6¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
 `ifdef MAC7
-    wire   [PORT_NUM : 0]                   w_tx_7_port                         ; // MAC7ç«¯å£è¾“å‡º
-    wire                                    w_tx_7_port_vld                     ; // MAC7ç«¯å£è¾“å‡ºæœ‰æ•ˆ
-    wire   [1:0]                            w_tx_7_port_broadcast               ; // MAC7ç«¯å£å¹¿æ’­ç±»å‹è¾“å‡º
+    wire   [PORT_NUM-1: 0]                   w_tx_7_port                         ; // MAC7¶Ë¿ÚÊä³ö
+    wire                                     w_tx_7_port_vld                     ; // MAC7¶Ë¿ÚÊä³öÓĞĞ§
+    wire   [1:0]                             w_tx_7_port_broadcast               ; // MAC7¶Ë¿Ú¹ã²¥ÀàĞÍÊä³ö
 `endif
-    
-    // å„ç«¯å£è¾“å‡ºè¿æ¥
+
+    wire        [HASH_DATA_WIDTH-1:0]           w_mac_table_addr                        ;
+    wire        [3:0]                           w_fsm_cur_state                         ;
+
+    wire                                        w_table_clear_req                       ;
+    wire        [AGE_TIME_WIDTH-1:0]            w_age_time_threshold                    ;
+    wire                                        w_table_rd                              ;
+    wire        [11:0]                          w_table_raddr                           ;
+    wire        [14:0]                          w_table_full_threshold                  ;
+    wire        [31:0]                          w_age_scan_interval                     ;
+
+    wire        [57:0]                          w_dmac_list_dout                        ;
+    wire        [15:0]                          w_dmac_list_cnt                         ;
+    wire                                        w_dmac_list_full_er_stat                ;
+    wire        [15:0]                          w_dmac_list_full_er_cnt                 ;
+
+    wire        [14:0]                          w_table_entry_cnt                       ;
+    wire        [15:0]                          w_learn_success_cnt                     ;
+    wire        [REG_DATA_BUS_WIDTH-1:0]        w_collision_cnt                         ;
+    wire        [REG_DATA_BUS_WIDTH-1:0]        w_port_move_cnt                         ;
+
+
+
+    // ¸÷¶Ë¿ÚÊä³öÁ¬??
 `ifdef CPU_MAC
-    assign o_tx_cpu_port = w_tx_cpu_port[PORT_NUM-1:0];                          // è¿æ¥CPUç«¯å£è¾“å‡º
-    assign o_tx_cpu_port_vld = w_tx_cpu_port_vld;                                // è¿æ¥CPUç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_cpu_port_broadcast = w_tx_cpu_port_broadcast;                    // è¿æ¥CPUç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_cpu_port = w_tx_cpu_port[PORT_NUM-1:0];                          // Á¬½ÓCPU¶Ë¿ÚÊä³ö
+    assign o_tx_cpu_port_vld = w_tx_cpu_port_vld;                                // Á¬½ÓCPU¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_cpu_port_broadcast = w_tx_cpu_port_broadcast;                    // Á¬½ÓCPU¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC1
-    assign o_tx_1_port = w_tx_1_port[PORT_NUM-1:0];                              // è¿æ¥MAC1ç«¯å£è¾“å‡º
-    assign o_tx_1_port_vld = w_tx_1_port_vld;                                    // è¿æ¥MAC1ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_1_port_broadcast = w_tx_1_port_broadcast;                        // è¿æ¥MAC1ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_1_port = w_tx_1_port[PORT_NUM-1:0];                              // Á¬½ÓMAC1¶Ë¿ÚÊä³ö
+    assign o_tx_1_port_vld = w_tx_1_port_vld;                                    // Á¬½ÓMAC1¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_1_port_broadcast = w_tx_1_port_broadcast;                        // Á¬½ÓMAC1¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC2
-    assign o_tx_2_port = w_tx_2_port[PORT_NUM-1:0];                              // è¿æ¥MAC2ç«¯å£è¾“å‡º
-    assign o_tx_2_port_vld = w_tx_2_port_vld;                                    // è¿æ¥MAC2ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_2_port_broadcast = w_tx_2_port_broadcast;                        // è¿æ¥MAC2ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_2_port = w_tx_2_port[PORT_NUM-1:0];                              // Á¬½ÓMAC2¶Ë¿ÚÊä³ö
+    assign o_tx_2_port_vld = w_tx_2_port_vld;                                    // Á¬½ÓMAC2¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_2_port_broadcast = w_tx_2_port_broadcast;                        // Á¬½ÓMAC2¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC3
-    assign o_tx_3_port = w_tx_3_port[PORT_NUM-1:0];                              // è¿æ¥MAC3ç«¯å£è¾“å‡º
-    assign o_tx_3_port_vld = w_tx_3_port_vld;                                    // è¿æ¥MAC3ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_3_port_broadcast = w_tx_3_port_broadcast;                        // è¿æ¥MAC3ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_3_port = w_tx_3_port[PORT_NUM-1:0];                              // Á¬½ÓMAC3¶Ë¿ÚÊä³ö
+    assign o_tx_3_port_vld = w_tx_3_port_vld;                                    // Á¬½ÓMAC3¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_3_port_broadcast = w_tx_3_port_broadcast;                        // Á¬½ÓMAC3¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC4
-    assign o_tx_4_port = w_tx_4_port[PORT_NUM-1:0];                              // è¿æ¥MAC4ç«¯å£è¾“å‡º
-    assign o_tx_4_port_vld = w_tx_4_port_vld;                                    // è¿æ¥MAC4ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_4_port_broadcast = w_tx_4_port_broadcast;                        // è¿æ¥MAC4ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_4_port = w_tx_4_port[PORT_NUM-1:0];                              // Á¬½ÓMAC4¶Ë¿ÚÊä³ö
+    assign o_tx_4_port_vld = w_tx_4_port_vld;                                    // Á¬½ÓMAC4¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_4_port_broadcast = w_tx_4_port_broadcast;                        // Á¬½ÓMAC4¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC5
-    assign o_tx_5_port = w_tx_5_port[PORT_NUM-1:0];                              // è¿æ¥MAC5ç«¯å£è¾“å‡º
-    assign o_tx_5_port_vld = w_tx_5_port_vld;                                    // è¿æ¥MAC5ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_5_port_broadcast = w_tx_5_port_broadcast;                        // è¿æ¥MAC5ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_5_port = w_tx_5_port[PORT_NUM-1:0];                              // Á¬½ÓMAC5¶Ë¿ÚÊä³ö
+    assign o_tx_5_port_vld = w_tx_5_port_vld;                                    // Á¬½ÓMAC5¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_5_port_broadcast = w_tx_5_port_broadcast;                        // Á¬½ÓMAC5¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC6
-    assign o_tx_6_port = w_tx_6_port[PORT_NUM-1:0];                              // è¿æ¥MAC6ç«¯å£è¾“å‡º
-    assign o_tx_6_port_vld = w_tx_6_port_vld;                                    // è¿æ¥MAC6ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_6_port_broadcast = w_tx_6_port_broadcast;                        // è¿æ¥MAC6ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_6_port = w_tx_6_port[PORT_NUM-1:0];                              // Á¬½ÓMAC6¶Ë¿ÚÊä³ö
+    assign o_tx_6_port_vld = w_tx_6_port_vld;                                    // Á¬½ÓMAC6¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_6_port_broadcast = w_tx_6_port_broadcast;                        // Á¬½ÓMAC6¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
 `ifdef MAC7
-    assign o_tx_7_port = w_tx_7_port[PORT_NUM-1:0];                              // è¿æ¥MAC7ç«¯å£è¾“å‡º
-    assign o_tx_7_port_vld = w_tx_7_port_vld;                                    // è¿æ¥MAC7ç«¯å£æœ‰æ•ˆä¿¡å·
-    assign o_tx_7_port_broadcast = w_tx_7_port_broadcast;                        // è¿æ¥MAC7ç«¯å£å¹¿æ’­ç±»å‹ä¿¡å·
+    assign o_tx_7_port = w_tx_7_port[PORT_NUM-1:0];                              // Á¬½ÓMAC7¶Ë¿ÚÊä³ö
+    assign o_tx_7_port_vld = w_tx_7_port_vld;                                    // Á¬½ÓMAC7¶Ë¿ÚÓĞĞ§ĞÅºÅ
+    assign o_tx_7_port_broadcast = w_tx_7_port_broadcast;                        // Á¬½ÓMAC7¶Ë¿Ú¹ã²¥ÀàĞÍĞÅºÅ
 `endif
     
 
-// å¤–éƒ¨è¾“å…¥éœ€è¦æŸ¥è¡¨çš„ä¿¡æ¯   
+// Íâ²¿ÊäÈë??Òª²é±íµÄĞÅÏ¢   
 key_arbit #(
     .PORT_NUM                   (PORT_NUM                   ),
     .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH         ),
     .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH         ),
     .METADATA_WIDTH             (METADATA_WIDTH             ),
     .PORT_MNG_DATA_WIDTH        (PORT_MNG_DATA_WIDTH        ),
-    .HASH_DATA_WIDTH            (HASH_DATA_WIDTH            ),
-    .CROSS_DATA_WIDTH           (CROSS_DATA_WIDTH           ) 
+    .HASH_DATA_WIDTH            (HASH_DATA_WIDTH            ) 
 ) key_arbit_inst (
     .i_clk                      (i_clk                      ),
     .i_rst                      (i_rst                      ),
@@ -382,7 +424,7 @@ key_arbit #(
     .o_tx_7_port_vld            (w_tx_7_port_vld            ), 
     .o_tx_7_port_broadcast      (w_tx_7_port_broadcast      ),
 `endif
-    // ä»²è£è¾“å‡º
+    // ÖÙ²ÃÊä³ö
     .o_dmac_port                (w_dmac_port                ),
     .o_vlan_id                  (w_vlan_id                  ),
     .o_dmac_hash_key            (w_dmac_hash_key            ),
@@ -391,22 +433,22 @@ key_arbit #(
     .o_smac_hash_key            (w_smac_hash_key            ),
     .o_smac                     (w_smac                     ),
     .o_smac_vld                 (w_smac_vld                 ),
-    // æŸ¥è¡¨ç»“æœè¾“å…¥
+    // ²é±í½á¹ûÊäÈë
     .i_tx_port                  (w_tx_port                  ),
     .i_tx_port_vld              (w_tx_port_vld              ),
     .i_tx_port_broadcast        (w_tx_port_broadcast        )
 );
 
-// ä»ä»²è£æ¨¡å—è¾“å…¥ï¼Œé€šè¿‡æŸ¥æ‰¾å¼•æ“åˆ†å‘åˆ°ä¸‰ä¸ªæŸ¥è¡¨æ¨¡å—ï¼Œä¸‰ä¸ªæŸ¥è¡¨æ¨¡å—è¿”å›æŸ¥è¡¨ç»“æœï¼Œç»è¿‡ä»²è£å¾—åˆ°æœ€ç»ˆçš„æŸ¥è¡¨ç»“æœå¹¶è¿”å›ç»™ä¸Šä¸€çº§
+// ´ÓÖÙ²ÃÄ£¿éÊäÈë£¬Í¨¹ı²éÕÒÒıÇæ·Ö·¢µ½Èı¸ö²é±íÄ£¿é£¬Èı¸ö²é±íÄ£¿é·µ»Ø²é±í½á¹û£¬¾­¹ıÖÙ²ÃµÃµ½×îÖÕµÄ²é±í½á¹û²¢·µ»Ø¸øÉÏÒ»??
 look_up_mng #(
     .HASH_DATA_WIDTH            (HASH_DATA_WIDTH              ),
     .PORT_NUM                   (PORT_NUM                     ),
     .ADDR_WIDTH                 (ADDR_WIDTH                   ),
-    .LOCAL_MAC                  (48'h000000000000             )
+    .LOCAL_MAC                  (48'h000000000001             )
 ) look_up_mng_inst (    
     .i_clk                      (i_clk                        ),
     .i_rst                      (i_rst                        ),
-    /*------------------------------- KEYä»²è£ç»“æœè¾“å…¥ --------------------*/
+    /*------------------------------- KEYÖÙ²Ã½á¹ûÊäÈë --------------------*/
     .i_vlan_id                  (w_vlan_id                    ), 
     .i_dmac_port                (w_dmac_port                  ),
     .i_dmac_hash_key            (w_dmac_hash_key              ),
@@ -419,11 +461,11 @@ look_up_mng #(
     .o_tx_port                  (w_tx_port                    ), 
     .o_tx_port_vld              (w_tx_port_vld                ), 
     .o_tx_port_broadcast        (w_tx_port_broadcast          ),
-    /*----------------------------- SMAC è¡¨è¯»å†™æ¥å£ ------------------------*/         
+    /*----------------------------- SMAC ±í¶ÁĞ´½Ó?? ------------------------*/         
     .o_dmac                     (w_lookup_dmac_out            ), 
     .o_vlan_id                  (w_lookup_vlan_id             ),
     .o_dmac_vld                 (w_lookup_dmac_vld_out        ), 
-    /*----------------------------- DMAC è¡¨è¯»å†™æ¥å£ ------------------------*/
+    /*----------------------------- DMAC ±í¶ÁĞ´½Ó?? ------------------------*/
     .o_dmac_item_vlan_id        (w_dmac_item_vlan_id          ),
     .o_dmac_item_dmac_addr      (w_dmac_item_dmac_addr        ), 
     .o_dmac_item_dmac_addr_vld  (w_dmac_item_dmac_addr_vld    ), 
@@ -432,7 +474,7 @@ look_up_mng #(
     .o_dmac_item_smac_addr_vld  (w_dmac_item_smac_addr_vld    ), 
     .o_dmac_item_smac           (w_dmac_item_smac_in          ), 
     .o_dmac_item_mac_rx_port    (w_dmac_item_mac_rx_port      ), 
-    /*----------------------------- å“ˆå¸Œå†²çªè¡¨è¯»å†™æ¥å£ -----------------------*/
+    /*----------------------------- ¹şÏ£³åÍ»±í¶ÁĞ´½Ó?? -----------------------*/
     .o_clash_item_vlan_id       (w_clash_item_vlan_id         ),
     .o_clash_item_dmac_addr     (w_clash_item_dmac_addr       ), 
     .o_clash_item_dmac_addr_vld (w_clash_item_dmac_addr_vld   ), 
@@ -441,7 +483,7 @@ look_up_mng #(
     .o_clash_item_smac_addr_vld (w_clash_item_smac_addr_vld   ), 
     .o_clash_item_smac          (w_clash_item_smac_in         ), 
     .o_clash_item_mac_rx_port   (w_clash_item_mac_rx_port     ), 
-    /*----------------------------- æŸ¥è¡¨çš„ç»“æœ ------------------------------*/
+    /*----------------------------- ²é±íµÄ½á?? ------------------------------*/
     .i_smac_tx_port_rslt        (w_smac_tx_port_rslt          ), 
     .i_smac_tx_port_vld         (w_smac_tx_port_vld           ), 
 
@@ -453,38 +495,7 @@ look_up_mng #(
     .i_clash_tx_port_vld        (w_clash_tx_port_vld          )  
 );
 
-// é™æ€MACè¡¨ï¼Œå­˜ç»„æ’­
-smac_mng #(
-    .DATA_WIDTH                 (VLAN_ID_WIDTH+MAC_ADDR_WIDTH ),
-    .STATIC_RAM_SIZE            (STATIC_RAM_SIZE              ),
-    .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH           ),
-    .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH           )
-) smac_mng_inst (    
-    .i_sys_clk                  (i_clk                        ),
-    .i_sys_rst                  (i_rst                        ),
-    
-    // reg port    
-    .i_ram_reg_bus_we           (i_switch_reg_bus_we          ), 
-    .i_ram_reg_bus_we_addr      (i_switch_reg_bus_we_addr     ),
-    .i_ram_reg_bus_we_din       (i_switch_reg_bus_we_din      ),
-    .i_ram_reg_bus_we_din_v     (i_switch_reg_bus_we_din_v    ),
-    
-    .i_ram_reg_bus_rd           (i_switch_reg_bus_rd          ),
-    .i_ram_reg_bus_rd_addr      (i_switch_reg_bus_rd_addr     ),
-    .o_ram_reg_bus_we_din       (o_switch_reg_bus_we_dout     ),
-    .o_ram_reg_bus_we_din_v     (o_switch_reg_bus_we_dout_v   ),
-    
-    // input data port    
-    .i_vlan_id                  (w_vlan_id                    ),
-    .i_query_data               (w_lookup_dmac_out            ), 
-    .i_query_valid              (w_lookup_dmac_vld_out        ),
-    
-    // output data port    
-    .o_port_vector              (w_smac_tx_port_rslt          ),
-    .o_port_vector_valid        (w_smac_tx_port_vld           )
-);
-
-// åŠ¨æ€MACè¡¨æŸ¥è¡¨ï¼Œè‡ªè¡Œå­¦ä¹ MACè¡¨ï¼Œæ”¯æŒè€åŒ–åŠŸèƒ½
+// ¶¯???MAC±í²é±í£¬×ÔĞĞÑ§Ï°MAC±í£¬Ö§³ÖÀÏ»¯¹¦ÄÜ
 dmac_mng #(
     .PORT_NUM                   (PORT_NUM                   ),
     .HASH_DATA_WIDTH            (HASH_DATA_WIDTH            ),
@@ -496,58 +507,152 @@ dmac_mng #(
     .i_clk                      (i_clk                      ),
     .i_rst                      (i_rst                      ),
     // reg write
-    .i_reg_bus_we               (i_switch_reg_bus_we        ), 
-    .i_reg_bus_addr             (i_switch_reg_bus_we_addr   ), 
-    .i_reg_bus_data             (i_switch_reg_bus_we_din    ), 
-    .i_reg_bus_data_vld         (i_switch_reg_bus_we_din_v  ),
+    //.i_reg_bus_we               (i_switch_reg_bus_we        ), 
+    //.i_reg_bus_addr             (i_switch_reg_bus_we_addr   ), 
+    //.i_reg_bus_data             (i_switch_reg_bus_we_din    ), 
+    //.i_reg_bus_data_vld         (i_switch_reg_bus_we_din_v  ),
     // reg read
-    .i_reg_bus_re               (i_switch_reg_bus_rd        ), 
-    .i_reg_bus_raddr            (i_switch_reg_bus_rd_addr   ), 
-    .o_reg_bus_rdata            (o_switch_reg_bus_we_dout   ), 
-    .o_reg_bus_rdata_vld        (o_switch_reg_bus_we_dout_v ),
+    //.i_reg_bus_re               (i_switch_reg_bus_rd        ), 
+    //.i_reg_bus_raddr            (i_switch_reg_bus_rd_addr   ), 
+    //.o_reg_bus_rdata            (o_switch_reg_bus_rd_dout   ), 
+    //.o_reg_bus_rdata_vld        (o_switch_reg_bus_rd_dout_v ),
     // DMAC/SMAC lookup
     .i_vlan_id                  (w_dmac_item_vlan_id        ), 
-    .i_dmac                     (w_dmac_item_dmac_addr      ),   
-    .i_dmac_hash_addr           (w_dmac_item_dmac_addr_vld  ),   
-    .i_dmac_hash_vld            (w_dmac_item_dmac_in        ),   
-    .i_smac                     (w_dmac_item_smac_addr      ),   
-    .i_smac_hash_addr           (w_dmac_item_smac_addr_vld  ),   
-    .i_smac_hash_vld            (w_dmac_item_smac_in        ),   
+    .i_dmac                     (w_dmac_item_dmac_in        ),   
+    .i_dmac_hash_addr           (w_dmac_item_dmac_addr      ),   
+    .i_dmac_hash_vld            (w_dmac_item_dmac_addr_vld  ),   
+    .i_smac                     (w_dmac_item_smac_in        ),   
+    .i_smac_hash_addr           (w_dmac_item_smac_addr      ),  
+    .i_smac_hash_vld            (w_dmac_item_smac_addr_vld  ),   
     .i_rx_port                  (w_dmac_item_mac_rx_port    ),   
     // lookup output
     .o_dmac_lookup_vld          (w_dmac_find_out_en         ),              
     .o_dmac_tx_port             (w_dmac_find_rslt           ),            
     .o_dmac_lookup_hit          (                           ),         
     .o_lookup_clash             (w_dmac_find_out_clash      ), 
-    .o_table_full               (                           )
+    .o_table_full               (                           ),
+    // ¼Ä´æ??
+    .i_table_clear_req          (w_table_clear_req          ),
+    .i_age_time_threshold       (w_age_time_threshold       ),
+    .i_table_rd                 (w_table_rd                 ),
+    .i_table_raddr              (w_table_raddr              ),
+    .i_table_full_threshold     (w_table_full_threshold     ),
+    .i_age_scan_interval        (w_age_scan_interval        ),
+    .o_mac_table_addr           (w_mac_table_addr           ),
+    .o_fsm_cur_state            (w_fsm_cur_state            ),
+    .o_dmac_list_dout           (w_dmac_list_dout           ),
+    .o_dmac_list_cnt            (w_dmac_list_cnt            ),
+    .o_dmac_list_full_er_stat   (w_dmac_list_full_er_stat   ),
+    .o_dmac_list_full_er_cnt    (w_dmac_list_full_er_cnt    ),
+    .o_table_entry_cnt          (w_table_entry_cnt          ),
+    .o_learn_success_cnt        (w_learn_success_cnt        ),
+    .o_collision_cnt            (w_collision_cnt            ),
+    .o_port_move_cnt            (w_port_move_cnt            )
 );
-// HASHå†²çªè¡¨ å¦‚æœåŠ¨æ€MACè¡¨å‡ºç°å†²çªï¼Œåˆ™ä»¥å†²çªè¡¨çš„æŸ¥è¡¨ç»“æœä¸ºå‡† 
-clash_mac_mng #(
-    .DATA_WIDTH                 (VLAN_ID_WIDTH+MAC_ADDR_WIDTH ),
-    .STATIC_RAM_SIZE            (STATIC_RAM_SIZE              ),
-    .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH           ),
-    .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH           )
-) clash_mac_mng_inst (
-    .i_sys_clk                  (i_clk                        ),
-    .i_sys_rst                  (i_rst                        ),
 
-    // reg port
-    .i_ram_reg_bus_we           (i_switch_reg_bus_we          ), 
-    .i_ram_reg_bus_we_addr      (i_switch_reg_bus_we_addr     ),
-    .i_ram_reg_bus_we_din       (i_switch_reg_bus_we_din      ),
-    .i_ram_reg_bus_we_din_v     (i_switch_reg_bus_we_din_v    ),
+/*---------------------------------------- swlist_regs Ä£¿éÀı»¯ -------------------------------------------*/
+swlist_regs #(
+    .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH         ),  // ¼Ä´æÆ÷µØ??Î»¿í
+    .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH         ),  // ¼Ä´æÆ÷Êı¾İÎ»??
+    .AGE_TIME_WIDTH             (AGE_TIME_WIDTH             ),  // ÀÏ»¯Ê±¼äÎ»¿í
+    .TABLE_FULL_THRESHOLD       (29491                      ),  // MAC±íÂúãĞ???
+    .AGE_SCAN_INTERVAL          (AGE_SCAN_INTERVAL          ),  // ÀÏ»¯É¨Ãè¼ä¸ô
+    .SIM_MODE                   (SIM_MODE                   )   // ·ÂÕæÄ£Ê½
+) u_swlist_regs (
+    .i_clk                      (i_clk                      ),  // 250MHzÊ±ÖÓ
+    .i_rst                      (i_rst                      ),  // ¸´Î»ĞÅºÅ
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú
+    .i_reg_bus_we               (i_switch_reg_bus_we        ),  // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    .i_reg_bus_addr             (i_switch_reg_bus_we_addr   ),  // ¼Ä´æÆ÷Ğ´µØÖ·
+    .i_reg_bus_data             (i_switch_reg_bus_we_din    ),  // ¼Ä´æÆ÷Ğ´Êı¾İ
+    .i_reg_bus_data_vld         (i_switch_reg_bus_we_din_v  ),  // ¼Ä´æÆ÷Ğ´Êı¾İÓĞĞ§
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú
+    .i_reg_bus_re               (i_switch_reg_bus_rd        ),  // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    .i_reg_bus_raddr            (i_switch_reg_bus_rd_addr   ),  // ¼Ä´æÆ÷¶ÁµØÖ·
+    .o_reg_bus_rdata            (o_switch_reg_bus_rd_dout   ),  // ¼Ä´æÆ÷¶ÁÊı¾İ(ÔİÊ±Ğü¿Õ)
+    .o_reg_bus_rdata_vld        (o_switch_reg_bus_rd_dout_v ),  // ¼Ä´æÆ÷¶ÁÊı¾İÓĞĞ§(ÔİÊ±Ğü¿Õ)
 
-    .i_ram_reg_bus_rd           (i_switch_reg_bus_rd          ),
-    .i_ram_reg_bus_rd_addr      (i_switch_reg_bus_rd_addr     ),
-    .o_ram_reg_bus_we_din       (o_switch_reg_bus_we_dout     ),
-    .o_ram_reg_bus_we_din_v     (o_switch_reg_bus_we_dout_v   ),
-
-    // input data port
-    .i_query_data               (w_clash_item_dmac_in          ), 
-    .i_query_valid              (w_clash_item_dmac_addr_vld    ),
-
-    // output data port
-    .o_port_vector              (w_clash_tx_port_rslt          ),
-    .o_port_vector_valid        (w_clash_tx_port_vld           )
+    // MAC±í¿ØÖÆĞÅ??
+    .i_mac_table_addr           (w_mac_table_addr           ),  // MAC±íµØ??
+    .i_fsm_cur_state            (w_fsm_cur_state            ),  // ×´???»úµ±Ç°×´???
+    .o_table_clear_req          (w_table_clear_req          ),  // ±íÇå¿ÕÇë??
+    .o_age_time_threshold       (w_age_time_threshold       ),  // ÀÏ»¯Ê±¼äãĞ???
+    .o_table_rd                 (w_table_rd                 ),  // ±í¶ÁÊ¹ÄÜ
+    .o_table_raddr              (w_table_raddr              ),  // ±í¶ÁµØÖ·
+    .o_table_full_threshold     (w_table_full_threshold     ),
+    .o_age_scan_interval        (w_age_scan_interval        ),
+    // MAC±í×´Ì¬ĞÅ??
+    .i_dmac_list_dout           (w_dmac_list_dout           ),  // DMAC±íÊä³öÊı??
+    .i_dmac_list_cnt            (w_dmac_list_cnt            ),  // DMAC±í¼Æ??
+    .i_dmac_list_full_er_stat   (w_dmac_list_full_er_stat   ),  // DMAC±íÂú´íÎó×´???
+    .i_dmac_list_full_er_cnt    (w_dmac_list_full_er_cnt    ),  // DMAC±íÂú´íÎó¼ÆÊı
+    .i_table_entry_cnt          (w_table_entry_cnt          ),  // MAC±íÏî¼ÆÊı
+    .i_learn_success_cnt        (w_learn_success_cnt        ),  // Ñ§Ï°³É¹¦¼ÆÊı
+    .i_collision_cnt            (w_collision_cnt            ),  // ¹şÏ£³åÍ»¼ÆÊı
+    .i_port_move_cnt            (w_port_move_cnt            )   // ¶Ë¿ÚÒÆ¶¯¼ÆÊı
 );
+
+
+// ¾²???MAC±í£¬´æ×é??
+// smac_mng #(
+//     .DATA_WIDTH                 (VLAN_ID_WIDTH+MAC_ADDR_WIDTH ),
+//     .STATIC_RAM_SIZE            (STATIC_RAM_SIZE              ),
+//     .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH           ),
+//     .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH           )
+// ) smac_mng_inst (    
+//     .i_sys_clk                  (i_clk                        ),
+//     .i_sys_rst                  (i_rst                        ),
+//     
+//     // reg port    
+//     .i_ram_reg_bus_we           (i_switch_reg_bus_we          ), 
+//     .i_ram_reg_bus_we_addr      (i_switch_reg_bus_we_addr     ),
+//     .i_ram_reg_bus_we_din       (i_switch_reg_bus_we_din      ),
+//     .i_ram_reg_bus_we_din_v     (i_switch_reg_bus_we_din_v    ),
+//     
+//     .i_ram_reg_bus_rd           (i_switch_reg_bus_rd          ),
+//     .i_ram_reg_bus_rd_addr      (i_switch_reg_bus_rd_addr     ),
+//     .o_ram_reg_bus_we_din       (o_switch_reg_bus_rd_dout     ),
+//     .o_ram_reg_bus_we_din_v     (o_switch_reg_bus_rd_dout_v   ),
+//     
+//     // input data port    
+//     .i_vlan_id                  (w_vlan_id                    ),
+//     .i_query_data               (w_lookup_dmac_out            ), 
+//     .i_query_valid              (w_lookup_dmac_vld_out        ),
+//     
+//     // output data port    
+//     .o_port_vector              (w_smac_tx_port_rslt          ),
+//     .o_port_vector_valid        (w_smac_tx_port_vld           )
+// );
+
+
+// HASH³åÍ»?? Èç¹û¶¯???MAC±í³öÏÖ³åÍ»£¬ÔòÒÔ³åÍ»±íµÄ²é±í½á¹ûÎª×¼ 
+// clash_mac_mng #(
+//     .DATA_WIDTH                 (VLAN_ID_WIDTH+MAC_ADDR_WIDTH ),
+//     .STATIC_RAM_SIZE            (STATIC_RAM_SIZE              ),
+//     .REG_ADDR_BUS_WIDTH         (REG_ADDR_BUS_WIDTH           ),
+//     .REG_DATA_BUS_WIDTH         (REG_DATA_BUS_WIDTH           )
+// ) clash_mac_mng_inst (
+//     .i_sys_clk                  (i_clk                        ),
+//     .i_sys_rst                  (i_rst                        ),
+// 
+//     // reg port
+//     .i_ram_reg_bus_we           (i_switch_reg_bus_we          ), 
+//     .i_ram_reg_bus_we_addr      (i_switch_reg_bus_we_addr     ),
+//     .i_ram_reg_bus_we_din       (i_switch_reg_bus_we_din      ),
+//     .i_ram_reg_bus_we_din_v     (i_switch_reg_bus_we_din_v    ),
+// 
+//     .i_ram_reg_bus_rd           (i_switch_reg_bus_rd          ),
+//     .i_ram_reg_bus_rd_addr      (i_switch_reg_bus_rd_addr     ),
+//     .o_ram_reg_bus_we_din       (o_switch_reg_bus_rd_dout     ),
+//     .o_ram_reg_bus_we_din_v     (o_switch_reg_bus_rd_dout_v   ),
+// 
+//     // input data port
+//     .i_query_data               (w_clash_item_dmac_in          ), 
+//     .i_query_valid              (w_clash_item_dmac_addr_vld    ),
+// 
+//     // output data port
+//     .o_port_vector              (w_clash_tx_port_rslt          ),
+//     .o_port_vector_valid        (w_clash_tx_port_vld           )
+// );
+
 endmodule

@@ -1,419 +1,1408 @@
-module rx_port_reg#(
-    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨åœ°å€ä½å®½
-    parameter                                                   REG_DATA_BUS_WIDTH      =      16         // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨æ•°æ®ä½å®½
+`define CPU_MAC
+`define MAC1
+`define MAC2
+`define MAC3
+`define MAC4
+`define MAC5
+`define MAC6
+`define MAC7
+module rx_mac_reg#(
+    parameter                                                   PORT_NUM                =      8        ,  // ½»»»»úµÄ¶Ë¿ÚÊı
+    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØÖ·Î»¿í
+    parameter                                                   REG_DATA_BUS_WIDTH      =      32         // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êı¾İÎ»¿í
 )(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,
-    /*---------------------------------------- å¹³å°å¯„å­˜å™¨è¾“å…¥ä¸ RXMAC ç›¸å…³çš„å¯„å­˜å™¨ -------------------------------------------*/
+    /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
 `ifdef CPU_MAC
-    output              wire   [15:0]                           o_hash_ploy_regs_0                  , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_0              , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_0                  , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_0              , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_0                   ,
-    output              wire                                    o_port_rxmac_down_regs_0            , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_0        , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_0        , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_0         , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_0                   , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_0               , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_0                   , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_0           , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_0          , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_0  , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_0                     , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_0                , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_0                , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_0                , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_0              , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_0                , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_0                 , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_0               , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_0           , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_0                  , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_0           , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_0           , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_0               , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_0         , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_0          , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_0          , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_0                 , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_0                ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_0            , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_0        , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_0        , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_0         , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_0                   , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_0               , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_0                   , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_0           , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_0          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_0  , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æÆ÷
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_0                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_0                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_0                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_0                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_0              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_0                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_0                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_0               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_0           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_0                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_0                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_0                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_0             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_0        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_0   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_0          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_0            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_0                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_0           , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_0           , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_0               , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_0         , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_0          , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_0          , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_0                 , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_0                ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_0                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_0                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_0             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_0                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_0                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_0                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_0                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_0                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_0                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_0                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_0                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_0             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_0                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_0                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_0                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_0                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_0                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_0                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_0                            ,
 `endif
 `ifdef MAC1
-    output              wire   [15:0]                           o_hash_ploy_regs_1                  , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_1              , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_1                  , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_1              , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_1                   ,
-    output              wire                                    o_port_rxmac_down_regs_1            , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_1        , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_1        , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_1         , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_1                   , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_1               , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_1                   , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_1           , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_1          , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_1  , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_1                     , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_1                , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_1                , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_1                , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_1              , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_1                , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_1                 , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_1               , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_1           , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_1                  , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_1           , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_1           , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_1               , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_1         , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_1          , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_1          , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_1                 , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_1                , // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_1            , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_1        , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_1        , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_1         , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_1                   , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_1               , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_1                   , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_1           , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_1          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_1  , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_1                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_1                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_1                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_1                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_1              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_1                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_1                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_1               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_1           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_1                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_1                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_1                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_1             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_1        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_1   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_1          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_1            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_1                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_1           , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_1           , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_1               , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_1         , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_1          , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_1          , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_1                 , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_1                , // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_1                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_1                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_1             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_1                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_1                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_1                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_1                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_1                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_1                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_1                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_1                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_1             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_1                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_1                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_1                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_1                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_1                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_1                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_1                            ,
 `endif
 `ifdef MAC2
-    output              wire   [15:0]                           o_hash_ploy_regs_2                  , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_2              , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_2                  , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_2              , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_2                   ,
-    output              wire                                    o_port_rxmac_down_regs_2            , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_2        , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_2        , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_2         , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_2                   , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_2               , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_2                   , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_2           , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_2          , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_2  , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_2                     , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_2                , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_2                , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_2                , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_2              , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_2                , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_2                 , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_2               , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_2           , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_2                  , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_2           , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_2           , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_2               , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_2         , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_2          , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_2          , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_2                 , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_2                ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_2            , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_2        , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_2        , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_2         , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_2                   , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_2               , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_2                   , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_2           , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_2          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_2  , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_2                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_2                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_2                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_2                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_2              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_2                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_2                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_2               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_2           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_2                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_2                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_2                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_2             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_2        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_2   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_2          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_2            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_2                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_2           , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_2           , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_2               , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_2         , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_2          , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_2          , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_2                 , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_2                ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ 
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_2                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_2                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_2             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_2                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_2                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_2                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_2                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_2                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_2                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_2                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_2                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_2             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_2                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_2                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_2                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_2                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_2                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_2                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_2                            ,
 `endif
 `ifdef MAC3
-    output              wire   [15:0]                           o_hash_ploy_regs_3                 , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_3             , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_3                 , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_3             , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_3                  ,
-    output              wire                                    o_port_rxmac_down_regs_3           , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_3       , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_3       , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_3        , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_3                  , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_3              , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_3                  , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_3          , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_3         , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_3 , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_3                    , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_3               , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_3               , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_3               , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_3             , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_3               , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_3                , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_3              , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_3          , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_3                 , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_3          , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_3          , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_3              , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_3        , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_3         , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_3         , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_3                , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_3               ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_3           , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_3       , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_3       , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_3        , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_3                  , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_3              , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_3                  , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_3          , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_3         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_3 , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_3                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_3               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_3               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_3               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_3             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_3               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_3                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_3              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_3          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_3                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_3                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_3                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_3             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_3        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_3   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_3          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_3            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_3                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_3          , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_3          , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_3              , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_3        , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_3         , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_3         , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_3                , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_3               ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ 
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_3                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_3                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_3             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_3                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_3                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_3                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_3                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_3                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_3                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_3                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_3                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_3             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_3                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_3                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_3                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_3                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_3                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_3                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_3                            ,
 `endif
 `ifdef MAC4
-    output              wire   [15:0]                           o_hash_ploy_regs_4                 , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_4             , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_4                 , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_4             , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_4                  ,
-    output              wire                                    o_port_rxmac_down_regs_4           , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_4       , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_4       , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_4        , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_4                  , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_4              , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_4                  , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_4          , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_4         , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_4 , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_4                    , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_4               , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_4               , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_4               , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_4             , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_4               , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_4                , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_4              , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_4          , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_4                 , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_4          , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_4          , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_4              , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_4        , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_4         , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_4         , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_4                , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_4               ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_4           , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_4       , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_4       , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_4        , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_4                  , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_4              , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_4                  , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_4          , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_4         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_4 , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_4                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_4               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_4               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_4               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_4             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_4               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_4                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_4              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_4          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_4                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_4                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_4                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_4             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_4        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_4   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_4          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_4            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_4                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_4          , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_4          , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_4              , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_4        , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_4         , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_4         , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_4                , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_4               ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_4                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_4                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_4             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_4                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_4                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_4                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_4                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_4                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_4                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_4                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_4                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_4             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_4                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_4                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_4                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_4                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_4                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_4                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_4                            ,
 `endif
 `ifdef MAC5
-    output              wire   [15:0]                           o_hash_ploy_regs_5                 , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_5             , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_5                 , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_5             , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_5                  ,
-    output              wire                                    o_port_rxmac_down_regs_5           , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_5       , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_5       , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_5        , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_5                  , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_5              , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_5                  , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_5          , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_5         , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_5 , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_5                    , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_5               , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_5               , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_5               , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_5             , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_5               , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_5                , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_5              , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_5          , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_5                 , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_5          , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_5          , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_5              , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_5        , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_5         , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_5         , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_5                , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_5               ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_5           , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_5       , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_5       , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_5        , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_5                  , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_5              , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_5                  , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_5          , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_5         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_5 , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_5                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_5               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_5               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_5               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_5             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_5               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_5                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_5              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_5          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_5                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_5                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_5                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_5             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_5        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_5   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_5          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_5            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_5                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_5          , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_5          , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_5              , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_5        , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_5         , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_5         , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_5                , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_5               ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_5                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_5                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_5             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_5                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_5                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_5                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_5                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_5                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_5                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_5                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_5                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_5             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_5                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_5                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_5                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_5                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_5                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_5                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_5                            ,
 `endif
 `ifdef MAC6
-    output              wire   [15:0]                           o_hash_ploy_regs_6                 , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_6             , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_6                 , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_6             , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_6                  ,
-    output              wire                                    o_port_rxmac_down_regs_6           , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_6       , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_6       , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_6        , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_6                  , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_6              , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_6                  , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_6          , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_6         , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_6 , // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_6                    , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_6               , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_6               , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_6               , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_6             , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_6               , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_6                , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_6              , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_6          , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_6                 , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_6          , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_6          , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_6              , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_6        , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_6         , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_6         , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_6                , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_6               ,  // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_6           , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_6       , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_6       , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_6        , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_6                  , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_6              , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_6                  , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_6          , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_6         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_6 , // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_6                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_6               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_6               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_6               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_6             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_6               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_6                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_6              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_6          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_6                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_6                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_6                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_6             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_6        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_6   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_6          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_6            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_6                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_6          , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_6          , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_6              , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_6        , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷?
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_6         , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_6         , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷?
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_6                , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_6               ,  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_6                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_6                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_6             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_6                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_6                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_6                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_6                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_6                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_6                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_6                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_6                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_6             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_6                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_6                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_6                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_6                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_6                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_6                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_6                            ,
 `endif
 `ifdef MAC7
-    output              wire   [15:0]                           o_hash_ploy_regs_7                , // å“ˆå¸Œå¤šé¡¹å¼
-    output              wire   [15:0]                           o_hash_init_val_regs_7            , // å“ˆå¸Œå¤šé¡¹å¼åˆå§‹å€¼
+    output              wire   [15:0]                           o_hash_ploy_regs_7                , // ¹şÏ£¶àÏîÊ½
+    output              wire   [15:0]                           o_hash_init_val_regs_7            , // ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
     output              wire                                    o_hash_regs_vld_7                 ,
-    output              wire                                    o_port_rxmac_down_regs_7          , // ç«¯å£æ¥æ”¶æ–¹å‘MACå…³é—­ä½¿èƒ½
-    output              wire                                    o_port_broadcast_drop_regs_7      , // ç«¯å£å¹¿æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_multicast_drop_regs_7      , // ç«¯å£ç»„æ’­å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire                                    o_port_loopback_drop_regs_7       , // ç«¯å£ç¯å›å¸§ä¸¢å¼ƒä½¿èƒ½
-    output              wire   [47:0]                           o_port_mac_regs_7                 , // ç«¯å£çš„ MAC åœ°å€
-    output              wire                                    o_port_mac_vld_regs_7             , // ä½¿èƒ½ç«¯å£ MAC åœ°å€æœ‰æ•ˆ
-    output              wire   [7:0]                            o_port_mtu_regs_7                 , // MTUé…ç½®å€¼
-    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_7         , // é•œåƒè½¬å‘å¯„å­˜å™¨ï¼Œè‹¥å¯¹åº”çš„ç«¯å£ç½®1ï¼Œåˆ™æœ¬ç«¯å£æ¥æ”¶åˆ°çš„ä»»ä½•è½¬å‘æ•°æ®å¸§å°†é•œåƒè½¬å‘å€¼è¢«ç½®1çš„ç«¯å£
-    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_7        , // é™æµç®¡ç†é…ç½®
-    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_7, // å¸§é—´éš”
-    // ACL å¯„å­˜
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_7                   , // é€‰æ‹©è¦é…ç½®çš„ç«¯å£
-    output              wire                                    o_acl_clr_list_regs_7              , // æ¸…ç©ºå¯„å­˜å™¨åˆ—è¡¨
-    input               wire                                    i_acl_list_rdy_regs_7              , // é…ç½®å¯„å­˜å™¨æ“ä½œç©ºé—²
-    output              wire   [4:0]                            o_acl_item_sel_regs_7              , // é…ç½®æ¡ç›®é€‰æ‹©
-    output              wire   [5:0]                            o_acl_item_waddr_regs_7            , // æ¯ä¸ªæ¡ç›®æœ€å¤§æ”¯æŒæ¯”å¯¹ 64 å­—èŠ‚
-    output              wire   [7:0]                            o_acl_item_din_regs_7              , // éœ€è¦æ¯”è¾ƒçš„å­—èŠ‚æ•°æ®
-    output              wire                                    o_acl_item_we_regs_7               , // é…ç½®ä½¿èƒ½ä¿¡å·
-    output              wire   [15:0]                           o_acl_item_rslt_regs_7             , // åŒ¹é…çš„ç»“æœå€¼ - [7:0] è¾“å‡ºå¸§ç±»å‹, [15:8] ACLè½¬å‘æŒ‡å®šç«¯å£
-    output              wire                                    o_acl_item_complete_regs_7         , // ç«¯å£ ACL å‚æ•°é…ç½®å®Œæˆä½¿èƒ½ä¿¡å·
-    // çŠ¶æ€å¯„å­˜å™¨
-    input              wire   [15:0]                            i_port_diag_state_7                , // ç«¯å£çŠ¶æ€å¯„å­˜å™¨ï¼Œè¯¦æƒ…è§å¯„å­˜å™¨è¡¨è¯´æ˜å®šä¹‰ 
-    // è¯Šæ–­å¯„å­˜å™¨
-    input              wire                                     i_port_rx_ultrashort_frm_7         , // ç«¯å£æ¥æ”¶è¶…çŸ­å¸§(å°äº64å­—èŠ‚)
-    input              wire                                     i_port_rx_overlength_frm_7         , // ç«¯å£æ¥æ”¶è¶…é•¿å¸§(å¤§äºMTUå­—èŠ‚)
-    input              wire                                     i_port_rx_crcerr_frm_7             , // ç«¯å£æ¥æ”¶CRCé”™è¯¯å¸§
-    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_7       , // ç«¯å£æ¥æ”¶ç¯å›å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_broadflow_drop_cnt_7        , // ç«¯å£æ¥æ”¶åˆ°å¹¿æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_multiflow_drop_cnt_7        , // ç«¯å£æ¥æ”¶åˆ°ç»„æ’­é™æµè€Œä¸¢å¼ƒçš„å¸§è®¡æ•°å™¨å€¼
-    // æµé‡ç»Ÿè®¡å¯„å­˜å™¨
-    input              wire  [15:0]                             i_port_rx_byte_cnt_7               , // ç«¯å£0æ¥æ”¶å­—èŠ‚ä¸ªæ•°è®¡æ•°å™¨å€¼
-    input              wire  [15:0]                             i_port_rx_frame_cnt_7              , // ç«¯å£0æ¥æ”¶å¸§ä¸ªæ•°è®¡æ•°å™¨å€¼  
+    output              wire                                    o_port_rxmac_down_regs_7          , // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+    output              wire                                    o_port_broadcast_drop_regs_7      , // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_multicast_drop_regs_7      , // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+    output              wire                                    o_port_loopback_drop_regs_7       , // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+    output              wire   [47:0]                           o_port_mac_regs_7                 , // ¶Ë¿ÚµÄ MAC µØÖ·
+    output              wire                                    o_port_mac_vld_regs_7             , // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+    output              wire   [7:0]                            o_port_mtu_regs_7                 , // MTUÅäÖÃÖµ
+    output              wire   [PORT_NUM-1:0]                   o_port_mirror_frwd_regs_7         , // ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+    output              wire   [15:0]                           o_port_flowctrl_cfg_regs_7        , // ÏŞÁ÷¹ÜÀíÅäÖÃ
+    output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_7, // Ö¡¼ä¸ô
+    // ACL ¼Ä´æ
+    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_7                   , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire                                    o_acl_clr_list_regs_7              , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+    input               wire                                    i_acl_list_rdy_regs_7              , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
+    output              wire   [4:0]                            o_acl_item_sel_regs_7              , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    //output              wire   [5:0]                            o_acl_item_waddr_regs_7            , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+    //output              wire   [7:0]                            o_acl_item_din_regs_7              , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+    //output              wire                                    o_acl_item_we_regs_7               , // ÅäÖÃÊ¹ÄÜĞÅºÅ
+    //output              wire   [15:0]                           o_acl_item_rslt_regs_7             , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+    //output              wire                                    o_acl_item_complete_regs_7         , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+    output              wire   [95:0]                           o_acl_item_dmac_code_7                ,
+    output              wire   [95:0]                           o_acl_item_smac_code_7                ,
+    output              wire   [63:0]                           o_acl_item_vlan_code_7                ,
+    output              wire   [31:0]                           o_acl_item_ethtype_code_7             ,
+    output              wire   [5:0]                            o_acl_item_action_pass_state_7        ,
+    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_7   ,
+    output              wire   [5:0]                            o_acl_item_action_flowctrl_7          ,
+    output              wire   [15:0]                           o_acl_item_action_txport_7            ,
+    // ×´Ì¬¼Ä´æÆ÷
+    input              wire   [15:0]                            i_port_diag_state_7                , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
+    // Õï¶Ï¼Ä´æÆ÷
+    input              wire                                     i_port_rx_ultrashort_frm_7         , // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ğ¡ÓÚ64×Ö½Ú)
+    input              wire                                     i_port_rx_overlength_frm_7         , // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
+    input              wire                                     i_port_rx_crcerr_frm_7             , // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
+    input              wire  [15:0]                             i_port_rx_loopback_frm_cnt_7       , // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_broadflow_drop_cnt_7        , // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_multiflow_drop_cnt_7        , // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏŞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊıÆ÷?
+    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
+    input              wire  [15:0]                             i_port_rx_byte_cnt_7               , // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊı¼ÆÊıÆ÷Öµ
+    input              wire  [15:0]                             i_port_rx_frame_cnt_7              , // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊı¼ÆÊıÆ÷Öµ  
 
-    //qbu_rxå¯„å­˜å™¨  
-    input              wire                                     i_rx_busy_7                          , // æ¥æ”¶å¿™ä¿¡å·
-    input              wire  [15:0]                             i_rx_fragment_cnt_7                  , // æ¥æ”¶åˆ†ç‰‡è®¡æ•°
-    input              wire                                     i_rx_fragment_mismatch_7             , // åˆ†ç‰‡ä¸åŒ¹é…
-    input              wire  [15:0]                             i_err_rx_crc_cnt_7                   , // CRCé”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_rx_frame_cnt_7                 , // å¸§é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_err_fragment_cnt_7                 , // åˆ†ç‰‡é”™è¯¯è®¡æ•°
-    input              wire  [15:0]                             i_rx_frames_cnt_7                    , // æ¥æ”¶å¸§è®¡æ•°
-    input              wire  [7:0]                              i_frag_next_rx_7                     , // ä¸‹ä¸€ä¸ªåˆ†ç‰‡å·
-    input              wire  [7:0]                              i_frame_seq_7                        , // å¸§åºå·
-    
+    //qbu_rx¼Ä´æÆ÷  
+    input              wire                                     i_rx_busy_7                          , // ½ÓÊÕÃ¦ĞÅºÅ
+    input              wire  [15:0]                             i_rx_fragment_cnt_7                  , // ½ÓÊÕ·ÖÆ¬¼ÆÊı
+    input              wire                                     i_rx_fragment_mismatch_7             , // ·ÖÆ¬²»Æ¥Åä
+    input              wire  [15:0]                             i_err_rx_crc_cnt_7                   , // CRC´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_rx_frame_cnt_7                 , // Ö¡´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_err_fragment_cnt_7                 , // ·ÖÆ¬´íÎó¼ÆÊı
+    input              wire  [15:0]                             i_rx_frames_cnt_7                    , // ½ÓÊÕÖ¡¼ÆÊı
+    input              wire  [7:0]                              i_frag_next_rx_7                     , // ÏÂÒ»¸ö·ÖÆ¬ºÅ
+    input              wire  [7:0]                              i_frame_seq_7                        , // Ö¡ĞòºÅ
+    output             wire                                     o_reset_7                            ,
 `endif
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ -------------------------------------------*/
-    // å¯„å­˜å™¨æ§åˆ¶ä¿¡å·                     
-    output              wire                                    o_refresh_list_pulse                , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    output              wire                                    o_switch_err_cnt_clr                , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    output              wire                                    o_switch_err_cnt_stat               , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    output             wire                                     o_switch_reg_bus_we                 , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    output             wire   [REG_ADDR_BUS_WIDTH-1:0]          o_switch_reg_bus_we_addr            , // å¯„å­˜å™¨å†™åœ°å€
-    output             wire   [REG_DATA_BUS_WIDTH-1:0]          o_switch_reg_bus_we_din             , // å¯„å­˜å™¨å†™æ•°æ®
-    output             wire                                     o_switch_reg_bus_we_din_v           , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£     
-    output             wire                                     o_switch_reg_bus_rd                 , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    output             wire   [REG_ADDR_BUS_WIDTH-1:0]          o_switch_reg_bus_rd_addr            , // å¯„å­˜å™¨è¯»åœ°å€
-    input              wire   [REG_DATA_BUS_WIDTH-1:0]          i_switch_reg_bus_rd_dout            , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    input              wire                                     i_switch_reg_bus_rd_dout_v           // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú -------------------------------------------*/
+    // ¼Ä´æÆ÷¿ØÖÆĞÅºÅ                     
+    input              wire                                     i_refresh_list_pulse                , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+    input              wire                                     i_switch_err_cnt_clr                , // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+    input              wire                                     i_switch_err_cnt_stat               , // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    input              wire                                     i_switch_reg_bus_we                 , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    input              wire   [REG_ADDR_BUS_WIDTH-1:0]          i_switch_reg_bus_we_addr            , // ¼Ä´æÆ÷Ğ´µØÖ·
+    input              wire   [REG_DATA_BUS_WIDTH-1:0]          i_switch_reg_bus_we_din             , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    input              wire                                     i_switch_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    input              wire                                     i_switch_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    input              wire   [REG_ADDR_BUS_WIDTH-1:0]          i_switch_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
+    output             wire   [REG_DATA_BUS_WIDTH-1:0]          o_switch_reg_bus_rd_dout            , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    output             wire                                     o_switch_reg_bus_rd_dout_v           // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
 );
 
+/*---------------------------------------- RXMAC¼Ä´æÆ÷µØÖ·¶¨Òå -------------------------------------------*/
+localparam  REG_HASH_PLOY                   		=   8'h00                   ;
+localparam  REG_HASH_INIT_VAL               		=   8'h01                   ;
+localparam  REG_PORT_RXMAC_DOWN            	 		=   8'h02                   ;
+localparam  REG_PORT_ACL_ENABLE             		=	8'h03					;
+localparam  REG_PORT_BROADCAST_DROP         		=   8'h04					;
+localparam  REG_PORT_MULTICAST_DROP                 =   8'h05					;
+localparam  REG_PORT_LOOKBACK_DROP                  =   8'h06					;
+localparam  REG_PORT_FORCE_RECAL_CRC                =   8'h07					;
+localparam  REG_PORT_FLOODFRM_DROP                  =   8'h08					;
+localparam  REG_PORT_MULTIFLOOD_DROP                =   8'h09					;
+localparam  REG_CFG_RXMAC_PORT_SEL                  =   8'h10					;
+localparam  REG_PORTMTU                             =   8'h11					;
+localparam  REG_PORTMAC0                            =   8'h12					;
+localparam  REG_PORTMAC1                            =   8'h13					;
+localparam  REG_PORTMAC2                            =   8'h14					;
+localparam  REG_PORTMAC_VALID                       =   8'h15					;
+localparam  REG_PORT_MIRROR_FRWD                    =   8'h16					;
+localparam  REG_PORT_FLOWCTRL_CFG                   =   8'h17					;
+localparam  REG_CFG_ACL_PORT_SEL                    =   8'h20					;
+localparam  REG_CFG_ACL_CLR_LIST                    =   8'h21					;
+localparam  REG_CFG_ACL_LIST_RDY                    =   8'h22					;
+localparam  REG_CFG_ACL_ITEM_SEL                    =   8'h23					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_1            =   8'h24					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_2            =   8'h25					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_3            =   8'h26					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_4            =   8'h27					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_5            =   8'h28					;
+localparam  REG_CFG_ACL_ITEM_DMAC_CODE_6            =   8'h29					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_1            =   8'h2A					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_2            =   8'h2B					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_3            =   8'h2C					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_4            =   8'h2D					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_5            =   8'h2E					;
+localparam  REG_CFG_ACL_ITEM_SMAC_CODE_6            =   8'h2F					;
+localparam  REG_CFG_ACL_ITEM_VLAN_CODE_1            =   8'h30					;
+localparam  REG_CFG_ACL_ITEM_VLAN_CODE_2            =   8'h31					;
+localparam  REG_CFG_ACL_ITEM_VLAN_CODE_3            =   8'h32					;
+localparam  REG_CFG_ACL_ITEM_VLAN_CODE_4            =   8'h33					;
+localparam  REG_CFG_ACL_ITEM_ETHTYPE_CODE_1         =   8'h34					;
+localparam  REG_CFG_ACL_ITEM_ETHTYPE_CODE_2         =   8'h35					;
+localparam  REG_CFG_ACL_ITEM_ACTION_PASS_STATE      =   8'h36					;
+localparam  REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE =   8'h37					;
+localparam  REG_CFG_ACL_ITEM_ACTION_FLOWCTRL		=   8'h38					;
+localparam  REG_CFG_ACL_ITEM_ACTION_TXPORT			=   8'h39					;																
+localparam  REG_PORT_RX_BYTE_CNT_0					=   8'h50					;
+localparam  REG_PORT_RX_FRAME_CNT_0                 =   8'h51					;
+localparam  REG_PORT_DIAG_STATE_0                   =   8'h52					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_0        =   8'h53					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_0        =   8'h54					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_0            =   8'h55					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_0          =   8'h56					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_0            =   8'h57					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_0           =   8'h58					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_0           =   8'h59					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_0           =   8'h5A					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_0         =   8'h5B					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_0       =   8'h5C					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_0    =   8'h5D					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_0        =   8'h5E					;
+localparam  REG_PORT_RX_BYTE_CNT_1					=   8'h60					;
+localparam  REG_PORT_RX_FRAME_CNT_1                 =   8'h61					;
+localparam  REG_PORT_DIAG_STATE_1                   =   8'h62					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_1        =   8'h63					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_1        =   8'h64					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_1            =   8'h65					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_1          =   8'h66					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_1            =   8'h67					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_1           =   8'h68					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_1           =   8'h69					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_1           =   8'h6A					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_1         =   8'h6B					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_1       =   8'h6C					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_1    =   8'h6D					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_1        =   8'h6E					;
+localparam  REG_PORT_RX_BYTE_CNT_2					=   8'h70					;
+localparam  REG_PORT_RX_FRAME_CNT_2                 =   8'h71					;
+localparam  REG_PORT_DIAG_STATE_2                   =   8'h72					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_2        =   8'h73					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_2        =   8'h74					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_2            =   8'h75					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_2          =   8'h76					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_2            =   8'h77					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_2           =   8'h78					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_2           =   8'h79					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_2           =   8'h7A					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_2         =   8'h7B					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_2       =   8'h7C					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_2    =   8'h7D					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_2        =   8'h7E					;
+localparam  REG_PORT_RX_BYTE_CNT_3					=   8'h80					;
+localparam  REG_PORT_RX_FRAME_CNT_3                 =   8'h81					;
+localparam  REG_PORT_DIAG_STATE_3                   =   8'h82					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_3        =   8'h83					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_3        =   8'h84					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_3            =   8'h85					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_3          =   8'h86					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_3            =   8'h87					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_3           =   8'h88					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_3           =   8'h89					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_3           =   8'h8A					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_3         =   8'h8B					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_3       =   8'h8C					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_3    =   8'h8D					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_3        =   8'h8E					;
+localparam  REG_PORT_RX_BYTE_CNT_4					=   8'h90					;
+localparam  REG_PORT_RX_FRAME_CNT_4                 =   8'h91					;
+localparam  REG_PORT_DIAG_STATE_4                   =   8'h92					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_4        =   8'h93					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_4        =   8'h94					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_4            =   8'h95					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_4          =   8'h96					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_4            =   8'h97					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_4           =   8'h98					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_4           =   8'h99					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_4           =   8'h9A					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_4         =   8'h9B					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_4       =   8'h9C					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_4    =   8'h9D					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_4        =   8'h9E					;    
+localparam  REG_PORT_RX_BYTE_CNT_5					=   8'hA0					;
+localparam  REG_PORT_RX_FRAME_CNT_5                 =   8'hA1					;
+localparam  REG_PORT_DIAG_STATE_5                   =   8'hA2					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_5        =   8'hA3					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_5        =   8'hA4					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_5            =   8'hA5					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_5          =   8'hA6					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_5            =   8'hA7					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_5           =   8'hA8					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_5           =   8'hA9					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_5           =   8'hAA					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_5         =   8'hAB					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_5       =   8'hAC					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_5    =   8'hAD					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_5        =   8'hAE					;
+localparam  REG_PORT_RX_BYTE_CNT_6					=   8'hB0					;
+localparam  REG_PORT_RX_FRAME_CNT_6                 =   8'hB1					;
+localparam  REG_PORT_DIAG_STATE_6                   =   8'hB2					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_6        =   8'hB3					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_6        =   8'hB4					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_6            =   8'hB5					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_6          =   8'hB6					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_6            =   8'hB7					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_6           =   8'hB8					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_6           =   8'hB9					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_6           =   8'hBA					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_6         =   8'hBB					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_6       =   8'hBC					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_6    =   8'hBD					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_6        =   8'hBE					;
+localparam  REG_PORT_RX_BYTE_CNT_7					=   8'hC0					;
+localparam  REG_PORT_RX_FRAME_CNT_7                 =   8'hC1					;
+localparam  REG_PORT_DIAG_STATE_7                   =   8'hC2					;
+localparam  REG_PORT_RX_ULTRASHORT_FRM_CNT_7        =   8'hC3					;
+localparam  REG_PORT_RX_OVERLENGTH_FRM_CNT_7        =   8'hC4					;
+localparam  REG_PORT_RX_CRCERR_FRM_CNT_7            =   8'hC5					;
+localparam  REG_PORT_RX_LOOKBACK_FRM_CNT_7          =   8'hC6					;
+localparam  REG_PORT_RX_ERROR_DROP_CNT_7            =   8'hC7					;
+localparam  REG_PORT_BROADFLOW_DROP_CNT_7           =   8'hC8					;
+localparam  REG_PORT_MULTIFLOW_DROP_CNT_7           =   8'hC9					;
+localparam  REG_PORT_FLOODFLOW_DROP_CNT_7           =   8'hCA					;
+localparam  REG_PORT_RX_OVERPREMB_FRM_CNT_7         =   8'hCB					;
+localparam  REG_PORT_RX_ULTRASHORTPREMB_NUM_7       =   8'hCC					;
+localparam  REG_PORT_RX_ULTRASHORTINTERVAL_NUM_7    =   8'hCD					;
+localparam  REG_PORT_RX_ERRORPREMB_FRM_CNT_7        =   8'hCE					;
+/*---------------------------------------- QBU_RX¼Ä´æÆ÷µØÖ·¶¨Òå -------------------------------------------*/
+//¶Ë¿Ú1
+localparam  REG_QBU_RESET_0                         =   9'hD0                   ;
+localparam  REG_RX_FRAGMENT_CNT_0                   =   9'hD1                   ;
+localparam  REG_RX_FRAGMENT_MISMATCH_0              =   9'hD2                   ;
+localparam  REG_ERR_RX_CRC_CNT_0                    =   9'hD3                   ;
+localparam  REG_ERR_RX_FRAME_CNT_0                  =   9'hD4                   ;
+localparam  REG_ERR_FRAGMENT_CNT_0                  =   9'hD5                   ;
+localparam  REG_ERR_VERIFI_CNT_0                    =   9'hD6                   ;
+localparam  REG_RX_FRAMES_CNT_0                     =   9'hD7                   ;
+localparam  REG_FRAG_NEXT_RX_0                      =   9'hD8                   ;
+localparam  REG_FRAME_SEQ_0                         =   9'hD9                   ;
+//¶Ë¿Ú2
+localparam  REG_QBU_RESET_1                         =   9'hDA                   ;
+localparam  REG_RX_FRAGMENT_CNT_1                   =   9'hDB                   ;
+localparam  REG_RX_FRAGMENT_MISMATCH_1              =   9'hDC                   ;
+localparam  REG_ERR_RX_CRC_CNT_1                    =   9'hDD                   ;
+localparam  REG_ERR_RX_FRAME_CNT_1                  =   9'hDE                   ;
+localparam  REG_ERR_FRAGMENT_CNT_1                  =   9'hDF                   ;
+localparam  REG_ERR_VERIFI_CNT_1                    =   9'hE0                   ;
+localparam  REG_RX_FRAMES_CNT_1                     =   9'hE1                   ;
+localparam  REG_FRAG_NEXT_RX_1                      =   9'hE2                   ;
+localparam  REG_FRAME_SEQ_1                         =   9'hE3                   ;
+//¶Ë¿Ú3
+localparam  REG_QBU_RESET_2                         =   9'hE4                   ;
+localparam  REG_RX_FRAGMENT_CNT_2                   =   9'hE5                   ;
+localparam  REG_RX_FRAGMENT_MISMATCH_2              =   9'hE6                   ;
+localparam  REG_ERR_RX_CRC_CNT_2                    =   9'hE7                   ;
+localparam  REG_ERR_RX_FRAME_CNT_2                  =   9'hE8                   ;
+localparam  REG_ERR_FRAGMENT_CNT_2                  =   9'hE9                   ;
+localparam  REG_ERR_VERIFI_CNT_2                    =   9'hEA                   ;
+localparam  REG_RX_FRAMES_CNT_2                     =   9'hEB                   ;
+localparam  REG_FRAG_NEXT_RX_2                      =   9'hEC                   ;
+localparam  REG_FRAME_SEQ_2                         =   9'hED                   ;
+//¶Ë¿Ú4
+localparam  REG_QBU_RESET_3                         =   9'hEE                   ;
+localparam  REG_RX_FRAGMENT_CNT_3                   =   9'hEF                   ;
+localparam  REG_RX_FRAGMENT_MISMATCH_3              =   9'hF0                   ;
+localparam  REG_ERR_RX_CRC_CNT_3                    =   9'hF1                   ;
+localparam  REG_ERR_RX_FRAME_CNT_3                  =   9'hF2                   ;
+localparam  REG_ERR_FRAGMENT_CNT_3                  =   9'hF3                   ;
+localparam  REG_ERR_VERIFI_CNT_3                    =   9'hF4                   ;
+localparam  REG_RX_FRAMES_CNT_3                     =   9'hF5                   ;
+localparam  REG_FRAG_NEXT_RX_3                      =   9'hF6                   ;
+localparam  REG_FRAME_SEQ_3                         =   9'hF7                   ;
+//¶Ë¿Ú5
+localparam  REG_QBU_RESET_4                         =   9'hF8                   ;
+localparam  REG_RX_FRAGMENT_CNT_4                   =   9'hF9                   ;
+localparam  REG_RX_FRAGMENT_MISMATCH_4              =   9'hFA                   ;
+localparam  REG_ERR_RX_CRC_CNT_4                    =   9'hFB                   ;
+localparam  REG_ERR_RX_FRAME_CNT_4                  =   9'hFC                   ;
+localparam  REG_ERR_FRAGMENT_CNT_4                  =   9'hFD                   ;
+localparam  REG_ERR_VERIFI_CNT_4                    =   9'hFE                   ;
+localparam  REG_RX_FRAMES_CNT_4                     =   9'hFF                   ;
+localparam  REG_FRAG_NEXT_RX_4                      =   9'h100                  ;
+localparam  REG_FRAME_SEQ_4                         =   9'h101                  ;
+//¶Ë¿Ú6
+localparam  REG_QBU_RESET_5                         =   9'h102                  ;
+localparam  REG_RX_FRAGMENT_CNT_5                   =   9'h103                  ;
+localparam  REG_RX_FRAGMENT_MISMATCH_5              =   9'h104                  ;
+localparam  REG_ERR_RX_CRC_CNT_5                    =   9'h105                  ;
+localparam  REG_ERR_RX_FRAME_CNT_5                  =   9'h106                  ;
+localparam  REG_ERR_FRAGMENT_CNT_5                  =   9'h107                  ;
+localparam  REG_ERR_VERIFI_CNT_5                    =   9'h108                  ;
+localparam  REG_RX_FRAMES_CNT_5                     =   9'h109                  ;
+localparam  REG_FRAG_NEXT_RX_5                      =   9'h10A                  ;
+localparam  REG_FRAME_SEQ_5                         =   9'h10B                  ;
+//¶Ë¿Ú7
+localparam  REG_QBU_RESET_6                         =   9'h10C                  ;
+localparam  REG_RX_FRAGMENT_CNT_6                   =   9'h10D                  ;
+localparam  REG_RX_FRAGMENT_MISMATCH_6              =   9'h10E                  ;
+localparam  REG_ERR_RX_CRC_CNT_6                    =   9'h10F                  ;
+localparam  REG_ERR_RX_FRAME_CNT_6                  =   9'h110                  ;
+localparam  REG_ERR_FRAGMENT_CNT_6                  =   9'h111                  ;
+localparam  REG_ERR_VERIFI_CNT_6                    =   9'h112                  ;
+localparam  REG_RX_FRAMES_CNT_6                     =   9'h113                  ;
+localparam  REG_FRAG_NEXT_RX_6                      =   9'h114                  ;
+localparam  REG_FRAME_SEQ_6                         =   9'h115                  ;
+//¶Ë¿Ú8
+localparam  REG_QBU_RESET_7                         =   9'h116                  ;
+localparam  REG_RX_FRAGMENT_CNT_7                   =   9'h117                  ;
+localparam  REG_RX_FRAGMENT_MISMATCH_7              =   9'h118                  ;
+localparam  REG_ERR_RX_CRC_CNT_7                    =   9'h119                  ;
+localparam  REG_ERR_RX_FRAME_CNT_7                  =   9'h11A                  ;
+localparam  REG_ERR_FRAGMENT_CNT_7                  =   9'h11B                  ;
+localparam  REG_ERR_VERIFI_CNT_7                    =   9'h11C                  ;
+localparam  REG_RX_FRAMES_CNT_7                     =   9'h11D                  ;
+localparam  REG_FRAG_NEXT_RX_7                      =   9'h11E                  ;
+localparam  REG_FRAME_SEQ_7                         =   9'h11F                  ;
+
+/*------------------------------------------- ÄÚ²¿ĞÅºÅ¶¨Òå -----------------------------------------------*/
+// ¼Ä´æÆ÷Ë¢ĞÂ¿ØÖÆĞÅºÅ  
+reg                                         r_refresh_list_pulse                ; // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+reg                                         r_switch_err_cnt_clr                ; // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+reg                                         r_switch_err_cnt_stat               ; // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+/*------------------------------------------- ¼Ä´æÆ÷ĞÅºÅ¶¨Òå ------------------------------------------*/
+// ¼Ä´æÆ÷Ğ´¿ØÖÆĞÅºÅ  
+reg                                         r_reg_bus_we                        ;
+reg             [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_addr                      ;
+reg             [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_data                      ;
+reg                                         r_reg_bus_data_vld                  ;
+// ¼Ä´æÆ÷¶Á¿ØÖÆĞÅºÅ
+reg                                         r_reg_bus_re                        ;
+reg             [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_raddr                     ;
+reg             [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_rdata                     ;
+reg                                         r_reg_bus_rdata_vld                 ;
+/*========================================  RXMAC¼Ä´æÆ÷¶ÁĞ´¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
+// Í¨ÓÃ¼Ä´æÆ÷
+reg   [15:0]                           r_hash_ploy_regs                  ;// ¹şÏ£¶àÏîÊ½
+reg   [15:0]                           r_hash_init_val_regs              ;// ¹şÏ£¶àÏîÊ½³õÊ¼Öµ
+reg                                    r_hash_regs_vld                   ;
+reg   [7:0]                            r_port_rxmac_down_regs            ;// ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
+reg   [7:0]                            r_port_broadcast_drop_regs        ;// ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
+reg   [7:0]                            r_port_multicast_drop_regs        ;// ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
+reg   [7:0]                            r_port_loopback_drop_regs         ;// ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
+reg   [7:0]                            r_port_force_recal_crc_regs       ;// ¶Ë¿ÚÇ¿ÖÆÖØĞÂ¼ÆËãCRCÊ¹ÄÜ 
+reg   [7:0]                            r_port_floodfrm_drop_regs         ;// ¶Ë¿Ú·ººéÖ¡¶ªÆúÊ¹ÄÜ   
+reg   [7:0]                            r_port_multiflood_drop_regs       ;// ¶Ë¿Ú¶à²¥Ö¡¶ªÆúÊ¹ÄÜ 
+reg   [7:0]                            r_port_acl_enable_regs                 ;// ¶Ë¿Ú ACL Ê¹ÄÜ  
+
+
+reg   [2:0]                            r_cfg_rxmac_port_sel              ;// ¶Ë¿ÚÑ¡Ôñ
+reg   [47:0]                           r_port_mac_regs                   ;// ¶Ë¿Ú1µÄ MAC µØÖ·
+reg                                    r_port_mac_vld_regs               ;// Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓĞĞ§
+reg   [10:0]                           r_port_mtu_regs                   ;// MTUÅäÖÃÖµ
+reg   [PORT_NUM-1:0]                   r_port_mirror_frwd_regs           ;// ¾µÏñ×ª·¢¼Ä´æÆ÷£¬Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1£¬Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êı¾İÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
+reg   [15:0]                           r_port_flowctrl_cfg_regs          ;// ÏŞÁ÷¹ÜÀíÅäÖÃ
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_0;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_1;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_2;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_3;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_4;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_5;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_6;// Ö¡¼ä¸ô
+reg   [4:0]                            r_port_rx_ultrashortinterval_num_7;// Ö¡¼ä¸ô
+/*========================================  ACL¼Ä´æÆ÷ĞÅºÅ¶¨Òå ========================================*/
+
+reg   [2:0]                            r_acl_port_sel                      ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+reg                                    r_acl_clr_list_regs                 ; // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
+reg   [4:0]                            r_acl_item_sel_regs                 ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+reg   [5:0]                            r_acl_item_waddr_regs               ; // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
+reg   [7:0]                            r_acl_item_din_regs                 ; // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
+reg                                    r_acl_item_we_regs                  ; // ÅäÖÃÊ¹ÄÜĞÅºÅ
+reg   [15:0]                           r_acl_item_rslt_regs                ; // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
+reg                                    r_acl_item_complete_regs            ; // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
+wire  [7:0]                            w_acl_list_rdy_regs                 ;
+
+reg   [95:0]                           r_acl_item_dmac_code                ;
+reg   [95:0]                           r_acl_item_smac_code                ;
+reg   [63:0]                           r_acl_item_vlan_code                ;
+reg   [31:0]                           r_acl_item_ethtype_code             ;
+reg   [5:0]                            r_acl_item_action_pass_state        ;
+reg   [15:0]                           r_acl_item_action_cb_streamhandle   ;
+reg   [5:0]                            r_acl_item_action_flowctrl          ;
+reg   [15:0]                           r_acl_item_action_txport            ;
+/*--------------------------------------- Qbu_rx¼Ä´æÆ÷ĞÅºÅ¶¨Òå ----------------------------------------*/
+// ¶Ë¿Ú0
+reg                                    r_reset_0                           ;
+reg                                    r_reset_1                           ;
+reg                                    r_reset_2                           ;
+reg                                    r_reset_3                           ;
+reg                                    r_reset_4                           ;
+reg                                    r_reset_5                           ;
+reg                                    r_reset_6                           ;
+reg                                    r_reset_7                           ;
+
+/*========================================  Í¨ÓÃ¼Ä´æÆ÷¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_refresh_list_pulse        <= 1'b0;
+        r_switch_err_cnt_clr        <= 1'b0;
+        r_switch_err_cnt_stat       <= 1'b0;
+    end else begin
+        r_refresh_list_pulse        <= i_refresh_list_pulse;
+        r_switch_err_cnt_clr        <= i_switch_err_cnt_clr;
+        r_switch_err_cnt_stat       <= i_switch_err_cnt_stat;
+    end
+end
+/*========================================  ¼Ä´æÆ÷¶ÁĞ´¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reg_bus_we          <= 1'b0;
+        r_reg_bus_addr        <= {REG_ADDR_BUS_WIDTH{1'b0}};
+        r_reg_bus_data        <= {REG_DATA_BUS_WIDTH{1'b0}};
+        r_reg_bus_data_vld    <= 1'b0;
+        r_reg_bus_re          <= 1'b0;
+        r_reg_bus_raddr       <= {REG_ADDR_BUS_WIDTH{1'b0}};
+    end else begin
+        r_reg_bus_we          <= i_switch_reg_bus_we;
+        r_reg_bus_addr        <= i_switch_reg_bus_we_addr;
+        r_reg_bus_data        <= i_switch_reg_bus_we_din;
+        r_reg_bus_data_vld    <= i_switch_reg_bus_we_din_v;
+        r_reg_bus_re          <= i_switch_reg_bus_rd;
+        r_reg_bus_raddr       <= i_switch_reg_bus_rd_addr;
+    end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		r_hash_ploy_regs <= 16'h180F;
+        r_hash_init_val_regs <= 16'hFFFF;
+        r_hash_regs_vld <= 1'b0;
+        r_port_rxmac_down_regs <= 8'hFF;
+        r_port_acl_enable_regs <= 8'hFF;
+        r_port_broadcast_drop_regs <= 8'b0;
+        r_port_multicast_drop_regs <= 8'b0;
+        r_port_loopback_drop_regs <= 8'hFF;
+        r_port_force_recal_crc_regs <= 8'b0;
+        r_port_floodfrm_drop_regs <= 8'b1;
+        r_port_multiflood_drop_regs <= 8'b0;
+        r_cfg_rxmac_port_sel <= 3'b0;
+        r_port_mac_regs <= 48'b0;
+        r_port_mac_vld_regs <= 1'b0;
+        r_port_mtu_regs <= 11'd1600;
+        r_port_mirror_frwd_regs <= 8'b0;
+        r_port_flowctrl_cfg_regs <= 16'b0;
+        //r_port_rx_ultrashortinterval_num <= 5'd31;
+    end else begin
+        r_hash_ploy_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_HASH_PLOY ? r_reg_bus_data[15:0] : r_hash_ploy_regs;
+        r_hash_init_val_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_HASH_INIT_VAL ? r_reg_bus_data[15:0] : r_hash_init_val_regs;
+        r_hash_regs_vld <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_HASH_INIT_VAL ? 1'b1 : 1'b0;
+        r_port_rxmac_down_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RXMAC_DOWN ? r_reg_bus_data[7:0] : r_port_rxmac_down_regs;
+        r_port_broadcast_drop_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_BROADCAST_DROP ? r_reg_bus_data[7:0] : r_port_broadcast_drop_regs;
+        r_port_multicast_drop_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_MULTICAST_DROP ? r_reg_bus_data[7:0] : r_port_multicast_drop_regs;
+        r_port_loopback_drop_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_LOOKBACK_DROP ? r_reg_bus_data[7:0] : r_port_loopback_drop_regs;
+        r_port_force_recal_crc_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_FORCE_RECAL_CRC ? r_reg_bus_data[7:0] : r_port_force_recal_crc_regs;
+        r_port_floodfrm_drop_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_FLOODFRM_DROP ? r_reg_bus_data[7:0] : r_port_floodfrm_drop_regs;
+        r_port_multiflood_drop_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_MULTIFLOOD_DROP ? r_reg_bus_data[7:0] : r_port_multiflood_drop_regs;
+        r_cfg_rxmac_port_sel <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_RXMAC_PORT_SEL ? r_reg_bus_data[2:0] : r_cfg_rxmac_port_sel;
+        r_port_mac_regs[47:32] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORTMAC0 ? r_reg_bus_data[15:0] : r_port_mac_regs[47:32];
+        r_port_mac_regs[31:16] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORTMAC1 ? r_reg_bus_data[15:0] : r_port_mac_regs[31:16];
+        r_port_mac_regs[15:0] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORTMAC2 ? r_reg_bus_data[15:0] : r_port_mac_regs[15:0];
+        r_port_mac_vld_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORTMAC_VALID ? r_reg_bus_data[0] : r_port_mac_vld_regs;
+        r_port_mtu_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORTMTU ? r_reg_bus_data[10:0] : r_port_mtu_regs;
+        r_port_mirror_frwd_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_MIRROR_FRWD ? r_reg_bus_data[7:0] : r_port_mirror_frwd_regs;
+        r_port_flowctrl_cfg_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_FLOWCTRL_CFG ? r_reg_bus_data[15:0] : r_port_flowctrl_cfg_regs;
+        //r_port_rx_ultrashortinterval_num <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num;
+        r_port_acl_enable_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_ACL_ENABLE ? r_reg_bus_data[7:0] : r_port_acl_enable_regs;
+    end
+end
+// ¶Ë¿Ú1
+assign o_hash_ploy_regs_0 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_0 = r_hash_init_val_regs;
+assign o_hash_regs_vld_0 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_0 = r_port_rxmac_down_regs[0];
+assign o_port_broadcast_drop_regs_0 = r_port_broadcast_drop_regs[0];
+assign o_port_multicast_drop_regs_0 = r_port_multicast_drop_regs[0];
+assign o_port_loopback_drop_regs_0 = r_port_loopback_drop_regs[0];
+assign o_port_mac_regs_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_0 = r_cfg_rxmac_port_sel == 3'b000 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú2
+assign o_hash_ploy_regs_1 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_1 = r_hash_init_val_regs;
+assign o_hash_regs_vld_1 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_1 = r_port_rxmac_down_regs[1];
+assign o_port_broadcast_drop_regs_1 = r_port_broadcast_drop_regs[1];
+assign o_port_multicast_drop_regs_1 = r_port_multicast_drop_regs[1];
+assign o_port_loopback_drop_regs_1 = r_port_loopback_drop_regs[1];
+assign o_port_mac_regs_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_1 = r_cfg_rxmac_port_sel == 3'b001 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú3
+assign o_hash_ploy_regs_2 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_2 = r_hash_init_val_regs;
+assign o_hash_regs_vld_2 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_2 = r_port_rxmac_down_regs[2];
+assign o_port_broadcast_drop_regs_2 = r_port_broadcast_drop_regs[2];
+assign o_port_multicast_drop_regs_2 = r_port_multicast_drop_regs[2];
+assign o_port_loopback_drop_regs_2 = r_port_loopback_drop_regs[2];
+assign o_port_mac_regs_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_2 = r_cfg_rxmac_port_sel == 3'b010 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú4
+assign o_hash_ploy_regs_3 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_3 = r_hash_init_val_regs;
+assign o_hash_regs_vld_3 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_3 = r_port_rxmac_down_regs[3];
+assign o_port_broadcast_drop_regs_3 = r_port_broadcast_drop_regs[3];
+assign o_port_multicast_drop_regs_3 = r_port_multicast_drop_regs[3];
+assign o_port_loopback_drop_regs_3 = r_port_loopback_drop_regs[3];
+assign o_port_mac_regs_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_3 = r_cfg_rxmac_port_sel == 3'b011 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú5
+assign o_hash_ploy_regs_4 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_4 = r_hash_init_val_regs;
+assign o_hash_regs_vld_4 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_4 = r_port_rxmac_down_regs[4];
+assign o_port_broadcast_drop_regs_4 = r_port_broadcast_drop_regs[4];
+assign o_port_multicast_drop_regs_4 = r_port_multicast_drop_regs[4];
+assign o_port_loopback_drop_regs_4 = r_port_loopback_drop_regs[4];
+assign o_port_mac_regs_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_4 = r_cfg_rxmac_port_sel == 3'b100 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú6
+assign o_hash_ploy_regs_5 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_5 = r_hash_init_val_regs;
+assign o_hash_regs_vld_5 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_5 = r_port_rxmac_down_regs[5];
+assign o_port_broadcast_drop_regs_5 = r_port_broadcast_drop_regs[5];
+assign o_port_multicast_drop_regs_5 = r_port_multicast_drop_regs[5];
+assign o_port_loopback_drop_regs_5 = r_port_loopback_drop_regs[5];
+assign o_port_mac_regs_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_5 = r_cfg_rxmac_port_sel == 3'b101 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú7
+assign o_hash_ploy_regs_6 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_6 = r_hash_init_val_regs;
+assign o_hash_regs_vld_6 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_6 = r_port_rxmac_down_regs[6];
+assign o_port_broadcast_drop_regs_6 = r_port_broadcast_drop_regs[6];
+assign o_port_multicast_drop_regs_6 = r_port_multicast_drop_regs[6];
+assign o_port_loopback_drop_regs_6 = r_port_loopback_drop_regs[6];
+assign o_port_mac_regs_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_6 = r_cfg_rxmac_port_sel == 3'b110 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+// ¶Ë¿Ú8
+assign o_hash_ploy_regs_7 = r_hash_ploy_regs;
+assign o_hash_init_val_regs_7 = r_hash_init_val_regs;
+assign o_hash_regs_vld_7 = r_hash_regs_vld;
+assign o_port_rxmac_down_regs_7 = r_port_rxmac_down_regs[7];
+assign o_port_broadcast_drop_regs_7 = r_port_broadcast_drop_regs[7];
+assign o_port_multicast_drop_regs_7 = r_port_multicast_drop_regs[7];
+assign o_port_loopback_drop_regs_7 = r_port_loopback_drop_regs[7];
+assign o_port_mac_regs_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_mac_regs[47:0] : 48'b0;
+assign o_port_mac_vld_regs_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_mac_vld_regs : 1'b0;
+assign o_port_mtu_regs_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_mtu_regs : 8'b0;
+assign o_port_mirror_frwd_regs_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_mirror_frwd_regs : 8'b0;
+assign o_port_flowctrl_cfg_regs_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_flowctrl_cfg_regs : 16'b0;
+//assign o_port_rx_ultrashortinterval_num_7 = r_cfg_rxmac_port_sel == 3'b111 ? r_port_rx_ultrashortinterval_num : 5'b0;
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_port_rx_ultrashortinterval_num_0 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_1 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_2 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_3 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_4 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_5 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_6 <= 5'd31;
+        r_port_rx_ultrashortinterval_num_7 <= 5'd31;
+    end else begin
+        r_port_rx_ultrashortinterval_num_0 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_0 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_0;
+        r_port_rx_ultrashortinterval_num_1 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_1 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_1;
+        r_port_rx_ultrashortinterval_num_2 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_2 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_2;
+        r_port_rx_ultrashortinterval_num_3 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_3 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_3;
+        r_port_rx_ultrashortinterval_num_4 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_4 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_4;
+        r_port_rx_ultrashortinterval_num_5 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_5 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_5;
+        r_port_rx_ultrashortinterval_num_6 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_6 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_6;
+        r_port_rx_ultrashortinterval_num_7 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_PORT_RX_ULTRASHORTINTERVAL_NUM_7 ? r_reg_bus_data[4:0] : r_port_rx_ultrashortinterval_num_7;
+    end
+end
+
+assign o_port_rx_ultrashortinterval_num_0 = r_port_rx_ultrashortinterval_num_0;
+assign o_port_rx_ultrashortinterval_num_1 = r_port_rx_ultrashortinterval_num_1;
+assign o_port_rx_ultrashortinterval_num_2 = r_port_rx_ultrashortinterval_num_2;
+assign o_port_rx_ultrashortinterval_num_3 = r_port_rx_ultrashortinterval_num_3;
+assign o_port_rx_ultrashortinterval_num_4 = r_port_rx_ultrashortinterval_num_4;
+assign o_port_rx_ultrashortinterval_num_5 = r_port_rx_ultrashortinterval_num_5;
+assign o_port_rx_ultrashortinterval_num_6 = r_port_rx_ultrashortinterval_num_6;
+assign o_port_rx_ultrashortinterval_num_7 = r_port_rx_ultrashortinterval_num_7;
+
+/*========================================  ACL¼Ä´æÆ÷Ğ´¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_acl_port_sel <= 3'b0;
+        r_acl_clr_list_regs <= 1'b0;
+        r_acl_item_sel_regs <= 5'b0;
+    end else begin
+        r_acl_port_sel <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_PORT_SEL ? r_reg_bus_data[2:0] : r_acl_port_sel;
+        r_acl_clr_list_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_CLR_LIST ? r_reg_bus_data[0] : r_acl_clr_list_regs;
+        r_acl_item_sel_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SEL ? r_reg_bus_data[4:0] : r_acl_item_sel_regs;
+    end
+end
+
+// ACLÌõÄ¿Êı¾İĞ´¿ØÖÆ
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_acl_item_dmac_code <= 96'b0;
+        r_acl_item_smac_code <= 96'b0;
+        r_acl_item_vlan_code <= 64'b0;
+        r_acl_item_ethtype_code <= 32'b0;
+        r_acl_item_action_pass_state <= 6'b0;
+        r_acl_item_action_cb_streamhandle <= 16'b0;
+        r_acl_item_action_flowctrl <= 6'b0;
+        r_acl_item_action_txport <= 16'b0;
+    end else begin
+        if (r_reg_bus_we && r_reg_bus_data_vld) begin
+            case (r_reg_bus_addr)
+                REG_CFG_ACL_ITEM_DMAC_CODE_1: r_acl_item_dmac_code[15:0]  <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_DMAC_CODE_2: r_acl_item_dmac_code[31:16] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_DMAC_CODE_3: r_acl_item_dmac_code[47:32] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_DMAC_CODE_4: r_acl_item_dmac_code[63:48] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_DMAC_CODE_5: r_acl_item_dmac_code[79:64] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_DMAC_CODE_6: r_acl_item_dmac_code[95:80] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_1: r_acl_item_smac_code[15:0]  <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_2: r_acl_item_smac_code[31:16] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_3: r_acl_item_smac_code[47:32] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_4: r_acl_item_smac_code[63:48] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_5: r_acl_item_smac_code[79:64] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_SMAC_CODE_6: r_acl_item_smac_code[95:80] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_VLAN_CODE_1: r_acl_item_vlan_code[15:0]  <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_VLAN_CODE_2: r_acl_item_vlan_code[31:16] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_VLAN_CODE_3: r_acl_item_vlan_code[47:32] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_VLAN_CODE_4: r_acl_item_vlan_code[63:48] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_acl_item_ethtype_code[15:0] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_acl_item_ethtype_code[31:16] <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_ACTION_PASS_STATE: r_acl_item_action_pass_state <= r_reg_bus_data[5:0];
+                REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE: r_acl_item_action_cb_streamhandle <= r_reg_bus_data[15:0];
+                REG_CFG_ACL_ITEM_ACTION_FLOWCTRL: r_acl_item_action_flowctrl <= r_reg_bus_data[5:0];
+                REG_CFG_ACL_ITEM_ACTION_TXPORT: r_acl_item_action_txport <= r_reg_bus_data[15:0];
+            endcase
+        end
+    end
+end
+
+
+// ¶Ë¿Ú1
+assign o_acl_clr_list_regs_0 = r_acl_port_sel == 3'b000 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_0 = r_acl_port_sel == 3'b000 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú2
+assign o_acl_clr_list_regs_1 = r_acl_port_sel == 3'b001 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_1 = r_acl_port_sel == 3'b001 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú3
+assign o_acl_clr_list_regs_2 = r_acl_port_sel == 3'b010 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_2 = r_acl_port_sel == 3'b010 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú4
+assign o_acl_clr_list_regs_3 = r_acl_port_sel == 3'b011 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_3 = r_acl_port_sel == 3'b011 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú5
+assign o_acl_clr_list_regs_4 = r_acl_port_sel == 3'b100 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_4 = r_acl_port_sel == 3'b100 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú6
+assign o_acl_clr_list_regs_5 = r_acl_port_sel == 3'b101 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_5 = r_acl_port_sel == 3'b101 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú7
+assign o_acl_clr_list_regs_6 = r_acl_port_sel == 3'b110 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_6 = r_acl_port_sel == 3'b110 ? r_acl_item_sel_regs : 5'b0;
+// ¶Ë¿Ú8
+assign o_acl_clr_list_regs_7 = r_acl_port_sel == 3'b111 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_7 = r_acl_port_sel == 3'b111 ? r_acl_item_sel_regs : 5'b0;
+
+/*========================================  qbu_rx¼Ä´æÆ÷Ğ´¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
+
+// QBU¸´Î»¼Ä´æÆ÷Ğ´¿ØÖÆ - ËùÓĞ¶Ë¿Ú
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reset_0 <= 1'b0;
+        r_reset_1 <= 1'b0;
+        r_reset_2 <= 1'b0;
+        r_reset_3 <= 1'b0;
+        r_reset_4 <= 1'b0;
+        r_reset_5 <= 1'b0;
+        r_reset_6 <= 1'b0;
+        r_reset_7 <= 1'b0;
+    end else begin
+        r_reset_0 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_0 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_1 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_1 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_2 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_2 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_3 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_3 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_4 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_4 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_5 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_5 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_6 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_6 ? r_reg_bus_data[0] : 1'b0;
+        r_reset_7 <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_QBU_RESET_7 ? r_reg_bus_data[0] : 1'b0;
+    end
+end
+
+assign o_reset_0 = r_reset_0;
+assign o_reset_1 = r_reset_1;
+assign o_reset_2 = r_reset_2;
+assign o_reset_3 = r_reset_3;
+assign o_reset_4 = r_reset_4;
+assign o_reset_5 = r_reset_5;
+assign o_reset_6 = r_reset_6;
+assign o_reset_7 = r_reset_7;
+
+assign w_acl_list_rdy_regs = {i_acl_list_rdy_regs_7,i_acl_list_rdy_regs_6,i_acl_list_rdy_regs_5,i_acl_list_rdy_regs_4,
+                              i_acl_list_rdy_regs_3,i_acl_list_rdy_regs_2,i_acl_list_rdy_regs_1,i_acl_list_rdy_regs_0};
+/*========================================= ¼Ä´æÆ÷¶Á¿ØÖÆÂß¼­ =========================================*/
+// ¼Ä´æÆ÷¶ÁÊı¾İÂß¼­
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
+    end else if (r_reg_bus_re) begin
+        case (r_reg_bus_raddr)
+            // rxmac Í¨ÓÃ
+            REG_HASH_PLOY:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_hash_ploy_regs; 
+            REG_HASH_INIT_VAL:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_hash_init_val_regs; 
+            REG_PORT_RXMAC_DOWN:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_rxmac_down_regs; 
+            REG_PORT_ACL_ENABLE:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_acl_enable_regs; 
+            REG_PORT_BROADCAST_DROP:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_broadcast_drop_regs; 
+            REG_PORT_MULTICAST_DROP:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_multicast_drop_regs; 
+            REG_PORT_LOOKBACK_DROP:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_loopback_drop_regs; 
+            REG_PORT_FORCE_RECAL_CRC:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_force_recal_crc_regs; 
+            REG_PORT_FLOODFRM_DROP:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_floodfrm_drop_regs; 
+            REG_PORT_MULTIFLOOD_DROP:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_multiflood_drop_regs; 
+            REG_CFG_RXMAC_PORT_SEL:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_cfg_rxmac_port_sel; 
+            REG_PORTMTU:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mtu_regs; 
+            REG_PORTMAC0:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mac_regs[47:32]; 
+            REG_PORTMAC1:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mac_regs[31:16];
+            REG_PORTMAC2:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mac_regs[15:0];
+            REG_PORTMAC_VALID:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mac_vld_regs;
+            REG_PORT_MIRROR_FRWD:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_mirror_frwd_regs;
+            REG_PORT_FLOWCTRL_CFG:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_port_flowctrl_cfg_regs;
+            // acl¼Ä´æÆ÷
+            REG_CFG_ACL_PORT_SEL:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_port_sel;
+            REG_CFG_ACL_CLR_LIST:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_clr_list_regs;
+            REG_CFG_ACL_LIST_RDY:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | w_acl_list_rdy_regs;
+            REG_CFG_ACL_ITEM_SEL:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_sel_regs;
+            REG_CFG_ACL_ITEM_DMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[15:0];
+            REG_CFG_ACL_ITEM_DMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[31:16];
+            REG_CFG_ACL_ITEM_DMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[47:32];
+            REG_CFG_ACL_ITEM_DMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[63:48];
+            REG_CFG_ACL_ITEM_DMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[79:64];
+            REG_CFG_ACL_ITEM_DMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[95:80];
+            REG_CFG_ACL_ITEM_SMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[15:0];
+            REG_CFG_ACL_ITEM_SMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[31:16];
+            REG_CFG_ACL_ITEM_SMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[47:32];
+            REG_CFG_ACL_ITEM_SMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[63:48];
+            REG_CFG_ACL_ITEM_SMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[79:64];
+            REG_CFG_ACL_ITEM_SMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[95:80];
+            REG_CFG_ACL_ITEM_VLAN_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[15:0];
+            REG_CFG_ACL_ITEM_VLAN_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[31:16];
+            REG_CFG_ACL_ITEM_VLAN_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[47:32];
+            REG_CFG_ACL_ITEM_VLAN_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[63:48];
+            REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code[15:0];
+            REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code[31:16];
+            REG_CFG_ACL_ITEM_ACTION_PASS_STATE: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_pass_state;
+            REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_cb_streamhandle;
+            REG_CFG_ACL_ITEM_ACTION_FLOWCTRL: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_flowctrl;
+            REG_CFG_ACL_ITEM_ACTION_TXPORT: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_txport;
+            // rxmac port
+            // ¶Ë¿Ú1
+            REG_PORT_RX_BYTE_CNT_0:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_0;
+            REG_PORT_RX_FRAME_CNT_0:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_0;
+            REG_PORT_DIAG_STATE_0:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_0};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_0; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_0; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_0;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_0; 
+            REG_PORT_BROADFLOW_DROP_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_0; 
+            REG_PORT_MULTIFLOW_DROP_CNT_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_0; 
+            // ¶Ë¿Ú2
+            REG_PORT_RX_BYTE_CNT_1:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_1;
+            REG_PORT_RX_FRAME_CNT_1:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_1;
+            REG_PORT_DIAG_STATE_1:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_1};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_1; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_1; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_1;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_1; 
+            REG_PORT_BROADFLOW_DROP_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_1; 
+            REG_PORT_MULTIFLOW_DROP_CNT_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_1; 
+            // ¶Ë¿Ú3
+            REG_PORT_RX_BYTE_CNT_2:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_2;
+            REG_PORT_RX_FRAME_CNT_2:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_2;
+            REG_PORT_DIAG_STATE_2:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_2};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_2; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_2; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_2;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_2; 
+            REG_PORT_BROADFLOW_DROP_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_2; 
+            REG_PORT_MULTIFLOW_DROP_CNT_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_2; 
+            // ¶Ë¿Ú4
+            REG_PORT_RX_BYTE_CNT_3:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_3;
+            REG_PORT_RX_FRAME_CNT_3:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_3;
+            REG_PORT_DIAG_STATE_3:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_3};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_3; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_3; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_3;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_3; 
+            REG_PORT_BROADFLOW_DROP_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_3; 
+            REG_PORT_MULTIFLOW_DROP_CNT_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_3; 
+            // ¶Ë¿Ú5
+            REG_PORT_RX_BYTE_CNT_4:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_4;
+            REG_PORT_RX_FRAME_CNT_4:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_4;
+            REG_PORT_DIAG_STATE_4:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_4};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_4; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_4; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_4;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_4; 
+            REG_PORT_BROADFLOW_DROP_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_4; 
+            REG_PORT_MULTIFLOW_DROP_CNT_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_4; 
+            // ¶Ë¿Ú6
+            REG_PORT_RX_BYTE_CNT_5:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_5;
+            REG_PORT_RX_FRAME_CNT_5:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_5;
+            REG_PORT_DIAG_STATE_5:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_5};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_5; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_5; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_5;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_5; 
+            REG_PORT_BROADFLOW_DROP_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_5; 
+            REG_PORT_MULTIFLOW_DROP_CNT_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_5; 
+            // ¶Ë¿Ú7
+            REG_PORT_RX_BYTE_CNT_6:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_6;
+            REG_PORT_RX_FRAME_CNT_6:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_6;
+            REG_PORT_DIAG_STATE_6:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_port_diag_state_6};
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_6; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_6; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_6;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_6; 
+            REG_PORT_BROADFLOW_DROP_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_6; 
+            REG_PORT_MULTIFLOW_DROP_CNT_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_6; 
+            // ¶Ë¿Ú8
+            REG_PORT_RX_BYTE_CNT_7:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_byte_cnt_7;
+            REG_PORT_RX_FRAME_CNT_7:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_7;
+            //REG_PORT_RX_FRAME_CNT_7:    r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_frame_cnt_7;
+            //REG_PORT_RX_ULTRASHORT_FRM_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_ultrashort_frm_cnt_7; 
+            //REG_PORT_RX_OVERLENGTH_FRM_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_overlength_frm_cnt_7; 
+            //REG_PORT_RX_CRCERR_FRM_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_crcerr_frm_cnt_7;     
+            //REG_PORT_RX_LOOKBACK_FRM_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_rx_lookback_frm_cnt_7; 
+            //REG_PORT_BROADFLOW_DROP_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_broadflow_drop_cnt_7; 
+            REG_PORT_MULTIFLOW_DROP_CNT_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_multiflow_drop_cnt_7; 
+            // qbu_rx
+            REG_QBU_RESET_0:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_0};
+            REG_RX_FRAGMENT_CNT_0:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_0;
+            REG_RX_FRAGMENT_MISMATCH_0: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_0};
+            REG_ERR_RX_CRC_CNT_0:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_0;
+            REG_ERR_RX_FRAME_CNT_0:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_0;
+            REG_ERR_FRAGMENT_CNT_0:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_0;
+            //REG_ERR_VERIFI_CNT_0:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_0;
+            REG_RX_FRAMES_CNT_0:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_0;
+            REG_FRAG_NEXT_RX_0:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_0};
+            REG_FRAME_SEQ_0:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_0};
+            
+            REG_QBU_RESET_1:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_1};
+            REG_RX_FRAGMENT_CNT_1:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_1;
+            REG_RX_FRAGMENT_MISMATCH_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_1};
+            REG_ERR_RX_CRC_CNT_1:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_1;
+            REG_ERR_RX_FRAME_CNT_1:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_1;
+            REG_ERR_FRAGMENT_CNT_1:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_1;
+            //REG_ERR_VERIFI_CNT_1:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_1;
+            REG_RX_FRAMES_CNT_1:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_1;
+            REG_FRAG_NEXT_RX_1:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_1};
+            REG_FRAME_SEQ_1:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_1};
+            
+            REG_QBU_RESET_2:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_2};
+            REG_RX_FRAGMENT_CNT_2:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_2;
+            REG_RX_FRAGMENT_MISMATCH_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_2};
+            REG_ERR_RX_CRC_CNT_2:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_2;
+            REG_ERR_RX_FRAME_CNT_2:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_2;
+            REG_ERR_FRAGMENT_CNT_2:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_2;
+            //REG_ERR_VERIFI_CNT_2:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_2;
+            REG_RX_FRAMES_CNT_2:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_2;
+            REG_FRAG_NEXT_RX_2:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_2};
+            REG_FRAME_SEQ_2:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_2};
+            
+            REG_QBU_RESET_3:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_3};
+            REG_RX_FRAGMENT_CNT_3:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_3;
+            REG_RX_FRAGMENT_MISMATCH_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_3};
+            REG_ERR_RX_CRC_CNT_3:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_3;
+            REG_ERR_RX_FRAME_CNT_3:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_3;
+            REG_ERR_FRAGMENT_CNT_3:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_3;
+            //REG_ERR_VERIFI_CNT_3:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_3;
+            REG_RX_FRAMES_CNT_3:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_3;
+            REG_FRAG_NEXT_RX_3:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_3};
+            REG_FRAME_SEQ_3:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_3};
+            
+            REG_QBU_RESET_4:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_4};
+            REG_RX_FRAGMENT_CNT_4:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_4;
+            REG_RX_FRAGMENT_MISMATCH_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_4};
+            REG_ERR_RX_CRC_CNT_4:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_4;
+            REG_ERR_RX_FRAME_CNT_4:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_4;
+            REG_ERR_FRAGMENT_CNT_4:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_4;
+            //REG_ERR_VERIFI_CNT_4:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_4;
+            REG_RX_FRAMES_CNT_4:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_4;
+            REG_FRAG_NEXT_RX_4:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_4};
+            REG_FRAME_SEQ_4:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_4};
+            
+            REG_QBU_RESET_5:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_5};
+            REG_RX_FRAGMENT_CNT_5:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_5;
+            REG_RX_FRAGMENT_MISMATCH_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_5};
+            REG_ERR_RX_CRC_CNT_5:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_5;
+            REG_ERR_RX_FRAME_CNT_5:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_5;
+            REG_ERR_FRAGMENT_CNT_5:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_5;
+            //REG_ERR_VERIFI_CNT_5:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_5;
+            REG_RX_FRAMES_CNT_5:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_5;
+            REG_FRAG_NEXT_RX_5:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_5};
+            REG_FRAME_SEQ_5:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_5};
+            
+            REG_QBU_RESET_6:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_6};
+            REG_RX_FRAGMENT_CNT_6:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_6;
+            REG_RX_FRAGMENT_MISMATCH_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_6};
+            REG_ERR_RX_CRC_CNT_6:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_6;
+            REG_ERR_RX_FRAME_CNT_6:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_6;
+            REG_ERR_FRAGMENT_CNT_6:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_6;
+            //REG_ERR_VERIFI_CNT_6:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_6;
+            REG_RX_FRAMES_CNT_6:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_6;
+            REG_FRAG_NEXT_RX_6:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_6};
+            REG_FRAME_SEQ_6:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_6};
+            
+            REG_QBU_RESET_7:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, r_reset_7};
+            REG_RX_FRAGMENT_CNT_7:      r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_fragment_cnt_7;
+            REG_RX_FRAGMENT_MISMATCH_7: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {15'd0, i_rx_fragment_mismatch_7};
+            REG_ERR_RX_CRC_CNT_7:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_crc_cnt_7;
+            REG_ERR_RX_FRAME_CNT_7:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_rx_frame_cnt_7;
+            REG_ERR_FRAGMENT_CNT_7:     r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_fragment_cnt_7;
+            //REG_ERR_VERIFI_CNT_7:       r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_err_verifi_cnt_7;
+            REG_RX_FRAMES_CNT_7:        r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_rx_frames_cnt_7;
+            REG_FRAG_NEXT_RX_7:         r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frag_next_rx_7};
+            REG_FRAME_SEQ_7:            r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | {8'd0, i_frame_seq_7};
+            
+            default: begin
+                r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
+            end
+        endcase
+    end else begin
+        r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
+    end
+end
+
+// ¼Ä´æÆ÷¶ÁÊı¾İÓĞĞ§±êÖ¾
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reg_bus_rdata_vld <= 1'b0;
+    end else begin
+        r_reg_bus_rdata_vld <= r_reg_bus_re;
+    end
+end
+
+assign o_switch_reg_bus_rd_dout  = r_reg_bus_rdata;
+assign o_switch_reg_bus_rd_dout_v= r_reg_bus_rdata_vld;
 
 
 endmodule

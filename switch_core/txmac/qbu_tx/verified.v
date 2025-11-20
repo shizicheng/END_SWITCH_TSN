@@ -28,24 +28,24 @@ module verified#(
     input           wire                                	i_qbu_response_valid   ,
 
     // //verified_to_MUX
-    output          wire    [AXIS_DATA_WIDTH - 1:0]     	o_qbu_verify_data      ,//æ•°æ®ä¿¡å·  
-    output          wire    [15:0]                      	o_qbu_verify_user      ,//æ•°æ®ä¿¡æ¯  
-    output          wire    [(AXIS_DATA_WIDTH/8)-1:0]   	o_qbu_verify_keep      ,//æ•°æ®æ©ç   
-    output          wire                                	o_qbu_verify_last      ,//æ•°æ®æˆªè‡³ä¿¡
-    output          wire                                	o_qbu_verify_valid     ,//æ•°æ®æœ‰æ•ˆä¿¡ 
-    input           wire                                	i_qbu_verify_ready     ,//å‡†å¤‡ä¿¡å·
-    output          wire    [7:0]                       	o_qbu_verify_smd 	   ,//SMDç¼–ç 
-    output          wire                                    o_qbu_verify_smd_valid ,//SMDç¼–ç 
+    output          wire    [AXIS_DATA_WIDTH - 1:0]     	o_qbu_verify_data      ,//Êı¾İĞÅºÅ  
+    output          wire    [15:0]                      	o_qbu_verify_user      ,//Êı¾İĞÅÏ¢  
+    output          wire    [(AXIS_DATA_WIDTH/8)-1:0]   	o_qbu_verify_keep      ,//Êı¾İÑÚÂë  
+    output          wire                                	o_qbu_verify_last      ,//Êı¾İ½ØÖÁĞÅ
+    output          wire                                	o_qbu_verify_valid     ,//Êı¾İÓĞĞ§ĞÅ 
+    input           wire                                	i_qbu_verify_ready     ,//×¼±¸ĞÅºÅ
+    output          wire    [7:0]                       	o_qbu_verify_smd 	   ,//SMD±àÂë
+    output          wire                                    o_qbu_verify_smd_valid ,//SMD±àÂë
 
     input           wire                                    i_verify_enabled       ,
     input           wire                                    i_start_verify         ,
     input           wire                                    i_clear_verify         ,
-    output 			wire 									o_verify_succ 		   ,//éªŒè¯æˆåŠŸä¿¡å·
-    output 			wire 									o_verify_succ_val 	   ,//éªŒè¯æˆåŠŸæœ‰æ•ˆä¿¡å·
-    input           wire    [15:0]                          i_verify_timer		   ,//æ§åˆ¶éªŒè¯è¯·æ±‚ä¹‹é—´çš„ç­‰å¾…æ—¶é—´
+    output 			wire 									o_verify_succ 		   ,//ÑéÖ¤³É¹¦ĞÅºÅ
+    output 			wire 									o_verify_succ_val 	   ,//ÑéÖ¤³É¹¦ÓĞĞ§ĞÅºÅ
+    input           wire    [15:0]                          i_verify_timer		   ,//¿ØÖÆÑéÖ¤ÇëÇóÖ®¼äµÄµÈ´ıÊ±¼ä
     input  			wire                                    i_verify_timer_vld     ,
     output          wire    [15:0]                          o_err_verify_cnt       ,
-    output          wire                                    o_preempt_enable        //qbuåŠŸèƒ½æ¿€æ´»æˆåŠŸ
+    output          wire                                    o_preempt_enable        //qbu¹¦ÄÜ¼¤»î³É¹¦
 );
 
 
@@ -54,15 +54,15 @@ module verified#(
 
 /***************parameter*************/
 
-localparam 						CLK_TIME		=		'd125;//125Mæ—¶é’Ÿ
+localparam 						CLK_TIME		=		'd125;//125MÊ±ÖÓ
 
-//çŠ¶æ€æœº	
-localparam 						IDLE 			= 	 	6'b0000_01		;	//åˆå§‹çŠ¶æ€
-localparam 						SEND_VER 		= 	 	6'b0000_10		;	//å‘é€éªŒè¯å¸§
-localparam 						WAIT 			= 	 	6'b0001_00		;	//ç­‰å¾…å›å¤çŠ¶æ€
-localparam 						SEND_RES 		= 	 	6'b0010_00		;	//å‘é€å›å¤å¸§
-localparam 						SUCCESS 		= 	 	6'b0100_00		;	//éªŒè¯æˆåŠŸ
-localparam 						FAIL 			= 	 	6'b1000_00		;	//éªŒè¯å¤±è´¥
+//×´Ì¬»ú	
+localparam 						IDLE 			= 	 	6'b0000_01		;	//³õÊ¼×´Ì¬
+localparam 						SEND_VER 		= 	 	6'b0000_10		;	//·¢ËÍÑéÖ¤Ö¡
+localparam 						WAIT 			= 	 	6'b0001_00		;	//µÈ´ı»Ø¸´×´Ì¬
+localparam 						SEND_RES 		= 	 	6'b0010_00		;	//·¢ËÍ»Ø¸´Ö¡
+localparam 						SUCCESS 		= 	 	6'b0100_00		;	//ÑéÖ¤³É¹¦
+localparam 						FAIL 			= 	 	6'b1000_00		;	//ÑéÖ¤Ê§°Ü
 
 //SMD
 localparam 						SMD_V 			=		8'h07 			;
@@ -73,21 +73,21 @@ localparam 						SMD_R 			=		8'h19 			;
 /***************mechine***************/
 
 /***************reg*******************/
-//çŠ¶æ€æœº
+//×´Ì¬»ú
 reg  			[5:0]			state_c									;
 reg  			[5:0]			state_n									;
 
-//è®¡æ•°å™¨		
+//¼ÆÊıÆ÷		
 reg  			[5:0]			send_0_cnt								;
-reg  			[9:0]			clk_cnt 								;//æ—¶é’Ÿè®¡æ•°å™¨	
-reg  			[9:0]			us_cnt 									;//å¾®ç§’è®¡æ•°å™¨
-reg  			[9:0]			ms_cnt 									;//æ¯«ç§’è®¡æ•°å™¨
-reg  			[1:0]			s_cnt 									;//ç§’è®¡æ•°å™¨
+reg  			[9:0]			clk_cnt 								;//Ê±ÖÓ¼ÆÊıÆ÷	
+reg  			[9:0]			us_cnt 									;//Î¢Ãë¼ÆÊıÆ÷
+reg  			[9:0]			ms_cnt 									;//ºÁÃë¼ÆÊıÆ÷
+reg  			[1:0]			s_cnt 									;//Ãë¼ÆÊıÆ÷
 
-//çŠ¶æ€å¯„å­˜å™¨
-reg  							ver_val 								;//æ”¶åˆ°éªŒè¯å¸§
-reg  							res_val 								;//æ”¶åˆ°å›å¤å¸§
-reg  			[5:0]			r_state_c								;//å½“å‰çŠ¶æ€æ‰“ä¸€æ‹
+//×´Ì¬¼Ä´æÆ÷
+reg  							ver_val 								;//ÊÕµ½ÑéÖ¤Ö¡
+reg  							res_val 								;//ÊÕµ½»Ø¸´Ö¡
+reg  			[5:0]			r_state_c								;//µ±Ç°×´Ì¬´òÒ»ÅÄ
 reg				[1:0]			verify_cnt								;
 
 reg             [7:0]           idle_cnt                                ;
@@ -112,7 +112,7 @@ wire 							SUCCESS_to_IDLE    	    				;
 /***************component*************/
 
 /***************assign****************/
-//è¾“å‡º
+//Êä³ö
 assign o_R_rx_axis_ready = 'd1;
 assign o_V_rx_axis_ready = 'd1;
 assign o_qbu_verify_data 	 = 'd0;
@@ -123,25 +123,25 @@ assign o_qbu_verify_last 	 = send_0_cnt=='d59 ? 1 : 0;
 assign o_qbu_verify_smd 		 = state_c == SEND_VER ? SMD_V : state_c == SEND_RES ? SMD_R : 'b0;
 assign o_qbu_verify_smd_valid     = state_c == SEND_VER || state_c == SEND_RES ;
 assign o_verify_succ 	 = state_c == SUCCESS ? 1 : 0;
-assign o_verify_succ_val = state_c == FAIL || state_c == SUCCESS ? 1 : 0;//æ­¤ä¿¡å·æ‹‰é«˜è¡¨æ˜éªŒè¯ç»“æŸäº†ï¼ŒåŒæ—¶ä¹Ÿæ˜¯éªŒè¯ç»“æœçš„æœ‰æ•ˆä¿¡å·
+assign o_verify_succ_val = state_c == FAIL || state_c == SUCCESS ? 1 : 0;//´ËĞÅºÅÀ­¸ß±íÃ÷ÑéÖ¤½áÊøÁË£¬Í¬Ê±Ò²ÊÇÑéÖ¤½á¹ûµÄÓĞĞ§ĞÅºÅ
 assign o_preempt_enable = ro_preempt_enable;
 assign o_err_verify_cnt = ro_err_verify_cnt;
 
 
-// çŠ¶æ€æœºç¬¬ä¸‰æ®µï¼šè®¾è®¡è½¬ç§»æ¡ä»¶ï¼Œå‘½åçŠ¶æ€æœºè·³è½¬ä¸ºxx(ç°æ€)2xx(æ¬¡æ€)
+// ×´Ì¬»úµÚÈı¶Î£ºÉè¼Æ×ªÒÆÌõ¼ş£¬ÃüÃû×´Ì¬»úÌø×ªÎªxx(ÏÖÌ¬)2xx(´ÎÌ¬)
 assign IDLE_to_SEND_VER 	 = state_c == IDLE      && ri_start_verify == 1													;
-assign SEND_VER_to_WAIT 	 = state_c == SEND_VER  && send_0_cnt=='d59													;//å‘é€60ä¸ªé›¶
-// assign WAIT_to_SEND_VER		 = state_c == WAIT  	&& s_cnt == 'd3 &&	ver_val == 0 && res_val == 0 && verify_cnt <3	;//æ¯3så»é‡æ–°å‘é€
+assign SEND_VER_to_WAIT 	 = state_c == SEND_VER  && send_0_cnt=='d59													;//·¢ËÍ60¸öÁã
+// assign WAIT_to_SEND_VER		 = state_c == WAIT  	&& s_cnt == 'd3 &&	ver_val == 0 && res_val == 0 && verify_cnt <3	;//Ã¿3sÈ¥ÖØĞÂ·¢ËÍ
 assign WAIT_to_SEND_VER		 = state_c == WAIT  	&& ms_cnt == (ri_verify_timer - 1) &&	ver_val == 0 && res_val == 0 && verify_cnt <3	; // (test)
-assign WAIT_to_SUCCESS		 = state_c == WAIT  	&& res_val == 1														;//ç­‰å¾…çš„æ—¶å€™æ”¶åˆ°å›å¤å¸§å°±è·³
-assign WAIT_to_SEND_RES		 = state_c == WAIT  	&& ver_val == 1														;//ç­‰å¾…çš„æ—¶å€™æ”¶åˆ°éªŒè¯å¸§å°±è·³
-// assign WAIT_to_FAIL    		 = state_c == WAIT  	&& s_cnt == 'd3 && verify_cnt ==3 && ver_val == 0 && res_val == 0	;//å‘é€ä¸‰æ¬¡äº†æ²¡æœ‰
+assign WAIT_to_SUCCESS		 = state_c == WAIT  	&& res_val == 1														;//µÈ´ıµÄÊ±ºòÊÕµ½»Ø¸´Ö¡¾ÍÌø
+assign WAIT_to_SEND_RES		 = state_c == WAIT  	&& ver_val == 1														;//µÈ´ıµÄÊ±ºòÊÕµ½ÑéÖ¤Ö¡¾ÍÌø
+// assign WAIT_to_FAIL    		 = state_c == WAIT  	&& s_cnt == 'd3 && verify_cnt ==3 && ver_val == 0 && res_val == 0	;//·¢ËÍÈı´ÎÁËÃ»ÓĞ
 assign WAIT_to_FAIL    		 = state_c == WAIT  	&& ms_cnt == (ri_verify_timer - 1) && verify_cnt ==3 && ver_val == 0 && res_val == 0	; // (test)
-assign SEND_RES_to_SUCCESS 	 = state_c == SEND_RES 	&& send_0_cnt =='d59						 						;//å‘é€60ä¸ªé›¶
-assign FAIL_to_IDLE    		 = state_c == FAIL  	&& ri_verify_enabled == 1 && ri_start_verify == 1                                        ;//æ”¶åˆ°é‡æ–°éªŒè¯ä¿¡å·
-assign SUCCESS_to_IDLE    	 = state_c == SUCCESS   && ri_start_verify == 1                          					;//æ”¶åˆ°é‡æ–°éªŒè¯ä¿¡å·
+assign SEND_RES_to_SUCCESS 	 = state_c == SEND_RES 	&& send_0_cnt =='d59						 						;//·¢ËÍ60¸öÁã
+assign FAIL_to_IDLE    		 = state_c == FAIL  	&& ri_verify_enabled == 1 && ri_start_verify == 1                                        ;//ÊÕµ½ÖØĞÂÑéÖ¤ĞÅºÅ
+assign SUCCESS_to_IDLE    	 = state_c == SUCCESS   && ri_start_verify == 1                          					;//ÊÕµ½ÖØĞÂÑéÖ¤ĞÅºÅ
 		
-assign SUCCESS_to_FAIL       = state_c == SUCCESS   && ri_clear_verify == 1                                             ;//æ”¶åˆ°éªŒè¯æ¸…é™¤ä¿¡å·
+assign SUCCESS_to_FAIL       = state_c == SUCCESS   && ri_clear_verify == 1                                             ;//ÊÕµ½ÑéÖ¤Çå³ıĞÅºÅ
 
 /***************always****************/
 
@@ -159,7 +159,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// çŠ¶æ€æœºç¬¬ä¸€æ®µï¼šåŒæ­¥æ—¶åºé€»è¾‘ç”µè·¯ï¼Œæ ¼å¼åŒ–æè¿°æ¬¡æ€å¯„å­˜å™¨æ¬ç§»è‡³ç°æ€å¯„å­˜å™¨(ä¸éœ€æ›´æ”¹)
+// ×´Ì¬»úµÚÒ»¶Î£ºÍ¬²½Ê±ĞòÂß¼­µçÂ·£¬¸ñÊ½»¯ÃèÊö´ÎÌ¬¼Ä´æÆ÷°áÒÆÖÁÏÖÌ¬¼Ä´æÆ÷(²»Ğè¸ü¸Ä)
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst == 1'b1) begin
         state_c <= ri_verify_enabled ? IDLE : FAIL;
@@ -169,9 +169,9 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// çŠ¶æ€æœºç¬¬äºŒæ®µï¼šç»„åˆé€»è¾‘å—ï¼Œæè¿°çŠ¶æ€è½¬ç§»æ¡ä»¶åˆ¤æ–­ï¼Œç¬¬äºŒæ®µåªæè¿°çŠ¶æ€æœºçš„æ¶æ„
-// ä¸å†™æ˜çŠ¶æ€çš„è½¬ç§»æ¡ä»¶ï¼Œæ–¹ä¾¿å…¶ä»–äººç†è§£çŠ¶æ€æœºçš„æ¶æ„ï¼ŒåŒæ—¶ä¹Ÿæ–¹ä¾¿å¯¹çŠ¶æ€æœºæ¶æ„è¿›è¡Œä¿®æ”¹
-// ä½¿ç”¨ state_n = state_c æè¿°çŠ¶æ€ä¸å˜
+// ×´Ì¬»úµÚ¶ş¶Î£º×éºÏÂß¼­¿é£¬ÃèÊö×´Ì¬×ªÒÆÌõ¼şÅĞ¶Ï£¬µÚ¶ş¶ÎÖ»ÃèÊö×´Ì¬»úµÄ¼Ü¹¹
+// ²»Ğ´Ã÷×´Ì¬µÄ×ªÒÆÌõ¼ş£¬·½±ãÆäËûÈËÀí½â×´Ì¬»úµÄ¼Ü¹¹£¬Í¬Ê±Ò²·½±ã¶Ô×´Ì¬»ú¼Ü¹¹½øĞĞĞŞ¸Ä
+// Ê¹ÓÃ state_n = state_c ÃèÊö×´Ì¬²»±ä
 always @(*) begin
     case(state_c)
         IDLE: begin
@@ -191,7 +191,7 @@ always @(*) begin
             end
         end
         WAIT: begin
-            if (WAIT_to_SEND_RES) begin//è¿™ä¸ªå¾—æ”¾åœ¨ç¬¬ä¸€ä¸ªï¼Œå› ä¸ºå¦‚æœåŒæ—¶å—åˆ°éªŒè¯ä¸å›å¤å¸§æ—¶ï¼Œé€‰æ‹©å»è¾“å‡ºå›å¤å¸§ã€‚
+            if (WAIT_to_SEND_RES) begin//Õâ¸öµÃ·ÅÔÚµÚÒ»¸ö£¬ÒòÎªÈç¹ûÍ¬Ê±ÊÜµ½ÑéÖ¤Óë»Ø¸´Ö¡Ê±£¬Ñ¡ÔñÈ¥Êä³ö»Ø¸´Ö¡¡£
                 state_n = SEND_RES;
             end
             else if(WAIT_to_SUCCESS) begin
@@ -240,7 +240,7 @@ always @(*) begin
     endcase
 end
 
-//æ‰“æ‹
+//´òÅÄ
 
 always @(posedge i_clk) begin
     ri_start_verify <= i_start_verify;
@@ -258,10 +258,10 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 /*************************************
-				æ—¶é—´è®¡æ•°å™¨
+				Ê±¼ä¼ÆÊıÆ÷
 *************************************/
 
-//clk_cntåœ¨WAITçŠ¶æ€ä¸‹è®¡æ•°åˆ°1us
+//clk_cntÔÚWAIT×´Ì¬ÏÂ¼ÆÊıµ½1us
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         clk_cnt <= 'b0;
@@ -277,7 +277,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//us_cnt æ¯æ¬¡è®¡æ•°åˆ°1usåŠ ä¸€,åˆ°999uså½’é›¶
+//us_cnt Ã¿´Î¼ÆÊıµ½1us¼ÓÒ»,µ½999us¹éÁã
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         us_cnt <= 'b0;
@@ -297,7 +297,7 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//ms_cnt æ¯æ¬¡è®¡æ•°åˆ°1msåŠ ä¸€,åˆ°999uså½’é›¶
+//ms_cnt Ã¿´Î¼ÆÊıµ½1ms¼ÓÒ»,µ½999us¹éÁã
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ms_cnt <= 'b0;
@@ -317,7 +317,7 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
-//s_cnt æ¯æ¬¡åˆ°1sè‡ªåŠ¨åŠ ä¸€ ï¼Œå…¶ä»–çŠ¶æ€ä¸‹ä¼šå½’é›¶
+//s_cnt Ã¿´Îµ½1s×Ô¶¯¼ÓÒ» £¬ÆäËû×´Ì¬ÏÂ»á¹éÁã
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         s_cnt <= 'b0;
@@ -335,7 +335,7 @@ end
 
 
 
-//send_0_cntå‘é€æ•°æ®è®¡æ•°å™¨ï¼Œè¦å‘é€60ä¸ª0ï¼Œè¿›å…¥ SEND_RESæˆ–è€…SEND_VERçŠ¶æ€å¼€å§‹å‘é€
+//send_0_cnt·¢ËÍÊı¾İ¼ÆÊıÆ÷£¬Òª·¢ËÍ60¸ö0£¬½øÈë SEND_RES»òÕßSEND_VER×´Ì¬¿ªÊ¼·¢ËÍ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         send_0_cnt <= 'b0;
@@ -351,7 +351,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//ver_val æ”¶åˆ°éªŒè¯å¸§ æ—¶æ‹‰é«˜ï¼Œå½“é‡æ–°éœ€è¦éªŒè¯æ—¶ åœ¨IDLEçŠ¶æ€é‡æ–°å½’é›¶
+//ver_val ÊÕµ½ÑéÖ¤Ö¡ Ê±À­¸ß£¬µ±ÖØĞÂĞèÒªÑéÖ¤Ê± ÔÚIDLE×´Ì¬ÖØĞÂ¹éÁã
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         ver_val <= 'b0;
@@ -367,7 +367,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//res_val æ”¶åˆ°å›å¤å¸§æ‹‰é«˜ï¼Œå½“é‡æ–°éœ€è¦éªŒè¯æ—¶ï¼Œåœ¨IDLEçŠ¶æ€é‡æ–°å½’é›¶ã€‚
+//res_val ÊÕµ½»Ø¸´Ö¡À­¸ß£¬µ±ÖØĞÂĞèÒªÑéÖ¤Ê±£¬ÔÚIDLE×´Ì¬ÖØĞÂ¹éÁã¡£
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         res_val <= 'b0;
@@ -383,7 +383,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//r_state_c å½“å‰çŠ¶æ€æ‰“ä¸€æ‹
+//r_state_c µ±Ç°×´Ì¬´òÒ»ÅÄ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_state_c <= 'b0;
@@ -393,7 +393,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-//verify_cnt æ¯è¿›ä¸€æ¬¡SEND_VERçŠ¶æ€å°±ä¼šåŠ ä¸€ï¼Œåœ¨IDLEçŠ¶æ€ä¼šç½®é›¶
+//verify_cnt Ã¿½øÒ»´ÎSEND_VER×´Ì¬¾Í»á¼ÓÒ»£¬ÔÚIDLE×´Ì¬»áÖÃÁã
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         verify_cnt <= 'b0;

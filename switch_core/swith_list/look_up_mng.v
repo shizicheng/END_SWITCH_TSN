@@ -1,8 +1,9 @@
 module look_up_mng #(
         parameter                           HASH_DATA_WIDTH         =      12                   ,   // 哈希计算的值的位宽
         parameter                           PORT_NUM                =      4                    ,   // 交换机的端口数
+        parameter                           PORTBIT_NUM             =      clog2(PORT_NUM)      ,
         parameter                           ADDR_WIDTH              =      6                    ,   // 地址表的深度
-        parameter   [47:0]                  LOCAL_MAC               = 48'h000000000000             // 本地MAC地址参数
+        parameter   [47:0]                  LOCAL_MAC               = 48'h000000000001             // 本地MAC地址参数
 )(  
         input               wire                                    i_clk                       ,
         input               wire                                    i_rst                       ,
@@ -54,7 +55,16 @@ module look_up_mng #(
         input               wire                                    i_clash_tx_port_vld         
 );
 
-/*======================= 内部信号声明 =======================*/
+/*---------------------------------------- clog2计算函数 -------------------------------------------*/
+function integer clog2;
+    input integer value;
+    integer temp;
+    begin
+        temp = value - 1;
+        for (clog2 = 0; temp > 0; clog2 = clog2 + 1)
+            temp = temp >> 1;
+    end
+endfunction 
 // 输入信号打拍寄存器
 reg    [11 : 0]                         ri_vlan_id                   ;   // VLAN ID打拍
 reg    [PORT_NUM - 1:0]                 ri_dmac_port                 ;   // DMAC端口打拍
@@ -84,7 +94,7 @@ wire                                    w_clash_req_en               ;   // 冲�
 reg                                     r_is_self_mac                ;   // 是否为自己MAC标识
 reg    [PORT_NUM-1:0]                   r_final_tx_port              ;   // 最终输出端口
 reg                                     r_final_tx_port_vld          ;   // 最终输出端口有效
-reg    [2:0]                            r_lookup_state               ;   // 查表状态计数器
+// reg    [2:0]                            r_lookup_state               ;   // 查表状态计数器
 reg                                     r_smac_result_ready          ;   // SMAC结果准备就绪
 reg                                     r_dmac_result_ready          ;   // DMAC结果准备就绪
 reg                                     r_clash_result_ready         ;   // CLASH结果准备就绪
@@ -103,10 +113,15 @@ reg    [1:0]                            r_broadcast_result           ;   // 广�
 reg                                     r_is_broadcast_flag1         ;
 reg                                     r_is_broadcast_flag2         ;
 reg                                     r_is_broadcast_flag3         ;
+wire                                    w_mac_eq_0                   ;
+wire                                    w_mac_eq_1                   ;
+wire                                    w_mac_eq_2                   ;
+wire                                    w_mac_eq_all                 ;
 
 // 本地MAC地址 - 参数化配置
 wire   [47:0]                           w_local_mac                  ;   // 本地MAC地址
-
+wire                                    w_all_rslt_ready             ;
+assign w_all_rslt_ready = r_dmac_result_ready == 1'd1;//r_smac_result_ready == 1'd1 && r_dmac_result_ready == 1'd1 && r_clash_result_ready == 1'd1 ;
 /*======================= 输出信号连接 ===========================*/
 assign o_tx_port                    = r_is_self_mac ? {{1'b1}, {PORT_NUM{1'b0}}} : {{1'b0}, r_final_tx_port};
 assign o_tx_port_vld                = r_is_self_mac ? 1'b1 : r_final_tx_port_vld;
@@ -135,7 +150,7 @@ assign o_clash_item_vlan_id         = ri_vlan_id;
 /*======================= 输入信号打拍逻辑 =======================*/
 // 所有信号打拍处理
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst) begin
+    if (i_rst) begin
         ri_vlan_id              <= 12'd0;
         ri_dmac_port            <= {PORT_NUM{1'b0}};
         ri_dmac_hash_key        <= {HASH_DATA_WIDTH{1'b0}};
@@ -185,15 +200,15 @@ assign w_clash_req_en = ri_dmac_vld;
 // 本地MAC地址参数化配置
 assign w_local_mac = LOCAL_MAC;
 
-// 是否为自己MAC检查
-// 分组比较ri_dmac和w_local_mac的每16位
-wire w_mac_eq_0 = (ri_dmac[47:32] == w_local_mac[47:32]);
-wire w_mac_eq_1 = (ri_dmac[31:16] == w_local_mac[31:16]);
-wire w_mac_eq_2 = (ri_dmac[15:0]  == w_local_mac[15:0]);
-wire w_mac_eq_all = w_mac_eq_0 == 1'd1 && w_mac_eq_1 == 1'd1 && w_mac_eq_2 == 1'd1;
+// 是否为自己MAC检查 
+
+assign w_mac_eq_0 = (ri_dmac[47:32] == w_local_mac[47:32]);
+assign w_mac_eq_1 = (ri_dmac[31:16] == w_local_mac[31:16]);
+assign w_mac_eq_2 = (ri_dmac[15:0]  == w_local_mac[15:0]) ;
+assign w_mac_eq_all = w_mac_eq_0 == 1'd1 && w_mac_eq_1 == 1'd1 && w_mac_eq_2 == 1'd1;
 
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_is_self_mac <= 1'b0;
     else
         r_is_self_mac <= w_mac_eq_all ? 1'b1 : 1'b0;
@@ -204,7 +219,7 @@ end
 
 // 广播地址检测标志位
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst) begin
+    if (i_rst) begin
         r_is_broadcast_flag1 <= 1'b0;
         r_is_broadcast_flag2 <= 1'b0;
         r_is_broadcast_flag3 <= 1'b0;
@@ -218,7 +233,7 @@ end
 
 // 所有标志位都为1时，r_is_broadcast拉高
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_is_broadcast <= 1'b0;
     else
         r_is_broadcast <= r_is_broadcast_flag1 == 1'd1 && r_is_broadcast_flag2 == 1'd1 && r_is_broadcast_flag3 == 1'd1;
@@ -226,7 +241,7 @@ end
 
 // 组播地址检测 (最高字节最低位为1)
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_is_multicast <= 1'b0;
     else
         r_is_multicast <= ri_dmac[40] ? 1'b1 : 1'b0;  // 第40位(最高字节最低位)
@@ -234,19 +249,19 @@ end
 
 // MAC地址类型编码
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_mac_type <= 2'b00;
     else
         r_mac_type <= r_is_broadcast ? 2'b10 : 
                      (r_is_multicast ? 2'b01 : 2'b00);
 end
 
-// 最终广播类型结果 - 结合查表结果
+// 最终广播类型结果  00 单播 01 组播 10 广播 11 泛洪
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_broadcast_result <= 2'b00;
     else
-        r_broadcast_result <= r_all_results_ready ? 
+        r_broadcast_result <= r_dmac_result_ready ? 
                              (r_mac_type == 2'b10 ? 2'b10 :
                              (r_mac_type == 2'b01 ? 2'b01 :
                              ((r_final_tx_port == r_flood_port) && (r_final_tx_port != {PORT_NUM{1'b0}}) ? 2'b11 : 2'b00))) :
@@ -256,7 +271,7 @@ end
 /*======================= 查表结果收集逻辑 =======================*/
 // SMAC查表结果收集
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst) begin
+    if (i_rst) begin
         r_smac_result_ready <= 1'b0;
         r_smac_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -265,14 +280,14 @@ always @(posedge i_clk or negedge i_rst) begin
         r_smac_lookup_result <= {PORT_NUM{1'b0}};
     end
     else begin
-        r_smac_result_ready <= ri_smac_tx_port_vld ? 1'b1 : r_smac_result_ready;
-        r_smac_lookup_result <= ri_smac_tx_port_vld ? ri_smac_tx_port_rslt : r_smac_lookup_result;
+        r_smac_result_ready  <= i_smac_tx_port_vld ? 1'b1 : r_smac_result_ready;
+        r_smac_lookup_result <= i_smac_tx_port_vld ? i_smac_tx_port_rslt : r_smac_lookup_result;
     end
 end
 
 // DMAC查表结果收集
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst) begin
+    if (i_rst) begin
         r_dmac_result_ready <= 1'b0;
         r_dmac_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -281,14 +296,14 @@ always @(posedge i_clk or negedge i_rst) begin
         r_dmac_lookup_result <= {PORT_NUM{1'b0}};
     end
     else begin
-        r_dmac_result_ready <= ri_dmac_lookup_vld ? 1'b1 : r_dmac_result_ready;
-        r_dmac_lookup_result <= ri_dmac_lookup_vld ? ri_dmac_tx_port_rslt : r_dmac_lookup_result;
+        r_dmac_result_ready <= i_dmac_lookup_vld ? 1'b1 : r_dmac_result_ready;
+        r_dmac_lookup_result <= i_dmac_lookup_vld ? i_dmac_tx_port_rslt : r_dmac_lookup_result;
     end
 end
 
 // CLASH查表结果收集
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst) begin
+    if (i_rst) begin
         r_clash_result_ready <= 1'b0;
         r_clash_lookup_result <= {PORT_NUM{1'b0}};
     end
@@ -297,42 +312,45 @@ always @(posedge i_clk or negedge i_rst) begin
         r_clash_lookup_result <= {PORT_NUM{1'b0}};
     end
     else begin
-        r_clash_result_ready <= ri_clash_tx_port_vld ? 1'b1 : r_clash_result_ready;
-        r_clash_lookup_result <= ri_clash_tx_port_vld ? ri_clash_tx_port_rslt : r_clash_lookup_result;
+        r_clash_result_ready  <= i_clash_tx_port_vld ? 1'b1 : r_clash_result_ready;
+        r_clash_lookup_result <= i_clash_tx_port_vld ? i_clash_tx_port_rslt : r_clash_lookup_result;
     end
 end
 
 // 所有结果准备就绪判断
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_all_results_ready <= 1'b0;
     else
-        r_all_results_ready <= r_smac_result_ready == 1'd1 && r_dmac_result_ready == 1'd1 && r_clash_result_ready == 1'd1;
+        r_all_results_ready <= r_dmac_result_ready == 1'd1;
+        // r_all_results_ready <= r_smac_result_ready == 1'd1 && r_dmac_result_ready == 1'd1 && r_clash_result_ready == 1'd1;
 end
 
 // 泛洪端口生成 - 除了输入端口外，其他端口全为1
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_flood_port <= {PORT_NUM{1'b0}};
     else
-        r_flood_port <= ~ri_dmac_port;
+        r_flood_port <= ri_dmac_vld ? ~ri_dmac_port : r_flood_port;
 end
 
 /*======================= 查表结果仲裁逻辑 =======================*/
-// 最终输出端口仲裁 - 优先级：smac > dmac > clash > flood
+// 最终输出端口仲裁 - 优先级：smac > dmac > clash > flood   暂时只采用dmmac的查表结果
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_final_tx_port <= {PORT_NUM{1'b0}};
-    else if (r_all_results_ready)
-        r_final_tx_port <= (r_smac_lookup_result != {PORT_NUM{1'b0}}) ? r_smac_lookup_result :
-                          ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) && ri_dmac_lookup_clash == 1'd0) ? r_dmac_lookup_result :
-                          (r_clash_lookup_result != {PORT_NUM{1'b0}}) ? r_clash_lookup_result : 
-                          r_flood_port;
+    else if (w_all_rslt_ready)
+        // r_final_tx_port <= (r_smac_lookup_result != {PORT_NUM{1'b0}}) ? r_smac_lookup_result :
+        //                   ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) && ri_dmac_lookup_clash == 1'd0) ? r_dmac_lookup_result :
+        //                   (r_clash_lookup_result != {PORT_NUM{1'b0}}) ? r_clash_lookup_result : 
+        //                   r_flood_port;
+        r_final_tx_port <= ((r_dmac_lookup_result != {PORT_NUM{1'b0}}) && ri_dmac_lookup_clash == 1'd0) ? r_dmac_lookup_result :
+                             r_flood_port ;
 end
 
 // 最终输出端口有效
 always @(posedge i_clk or negedge i_rst) begin
-    if (!i_rst)
+    if (i_rst)
         r_final_tx_port_vld <= 1'b0;
     else
         r_final_tx_port_vld <= r_all_results_ready;

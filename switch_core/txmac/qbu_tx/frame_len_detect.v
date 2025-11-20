@@ -6,11 +6,11 @@ module frame_len_detect#(
 	input       	wire                         		i_rst                       ,
 
 	input           wire    [AXIS_DATA_WIDTH - 1:0]     i_top_Emac_tx_axis_data     ,
-	input           wire    [15:0]                      i_top_Emac_tx_axis_user     , //userï¼šæ•°æ®é•¿åº¦
-	input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_top_Emac_tx_axis_keep     , //keepæ•°æ®æ©ç 
+	input           wire    [15:0]                      i_top_Emac_tx_axis_user     , //user£ºÊı¾İ³¤¶È
+	input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_top_Emac_tx_axis_keep     , //keepÊı¾İÑÚÂë
 	input           wire                                i_top_Emac_tx_axis_last     ,
 	input           wire                                i_top_Emac_tx_axis_valid    ,
-	input           wire    [15:0]                      i_top_Emac_tx_axis_type     , //typeæ•°æ®ç±»å‹
+	input           wire    [15:0]                      i_top_Emac_tx_axis_type     , //typeÊı¾İÀàĞÍ
 	output          wire                                o_top_Emac_tx_axis_ready	,
 
 	input           wire    [AXIS_DATA_WIDTH - 1:0]     i_top_Pmac_tx_axis_data  	,
@@ -74,6 +74,7 @@ assign 						o_top_Pmac_tx_axis_last  =  r_p_pad_flag ?  (r_p_pad_cnt == 'd46 - 
 assign 						o_top_Pmac_tx_axis_valid =  r_p_pad_flag ?  1'd1 : ri_top_Pmac_tx_axis_valid	;
 assign 						o_top_Pmac_tx_axis_type  =  r_p_pad_flag ?  ri_top_Pmac_tx_axis_type : ri_top_Pmac_tx_axis_valid ? ri_top_Pmac_tx_axis_type : 0	;
 assign                      o_top_Pmac_tx_axis_ready =  ri_top_Pmac_tx_axis_ready ; 
+
 always@(posedge i_clk) begin
 	ri_top_Emac_tx_axis_data 	<= i_top_Emac_tx_axis_data  ;
 	ri_top_Emac_tx_axis_user 	<= i_top_Emac_tx_axis_user  ;

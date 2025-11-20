@@ -57,7 +57,16 @@ module ram_fifo #(
 );
 
 
-/***************function**************/
+  /*---------------------------------------- clog2计算函数 ---------------------------------------------*/
+  function integer clog2;
+    input integer value;
+    integer temp;
+    begin
+      temp = value - 1;
+      for (clog2 = 0; temp > 0; clog2 = clog2 + 1)
+        temp = temp >> 1;
+    end
+  endfunction
 
 /***************parameter*************/
 
@@ -80,12 +89,13 @@ localparam           END                =       3'b100;
 
 //ram定义参数
 localparam           RAM_DEPTH          = 'd2048;//4096
+localparam           ADDR_WIDTH         = clog2(RAM_DEPTH);
 localparam           RAM_PERFORMANCE    = "LOW_LATENCY";
 localparam           INIT_FILE          = ""  ; 
 
 
 //fifo参数
-localparam           DATAWIDTH = 'd25;//写位宽
+localparam           DATAWIDTH = 13+ADDR_WIDTH;//写位宽
 localparam           DEPT_W = 'd16;//写深度
 localparam           AL_FUL =  DEPT_W - 10;//满信号
 localparam           AL_EMP =  10;  //空信号    
@@ -128,47 +138,46 @@ reg    [47:0]                            r_target_mac                ;
 
 
 reg                                      r_Data_diver_axis_last      ;
-reg [11:0]                               read_ram_add_begin_last     ;
+reg     [ADDR_WIDTH-1:0]                 read_ram_add_begin_last     ;
 
 //ram
-reg     [11:0]                           write_ram_addr              ;//12位
-reg     [11:0]                           read_ram_addr               ; //12位
+reg     [ADDR_WIDTH-1:0]                 write_ram_addr              ;//12位
+reg     [ADDR_WIDTH-1:0]                 read_ram_addr               ; //12位
 wire    [DWIDTH - 1:0]                   write_ram_data              ;
 wire    [DWIDTH - 1:0]                   read_ram_data               ;
 reg                                      write_ram_en                ;
 reg                                      read_ram_en                 ;
 
-reg     [11:0]                           addr_begin                  ;
-reg     [11:0]                           addr_end                    ;
-reg     [11:0]                           r_read_addr_end             ;//寄存fifo读出的地址
+reg     [ADDR_WIDTH-1:0]                 addr_begin                  ;
+reg     [ADDR_WIDTH-1:0]                 addr_end                    ;
+reg     [ADDR_WIDTH-1:0]                 r_read_addr_end             ;//寄存fifo读出的地址
 
 reg                                      read_ram_en_r               ;
-/***************wire******************/
-
+reg                                      read_fifo_en_r              ;
 
 //fifo
-wire  [24:0]   write_fifo_data         ;//(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,addr_end)
-reg            write_fifo_en           ;
-wire  [24:0]   read_fifo_data          ;
-reg            read_fifo_en            ;
-wire           empty                   ;
+wire  [13+ADDR_WIDTH-1:0]                write_fifo_data             ;//(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,addr_end)
+reg                                      write_fifo_en               ;
+wire  [13+ADDR_WIDTH-1:0]                read_fifo_data              ;
+reg                                      read_fifo_en                ;
+wire                                     empty                       ;
 
 /***************component*************/
 ram_simple2port #(
-    .RAM_WIDTH        (DWIDTH         ), // Specify RAM data width
-    .RAM_DEPTH        (RAM_DEPTH      ), // Specify RAM depth (number of entries)
-    .RAM_PERFORMANCE  (RAM_PERFORMANCE), // Select "HIGH_PERFORMANCE" or "LOW_LATENCY"             
-    .INIT_FILE        (INIT_FILE      )  // Specify name/location of RAM initialization file if using one (leave blank if not)
+    .RAM_WIDTH        (DWIDTH         ),  
+    .RAM_DEPTH        (RAM_DEPTH      ),  
+    .RAM_PERFORMANCE  (RAM_PERFORMANCE),  
+    .INIT_FILE        (INIT_FILE      )   
 ) inst_data (
-    .addra            (write_ram_addr ), // Write address bus, width determined from RAM_DEPTH
-    .addrb            (read_ram_addr  ), // Read address bus, width determined from RAM_DEPTH
-    .dina             (write_ram_data ), // RAM input data
-    .clka             (i_clk          ), // Write clock
-    .clkb             (i_clk          ), // Read clock
-    .wea              (write_ram_en   ), // Write enable
-    .enb              (read_ram_en    ), // Read Enable, for additional power savings, disable when not in use
-    .rstb             (i_rst          ), // Output reset (does not affect memory contents)
-    .regceb           (1'b1           ), // Output register enable
+    .addra            (write_ram_addr ),  
+    .addrb            (read_ram_addr  ),  
+    .dina             (write_ram_data ),  
+    .clka             (i_clk          ),  
+    .clkb             (i_clk          ),  
+    .wea              (write_ram_en   ),  
+    .enb              (read_ram_en    ),  
+    .rstb             (i_rst          ),  
+    .regceb           (1'b1           ),  
     .doutb            (read_ram_data  )  // RAM output data
 );
 
@@ -194,17 +203,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD (0                     ),
     .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
 ) inst_sync_fifo (
-    .CLK                    (i_clk                 ),
-    .RST                    (i_rst                 ),
-    .WR_EN                  (write_fifo_en         ),
-    .DIN                    (write_fifo_data       ),
-    .RD_EN                  (read_fifo_en          ),
-    .DOUT                   (read_fifo_data        ),
-    .FULL                   (                      ),
-    .EMPTY                  (empty                 ),
-    .ALMOST_FULL            (                      ),
-    .ALMOST_EMPTY           (                      ),
-    .DATA_CNT               (                      )
+    .i_clk                  (i_clk                 ),
+    .i_rst                  (i_rst                 ),
+    .i_wr_en                (write_fifo_en         ),
+    .i_din                  (write_fifo_data       ),
+    .o_full                 (                      ),
+    .i_rd_en                (read_fifo_en          ),
+    .o_dout                 (read_fifo_data        ),
+    .o_empty                (empty                 ),
+    .o_almost_full          (                      ),
+    .o_almost_empty         (                      ),
+    .o_data_cnt             (                      )
 );
   
     // my_xpm_fifo_sync #(
@@ -241,7 +250,7 @@ assign o_Data_diver_axis_data    = read_ram_en_r ? read_ram_data : 0;
 assign o_Data_diver_axis_keep    = read_ram_en_r; 
 assign o_Data_diver_axis_last    = r_Data_diver_axis_last;
 assign o_Data_diver_axis_valid   = read_ram_en_r;
-assign o_Data_len                = read_ram_add_begin_last;
+assign o_Data_len                = read_fifo_en_r ? r_read_addr_end - read_ram_addr + 12'd2 : read_ram_add_begin_last;
 //r_crc_vld
 
 
@@ -259,8 +268,9 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         o_Data_diver_axis_user<='d0; 
     end
-    else if (read_fifo_en==0&&read_ram_en==0&&read_ram_en_r==0&&empty==0) begin
-        o_Data_diver_axis_user<={read_fifo_data[24:12],3'b0}; 
+    // else if (read_fifo_en==1'd0&&read_ram_en==1'd0&&read_ram_en_r==1'd0&&empty==1'd0) begin
+    else if (read_fifo_en== 1'd1 && empty == 1'd0) begin
+        o_Data_diver_axis_user<={read_fifo_data[13+ADDR_WIDTH-1:ADDR_WIDTH],3'b0}; 
     end
     else begin
         o_Data_diver_axis_user<=o_Data_diver_axis_user;  
@@ -287,8 +297,8 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_read_addr_end<='d0;
     end
-    else if (read_fifo_en==0&&read_ram_en==0&&read_ram_en_r==0&&empty==0) begin
-        r_read_addr_end<=read_fifo_data[11:0];
+    else if (read_fifo_en== 1'd1 && empty == 1'd0) begin
+        r_read_addr_end<=read_fifo_data[ADDR_WIDTH-1:0];
     end
     else begin
         r_read_addr_end<=r_read_addr_end;
@@ -299,30 +309,13 @@ end
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         read_ram_add_begin_last <= 'b0;
-    end
-    
-    else if (read_fifo_en) begin
-        read_ram_add_begin_last <= r_read_addr_end - read_ram_addr + 1;
+    end    
+    else if (read_fifo_en_r) begin
+        read_ram_add_begin_last <= r_read_addr_end - read_ram_addr + 12'd2;
     end
 
 end
-
-/*
-always @(posedge i_clk or posedge i_rst) begin
-    if (i_rst) begin
-        
-    end
-    else if () begin
-        
-    end
-    else begin
-        
-    end
-end
-*/
-
-
-
+ 
 //r_SMD_type,r_frag_cnt,r_target_mac
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
@@ -383,11 +376,11 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         read_ram_en<=1'b0;
     end                     //之前为read_fifo_en==0&&read_ram_en==0&&empty==0
-    else if (read_fifo_en==0&&read_ram_en==0&&empty==0&&read_ram_en_r==0) begin
+    else if (read_ram_en == 1'd0 && empty == 1'd0 && read_ram_en_r == 1'd0) begin
         read_ram_en<=1'b1;
     end
-    else if (read_ram_addr==r_read_addr_end) begin
-        read_ram_en<=1'b0;
+    else if (read_ram_en_r == 1'd1 && (read_ram_addr == r_read_addr_end)  ) begin
+        read_ram_en <= 1'b0;
     end
     else begin
         read_ram_en<=read_ram_en;
@@ -399,7 +392,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_Data_diver_axis_last<='b0;
     end
-    else if (read_ram_addr==r_read_addr_end & read_ram_en) begin
+    else if ((read_ram_addr == r_read_addr_end) && read_ram_en_r == 1'd1) begin
         r_Data_diver_axis_last<=1'b1;
     end
     else begin
@@ -455,6 +448,11 @@ always @(posedge i_clk or posedge i_rst) begin
 end
 
 
+
+
+always @(posedge i_clk) begin 
+    read_fifo_en_r <= read_fifo_en; 
+end
 
 //输入数据打拍
 always @(posedge i_clk or posedge i_rst) begin
@@ -533,7 +531,8 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         write_fifo_en<='b0;
     end
-    else if (i_post_last&&r_target_mac==P_SOURCE_MAC&&i_crc_err==0) begin
+    // else if (i_post_last && r_target_mac == P_SOURCE_MAC && i_crc_err==0) begin
+    else if (i_post_last && i_crc_err==0) begin
         write_fifo_en<=1'b1;
     end
     else begin

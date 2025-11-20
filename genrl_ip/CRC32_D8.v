@@ -61,7 +61,7 @@ begin
   if(i_rst)
     crc <= 32'hffffffff;
   else if(i_en)
-    crc <= newcrc;
+    crc <=  newcrc;
   else 
     crc <= crc;
 end

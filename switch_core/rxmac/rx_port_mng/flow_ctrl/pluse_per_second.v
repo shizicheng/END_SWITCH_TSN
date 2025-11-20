@@ -30,104 +30,98 @@ module pluse_per_second#(
 
     input                           i_pluse_valid                   , 
 
-    output                          o_pluse                         ,
-    output                          o_pluse_last                                
+    output                          o_pluse_valid                   ,                         
+    input                           i_pluse_ready                          
 );              
     reg                             ri_pluse_valid                  ; 
 
     reg                             r_flow_run                      ; 
-    reg         [31:0]              r_cnt_msec                      ; 
+
+    reg         [15:0]              r_cnt_msec                      ; 
     reg                             r_cnt_msec_reset                ; 
-    reg         [31:0]              r_cnt_second                    ; 
+    reg         [15:0]              r_cnt_second                    ; 
+
     reg                             r_cnt_second_reset              ; 
     reg                             r_cnt_second_reset_1d           ; 
-    reg         [15:0]              r_second_keep_cnt               ; 
     reg                             ro_pluse                        ; 
-    reg                             ro_pluse_last                   ;
+
     wire                            w_pluse_valid_pos               ; 
 
     assign w_pluse_valid_pos    =   i_pluse_valid & !ri_pluse_valid ; 
 
-    assign o_pluse              =   ro_pluse                        ; 
-    assign o_pluse_last         =   ro_pluse_last                   ;
+    assign o_pluse_valid        =   ro_pluse                        ; 
+
     
-    localparam  COUNTER_CNT     =   (SIM_MODE == "TRUE") ?         300    : CLOCK_PERIOD / 1000  ;     
-    localparam  CARRY_NUM       =   (SIM_MODE == "TRUE") ?         2     : 1000                 ; 
+    localparam  COUNTER_CNT     =   (SIM_MODE == "TRUE") ?         30    : CLOCK_PERIOD / 1000  ;     
+    localparam  CARRY_NUM       =   (SIM_MODE == "TRUE") ?         10      : 1000                 ; 
 
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            ri_pluse_valid <= 'd0;
+            ri_pluse_valid <= 1'd0;
         else         
             ri_pluse_valid <= i_pluse_valid;
     end 
 
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            r_flow_run <= 'd0;
-        else if(w_pluse_valid_pos)
-            r_flow_run <= 'd1;
-        else 
-            r_flow_run <= r_flow_run;
+            r_flow_run <= 1'd0;
+        else begin 
+            r_flow_run <=   w_pluse_valid_pos ? 1'd1 : 
+                            r_flow_run;
+        end 
     end 
 
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            r_cnt_msec <= 'd0;
-        else if(r_cnt_msec_reset)
-            r_cnt_msec <= 'd0;
-        else if(r_flow_run)
-            r_cnt_msec <= r_cnt_msec + 'd1;
-        else 
-            r_cnt_msec <= r_cnt_msec;
-    end
-
-    always @(posedge i_pluse_clk) begin
-        if(i_pluse_rst)
-            r_cnt_msec_reset <= 'd0;
-        else if(r_cnt_msec == COUNTER_CNT - 'd2)
-            r_cnt_msec_reset <= 'd1;
-        else 
-            r_cnt_msec_reset <= 'd0;
+            r_cnt_msec <= 16'd0;
+        else begin 
+            r_cnt_msec <=   r_cnt_msec_reset    ? 16'd0 : 
+                            r_flow_run == 1'b1  ? r_cnt_msec + 16'd1: 
+                            r_cnt_msec;
+        end 
     end 
-
-
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            r_cnt_second <= 'd0;
-        else if(r_cnt_second_reset)
-            r_cnt_second <= 'd0;
-        else if(r_cnt_msec_reset)
-            r_cnt_second <= r_cnt_second + 'd1;
-        else 
-            r_cnt_second <= r_cnt_second;
+            r_cnt_msec_reset <= 1'd0;
+        else begin 
+            r_cnt_msec_reset <= r_cnt_msec == COUNTER_CNT - 'd2 ? 1'd1: 
+                                1'd0;
+        end 
     end 
 
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            r_cnt_second_reset <= 'd0;
-        else if(r_cnt_second == CARRY_NUM -'d2 && r_cnt_msec_reset)
-            r_cnt_second_reset <= 'd1;
-        else 
-            r_cnt_second_reset <= 'd0;
+            r_cnt_second <= 16'd0;
+        else begin 
+            r_cnt_second <= r_cnt_second_reset == 1'b1 ? 16'd0  : 
+                            r_cnt_msec_reset   == 1'b1 ? r_cnt_second + 16'd1 : 
+                            r_cnt_second;
+        end 
     end 
 
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            r_cnt_second_reset_1d <= 'd0;
+            r_cnt_second_reset <= 1'd0;
+        else begin 
+            r_cnt_second_reset <=   (r_cnt_second == CARRY_NUM -'d2 && r_cnt_msec_reset == 1'b1) ? 1'b1 : 
+                                    1'd0;
+        end     
+    end 
+    always @(posedge i_pluse_clk) begin
+        if(i_pluse_rst)
+            r_cnt_second_reset_1d <= 1'd0;
         else 
             r_cnt_second_reset_1d <= r_cnt_second_reset;
     end 
 
-
-
-
     always @(posedge i_pluse_clk) begin
         if(i_pluse_rst)
-            ro_pluse <= 'd0;
-        else if(r_cnt_second_reset)
-            ro_pluse <= 'd1;
-        else 
-            ro_pluse <= 'd0;
+            ro_pluse <= 1'd0;
+        else begin 
+            ro_pluse <= r_cnt_second_reset == 1'b1 ? 1'd1 : 
+                        i_pluse_ready == 1'b1 ? 1'd0 : 
+                        ro_pluse;
+        end 
     end 
 
 endmodule

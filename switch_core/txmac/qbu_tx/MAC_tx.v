@@ -36,26 +36,26 @@ module MAC_tx#(
     input                               i_source_mac_valid      ,
 
     /*--------data port--------*/
-    output                              o_udp_ready             , //ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†
-    input       [15:0]                  i_send_type             , //ç±»å‹
-    input       [15:0]                  i_send_len              , //é•¿åº¦
-    input       [AXIS_DATA_WIDTH-1:0]   i_send_data             , //æ•°æ®
-    input                               i_send_last             , //æœ€åä¸€ä¸ªæ•°æ®
-    input                               i_send_valid            , //æ•°æ®æœ‰æ•ˆä¿¡å·
+    output                              o_udp_ready             , //×éÖ¡Ä£¿é×¼±¸ºÃÁË
+    input       [15:0]                  i_send_type             , //ÀàĞÍ
+    input       [15:0]                  i_send_len              , //³¤¶È
+    input       [AXIS_DATA_WIDTH-1:0]   i_send_data             , //Êı¾İ
+    input                               i_send_last             , //×îºóÒ»¸öÊı¾İ
+    input                               i_send_valid            , //Êı¾İÓĞĞ§ĞÅºÅ
                     
     input       [7:0]                   i_smd                   ,
     input       [7:0]                   i_fra                   ,    
     input                               i_smd_vld               ,
     input                               i_fra_vld               ,
-    input                               i_crc                   ,   //ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrcã€‚
+    input                               i_crc                   ,   //Îª1ÔòÎªcrc·ñÔòÎªmcrc¡£
                 
     input                               i_eamc_send_busy        ,
     input                               i_pamc_send_busy        ,
     input       [15:0]                  i_pmac_send_len         ,
     input                               i_pmac_send_len_val     ,
     /*--------GMII port--------*/
-    // output    [7:0]                   o_mac_axi_data          , //ä¼ è¾“åˆ°GMIIæ•°æ®
-    // output                           o_mac_axi_data_valid    , //æ•°æ®æœ‰æ•ˆä¿¡å·
+    // output    [7:0]                   o_mac_axi_data          , //´«Êäµ½GMIIÊı¾İ
+    // output                           o_mac_axi_data_valid    , //Êı¾İÓĞĞ§ĞÅºÅ
     output      [AXIS_DATA_WIDTH-1:0]   o_mac_axi_data          ,
     output      [(AXIS_DATA_WIDTH/8)-1:0] o_mac_axi_data_keep   ,
     output                              o_mac_axi_data_valid    ,
@@ -79,8 +79,8 @@ localparam           SMD_C1     =       8'h52;
 localparam           SMD_C2     =       8'h9e;
 localparam           SMD_C3     =       8'h2a;
 
-//fifoå‚æ•°
-localparam           AL_EMP            =  10      ;  //ç©ºä¿¡å·    
+//fifo²ÎÊı
+localparam           AL_EMP            =  10      ;  //¿ÕĞÅºÅ    
 localparam           READ_MODE         = "fwft"   ;
 localparam           FIFO_READ_LATENCY = 'd0      ;    
 /***************port******************/             
@@ -119,7 +119,7 @@ reg  [ 7:0]         ri_ipg_timer        ;
 reg                 ri_ipg_timer_vld    ;
 reg                 ro_mac_axi_data_valid ;
 // reg  [15:0]         ro_mac_axi_data_user  ;
-reg                 ri_mac_axi_data_ready ;
+// reg                 ri_mac_axi_data_ready ;
 reg                 ro_mac_axi_data_last  ;
 reg   [15:0]        r_fifo_len_dout     ;
 
@@ -171,19 +171,19 @@ sync_fifo #(
     .WIDTH                  (AXIS_DATA_WIDTH     ),
     .ALMOST_FULL_THRESHOLD  (0                   ),
     .ALMOST_EMPTY_THRESHOLD (0                   ),
-    .FLOP_DATA_OUT          (1                   ) // 1ä¸ºfwftï¼Œ0ä¸ºstandard
+    .FLOP_DATA_OUT          (1                   ) // 1Îªfwft£¬0Îªstandard
 ) inst_SYNC_FIFO_MAC_8X1024_U0 (
-    .CLK        (i_clk             ),
-    .RST        (i_rst             ),
-    .WR_EN      (ri_send_valid     ),
-    .DIN        (ri_send_data      ),
-    .RD_EN      (r_fifo_mac_rd_en  ),
-    .DOUT       (w_fifo_mac_dout   ),
-    .FULL       (w_fifo_mac_full   ),
-    .EMPTY      (w_fifo_mac_empty  ),
-    .ALMOST_FULL(                  ),
-    .ALMOST_EMPTY(                 ),
-    .DATA_CNT   (                  )
+    .i_clk                  (i_clk               ),
+    .i_rst                  (i_rst               ),
+    .i_wr_en                (ri_send_valid       ),
+    .i_din                  (ri_send_data        ),
+    .i_rd_en                (r_fifo_mac_rd_en    ),
+    .o_dout                 (w_fifo_mac_dout     ),
+    .o_full                 (w_fifo_mac_full     ),
+    .o_empty                (w_fifo_mac_empty    ),
+    .o_almost_full          (                    ),
+    .o_almost_empty         (                    ),
+    .o_data_cnt             (                    )
 );
 //     my_xpm_fifo_sync #(
 //             .DATAWIDTH(AXIS_DATA_WIDTH),
@@ -223,19 +223,19 @@ sync_fifo #(
     .WIDTH                  (16                ),
     .ALMOST_FULL_THRESHOLD  (0                 ),
     .ALMOST_EMPTY_THRESHOLD (0                 ),
-    .FLOP_DATA_OUT          (1                 ) // 1ä¸ºfwftï¼Œ0ä¸ºstandard
+    .FLOP_DATA_OUT          (1                 ) // 1Îªfwft£¬0Îªstandard
 ) inst_SYNC_FIFO_16X32_LEN (
-    .CLK        (i_clk             ),
-    .RST        (i_rst             ),
-    .WR_EN      (write_fifo_len_en ),
-    .DIN        (i_send_len        ),
-    .RD_EN      (read_fifo_len_en  ),
-    .DOUT       (w_fifo_len_dout   ),
-    .FULL       (w_fifo_len_full   ),
-    .EMPTY      (w_fifo_len_empty  ),
-    .ALMOST_FULL(                 ),
-    .ALMOST_EMPTY(                ),
-    .DATA_CNT   (                 )
+    .i_clk                  (i_clk             ),
+    .i_rst                  (i_rst             ),
+    .i_wr_en                (write_fifo_len_en ),
+    .i_din                  (i_send_len        ),
+    .i_rd_en                (read_fifo_len_en  ),
+    .o_dout                 (w_fifo_len_dout   ),
+    .o_full                 (w_fifo_len_full   ),
+    .o_empty                (w_fifo_len_empty  ),
+    .o_almost_full          (                  ),
+    .o_almost_empty         (                  ),
+    .o_data_cnt             (                  )
 );
 
 // async_fifo_fwft #(
@@ -299,8 +299,8 @@ CRC32_D8 CRC32_D8_u0(
 assign o_mac_axi_data   = ro_mac_axi_data      ;
 assign o_mac_axi_data_valid     = ro_mac_axi_data_valid     ;
 assign o_tx_busy        = ro_mac_axi_data_valid     ;  
-assign w_send_valid_pos = r_gap_cnt == (ri_ipg_timer - 1) && r_len_en_flag && i_mac_axi_data_ready;//å‘é€æ•°æ®ä¿¡å·ä¸Šå‡æ²¿
-assign w_send_valid_neg = !ri_send_valid & ri_send_valid_1d;//å‘é€æ•°æ®ä¿¡å·ä¸‹é™æ²¿
+assign w_send_valid_pos = r_gap_cnt == (ri_ipg_timer - 1) && r_len_en_flag && i_mac_axi_data_ready;//·¢ËÍÊı¾İĞÅºÅÉÏÉıÑØ
+assign w_send_valid_neg = !ri_send_valid & ri_send_valid_1d;//·¢ËÍÊı¾İĞÅºÅÏÂ½µÑØ
 assign o_udp_ready      = ro_udp_ready      ;
 //assign w_fra = i_fra_vld ? i_fra :  w_fra;
 //assign w_smd = i_smd_vld ? i_smd :  w_smd;
@@ -313,10 +313,10 @@ assign o_tx_fragment_cnt = r_tx_fragment_cnt;
 assign w_fifo_len = i_send_len * AXIS_DATA_WIDTH/8;
 
 
-//assign r_crc             = i_send_last ? i_crc:r_crc;//é˜²æ­¢æ•°æ®åˆšä»FIFOè¯»å®Œï¼Œä¸‹ä¸€ç»„æ•°æ®å°±æ¥äº†ï¼Œcrcå°±æ›´æ–°äº†ã€‚
+//assign r_crc             = i_send_last ? i_crc:r_crc;//·ÀÖ¹Êı¾İ¸Õ´ÓFIFO¶ÁÍê£¬ÏÂÒ»×éÊı¾İ¾ÍÀ´ÁË£¬crc¾Í¸üĞÂÁË¡£
 /***************always****************/
 
-        //æ›´æ”¹ç‚¹ç”±äºå­˜åœ¨ç»„åˆé€»è¾‘å¾ªç¯å› æ­¤æ”¹æˆregç±»å‹//
+        //¸ü¸ÄµãÓÉÓÚ´æÔÚ×éºÏÂß¼­Ñ­»·Òò´Ë¸Ä³ÉregÀàĞÍ//
 
 always@(posedge i_clk,posedge i_rst) begin
     if (i_rst) begin
@@ -387,7 +387,7 @@ begin
     else
         r_w_fifo_len_dout <= r_w_fifo_len_dout;
 end
-//assign r_crc = i_send_last ? i_crc:r_crc;//é˜²æ­¢æ•°æ®åˆšä»FIFOè¯»å®Œï¼Œä¸‹ä¸€ç»„æ•°æ®å°±æ¥äº†ï¼Œcrcå°±æ›´æ–°äº†ã€‚
+//assign r_crc = i_send_last ? i_crc:r_crc;//·ÀÖ¹Êı¾İ¸Õ´ÓFIFO¶ÁÍê£¬ÏÂÒ»×éÊı¾İ¾ÍÀ´ÁË£¬crc¾Í¸üĞÂÁË¡£
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -450,7 +450,7 @@ begin
     end
 end
 
-//ç»„å¸§è®¡æ•°å™¨ï¼Œå½“æ£€æµ‹åˆ°æœ‰ä¿¡å·éœ€è¦å‘é€ä¿¡å·çš„ä¸Šå‡æ²¿æ—¶å¼€å§‹è®¡æ•°ï¼Œç­‰åˆ°ä¸€ç»„æ•°æ®çš„æœ€åä¸€ä¸ªcrcå‘é€å®Œæˆåæ‹‰ä½ï¼Œæ­¤æ—¶æ•°æ®å‘é€å®Œæˆã€‚
+//×éÖ¡¼ÆÊıÆ÷£¬µ±¼ì²âµ½ÓĞĞÅºÅĞèÒª·¢ËÍĞÅºÅµÄÉÏÉıÑØÊ±¿ªÊ¼¼ÆÊı£¬µÈµ½Ò»×éÊı¾İµÄ×îºóÒ»¸öcrc·¢ËÍÍê³ÉºóÀ­µÍ£¬´ËÊ±Êı¾İ·¢ËÍÍê³É¡£
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -463,29 +463,29 @@ begin
         r_mac_pkg_cnt <= r_mac_pkg_cnt;
 end
       
-//ç»„å¸§ï¼Œå‰20å­—èŠ‚æ ¹æ®è¾“å…¥æ•°æ®ç»„æˆï¼Œåè¾¹çš„ä¸ºfifoçš„æ•°æ®è¾“å‡ºä»¥åŠcrc
+//×éÖ¡£¬Ç°20×Ö½Ú¸ù¾İÊäÈëÊı¾İ×é³É£¬ºó±ßµÄÎªfifoµÄÊı¾İÊä³öÒÔ¼°crc
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
         r_mac_data <= 'd0;
     else case(r_mac_pkg_cnt)
         0,1,2,3,4,5     :r_mac_data <= 8'h55;
-        6               :r_mac_data <= (w_smd==SMD_C0||w_smd==SMD_C1||w_smd==SMD_C2||w_smd==SMD_C3)? w_smd : 8'h55;//å½“ä¸ºSMD_Cæ—¶ç¬¬å…­å­—èŠ‚ä¸ºSMDç¼–ç 
-        7               :r_mac_data <= (w_smd==SMD_C0||w_smd==SMD_C1||w_smd==SMD_C2||w_smd==SMD_C3)? w_fra : w_smd;//ä¸ºSMD_Cæ—¶æ­¤å¤„ä¸ºå¸§è®¡æ•°å™¨å¦åˆ™ä¸ºSMDç¼–ç 
-        8               :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[47:40];
-        9               :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[39:32];
-        10              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[31:24];
-        11              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[23:16];
-        12              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[15: 8];
-        13              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[7 : 0];
-        14              :r_mac_data <= r_source_mac[47:40];
-        15              :r_mac_data <= r_source_mac[39:32];
-        16              :r_mac_data <= r_source_mac[31:24];
-        17              :r_mac_data <= r_source_mac[23:16];
-        18              :r_mac_data <= r_source_mac[15: 8];
-        19              :r_mac_data <= r_source_mac[7 : 0];
-        20              :r_mac_data <= ri_send_type[15: 8];
-        21              :r_mac_data <= ri_send_type[7 : 0];
+        6               :r_mac_data <= (w_smd==SMD_C0||w_smd==SMD_C1||w_smd==SMD_C2||w_smd==SMD_C3)? w_smd : 8'h55;//µ±ÎªSMD_CÊ±µÚÁù×Ö½ÚÎªSMD±àÂë
+        7               :r_mac_data <= (w_smd==SMD_C0||w_smd==SMD_C1||w_smd==SMD_C2||w_smd==SMD_C3)? w_fra : w_smd;//ÎªSMD_CÊ±´Ë´¦ÎªÖ¡¼ÆÊıÆ÷·ñÔòÎªSMD±àÂë
+        // 8               :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[47:40];
+        // 9               :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[39:32];
+        // 10              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[31:24];
+        // 11              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[23:16];
+        // 12              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[15: 8];
+        // 13              :r_mac_data <= ri_send_type == 16'h0806 ? 8'hff : r_target_mac[7 : 0];
+        // 14              :r_mac_data <= r_source_mac[47:40];
+        // 15              :r_mac_data <= r_source_mac[39:32];
+        // 16              :r_mac_data <= r_source_mac[31:24];
+        // 17              :r_mac_data <= r_source_mac[23:16];
+        // 18              :r_mac_data <= r_source_mac[15: 8];
+        // 19              :r_mac_data <= r_source_mac[7 : 0];
+        // 20              :r_mac_data <= ri_send_type[15: 8];
+        // 21              :r_mac_data <= ri_send_type[7 : 0];
         default         :r_mac_data <= w_fifo_mac_dout;
     endcase
 end
@@ -500,7 +500,7 @@ begin
     else 
         r_tx_fragment_cnt <= r_tx_fragment_cnt;
 end
-//r_mac_data_validï¼Œä»ç»„å¸§å¼€å§‹åˆ°FIFOæ•°æ®éƒ½å‡ºæ¥è¿™ä¸€æ®µæ•°æ®æœ‰æ•ˆä¿¡å·
+//r_mac_data_valid£¬´Ó×éÖ¡¿ªÊ¼µ½FIFOÊı¾İ¶¼³öÀ´ÕâÒ»¶ÎÊı¾İÓĞĞ§ĞÅºÅ
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -513,7 +513,7 @@ begin
         r_mac_data_valid <= r_mac_data_valid;
 end
 
-//è®°å½•ä»FIFOè¯»å‡ºæ•°æ®ä¸ªæ•°
+//¼ÇÂ¼´ÓFIFO¶Á³öÊı¾İ¸öÊı
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -526,20 +526,20 @@ begin
         r_mac_data_cnt <= r_mac_data_cnt;
 end
 
-//è¯»MACæ•°æ®fifoä½¿èƒ½ï¼Œå‰20ä¸ªæ—¶é’Ÿåœ¨ç»„å¸§å¤´ï¼Œ20ä¸ªä¹‹åå¼€å§‹è¯»FIFOï¼Œå½“è¯»å®Œä¸€ç»„æ•°æ®å°±åœæ­¢ã€‚
+//¶ÁMACÊı¾İfifoÊ¹ÄÜ£¬Ç°20¸öÊ±ÖÓÔÚ×éÖ¡Í·£¬20¸öÖ®ºó¿ªÊ¼¶ÁFIFO£¬µ±¶ÁÍêÒ»×éÊı¾İ¾ÍÍ£Ö¹¡£
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
         r_fifo_mac_rd_en <= 'd0;
     else if((r_mac_data_cnt == r_w_fifo_len_dout - 1) && r_mac_data_cnt!='d0)
         r_fifo_mac_rd_en <= 'd0;
-    else if(r_mac_pkg_cnt == 21)
+    else if(r_mac_pkg_cnt == 16'd7)
         r_fifo_mac_rd_en <= 'd1;
     else 
         r_fifo_mac_rd_en <= r_fifo_mac_rd_en;
 end
 
-//crcæ¨¡å—çš„å¤ä½ä¿¡å·ï¼Œå½“æ¯æ¬¡crcè¾“å‡ºç»“æŸåå¤ä½ï¼Œå½“åˆ°è¦åšcrcæ•°æ®æ®åˆ°æ¥æ—¶åœæ­¢å¤ä½
+//crcÄ£¿éµÄ¸´Î»ĞÅºÅ£¬µ±Ã¿´ÎcrcÊä³ö½áÊøºó¸´Î»£¬µ±µ½Òª×öcrcÊı¾İ¾İµ½À´Ê±Í£Ö¹¸´Î»
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -552,7 +552,7 @@ begin
         r_crc_rst <= r_crc_rst;
 end
 
-//crcä½¿èƒ½ï¼Œæ•°æ®å¼€å§‹æ—¶æœ‰æ•ˆï¼Œæ•°æ®ç»“æŸæ—¶åœæ­¢ä½¿èƒ½
+//crcÊ¹ÄÜ£¬Êı¾İ¿ªÊ¼Ê±ÓĞĞ§£¬Êı¾İ½áÊøÊ±Í£Ö¹Ê¹ÄÜ
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -565,7 +565,7 @@ begin
         r_crc_en <= r_crc_en;
 end
 
-//crcç»“æœè¾“å‡ºè®¡æ•°å™¨ï¼Œè¾“å…¥æ•°æ®ç»“æŸåå¼€å§‹è¾“å‡ºæ•°æ®ï¼Œè®¡æ•°åˆ°3åè¾“å‡ºå®Œæ¯•ï¼Œåœæ­¢è¾“å‡ºã€‚
+//crc½á¹ûÊä³ö¼ÆÊıÆ÷£¬ÊäÈëÊı¾İ½áÊøºó¿ªÊ¼Êä³öÊı¾İ£¬¼ÆÊıµ½3ºóÊä³öÍê±Ï£¬Í£Ö¹Êä³ö¡£
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -578,7 +578,7 @@ begin
         r_crc_out_cnt <= r_crc_out_cnt;
 end
 
-//ro_GMII_dataï¼Œè¾“å‡ºçš„GMIIä¿¡å·ï¼Œæ ¹æ®crcæŒ‡ç¤ºä¿¡å·åˆ¤æ–­æ˜¯crcè¿˜æ˜¯mcrcã€‚
+//ro_GMII_data£¬Êä³öµÄGMIIĞÅºÅ£¬¸ù¾İcrcÖ¸Ê¾ĞÅºÅÅĞ¶ÏÊÇcrc»¹ÊÇmcrc¡£
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -619,7 +619,7 @@ begin
 end
 
 
-//r_crc_out_cnt_1d crcè¾“å‡ºè®¡æ•°å™¨æœ€åä¸€æ‹æ‰“äº†ä¸€æ‹
+//r_crc_out_cnt_1d crcÊä³ö¼ÆÊıÆ÷×îºóÒ»ÅÄ´òÁËÒ»ÅÄ
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -630,7 +630,7 @@ begin
         r_crc_out_cnt_1d <= 'd0;
 end
 
-//ro_GMII_validè¾“å‡ºåˆ°phyçš„æ•°æ®æœ‰æ•ˆä¿¡å·ã€‚ä»ç»„å¸§çš„å¼€å§‹åˆ°crcç»“æŸ
+//ro_GMII_validÊä³öµ½phyµÄÊı¾İÓĞĞ§ĞÅºÅ¡£´Ó×éÖ¡µÄ¿ªÊ¼µ½crc½áÊø
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -663,7 +663,7 @@ begin
         r_cur_frame_cnt <= r_cur_frame_cnt + 'd1;
 end 
 
-//æ‰“æ‹
+//´òÅÄ
 
 always@(posedge i_clk,posedge i_rst)
 begin
@@ -679,7 +679,7 @@ begin
         ri_ipg_timer_vld <= i_ipg_timer_vld;
     end
 end
-//æ‰“æ‹
+//´òÅÄ
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst) begin
@@ -700,7 +700,7 @@ end
 
 
 
-//ro_udp_ready æ¨¡å—å‡†å¤‡å°±ç»ª w_fifo_len_doutæ˜¯å‘é€çš„æ•°æ®é•¿åº¦ï¼Œä»è¯»FIFOçš„æ—¶å€™å¼€å§‹è®¡æ—¶ï¼ŒFIFOé‡Œçš„æ•°æ®è¯»å®Œäº†ä¹‹åå°±å¯ä»¥å†æ¥å—æ–°çš„æ•°æ®äº†
+//ro_udp_ready Ä£¿é×¼±¸¾ÍĞ÷ w_fifo_len_doutÊÇ·¢ËÍµÄÊı¾İ³¤¶È£¬´Ó¶ÁFIFOµÄÊ±ºò¿ªÊ¼¼ÆÊ±£¬FIFOÀïµÄÊı¾İ¶ÁÍêÁËÖ®ºó¾Í¿ÉÒÔÔÙ½ÓÊÜĞÂµÄÊı¾İÁË
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)
@@ -713,7 +713,7 @@ begin
         ro_udp_ready <= ro_udp_ready;
 end
 
-//r_gap_cnt ä»¥å¤ªç½‘å¸§é—´éš”
+//r_gap_cnt ÒÔÌ«ÍøÖ¡¼ä¸ô
 always@(posedge i_clk,posedge i_rst)
 begin
     if(i_rst)

@@ -160,7 +160,10 @@ module lldp_top#(
     output             wire   [METADATA_WIDTH-1:0]              o_lldp_cross_metadata               , // 总线 metadata 数据
     output             wire                                     o_lldp_cross_metadata_valid         , // 总线 metadata 数据有效信号
     output             wire                                     o_lldp_cross_metadata_last          , // 信息流结束标识
-    input              wire                                     i_lldp_cross_metadata_ready           // 下游模块反压流水线 
+    input              wire                                     i_lldp_cross_metadata_ready         , // 下游模块反压流水线 
+
+    output             wire                                     o_lldp_tx_req                       ,
+    input              wire                                     i_lldp_tx_ack
 );
 
 endmodule

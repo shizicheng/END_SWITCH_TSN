@@ -1,63 +1,319 @@
+`include "synth_cmd_define.vh"
+
 module switch_core_regs#(
-    parameter                                                   REG_ADDR_BUS_WIDTH      =      8        ,  // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨åœ°å€ä½å®½
-    parameter                                                   REG_DATA_BUS_WIDTH      =      16         // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨æ•°æ®ä½å®½
+    parameter                                                   REG_ADDR_BUS_WIDTH      =      16      ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØÖ·Î»¿í
+    parameter                                                   REG_ADDR_WIDTH          =      10      ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØÖ·Î»¿í    
+    parameter                                                   REG_DATA_BUS_WIDTH      =      16         // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êı¾İÎ»¿í
 )(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ä¸æ¥å£å¹³å°äº¤äº’ -------------------------------------------*/
-    // å¯„å­˜å™¨æ§åˆ¶ä¿¡å·                     
-    input               wire                                    i_refresh_list_pulse                , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    input               wire                                    i_switch_err_cnt_clr                , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    input               wire                                    i_switch_err_cnt_stat               , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    input               wire                                    i_switch_reg_bus_we                 , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // å¯„å­˜å™¨å†™åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // å¯„å­˜å™¨å†™æ•°æ®
-    input               wire                                    i_switch_reg_bus_we_din_v           , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£     
-    input               wire                                    i_switch_reg_bus_rd                 , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // å¯„å­˜å™¨è¯»åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    output              wire                                    o_switch_reg_bus_rd_dout_v          , // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
-    /*----------------------------------- é€šç”¨æ¥å£ï¼ˆåˆ·æ–°æ•´ä¸ªå¹³å°çš„å¯„å­˜å™¨ï¼‰ -------------------------------------------*/
-    output              wire                                    o_refresh_list_pulse                , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    output              wire                                    o_switch_err_cnt_clr                , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    output              wire                                    o_switch_err_cnt_stat               , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    /*----------------------------------- RXMACå¯„å­˜å™¨æ¥å£ -------------------------------------------*/
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    output              wire                                    o_rxmac_reg_bus_we                  , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_rxmac_reg_bus_we_addr             , // å¯„å­˜å™¨å†™åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_rxmac_reg_bus_we_din              , // å¯„å­˜å™¨å†™æ•°æ®
-    output              wire                                    o_rxmac_reg_bus_we_din_v            , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£ 
-    output              wire                                    o_rxmac_reg_bus_rd                  , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_rxmac_reg_bus_rd_addr             , // å¯„å­˜å™¨è¯»åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_rxmac_reg_bus_rd_dout             , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    input               wire                                    i_rxmac_reg_bus_rd_dout_v           , // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
-    /*----------------------------------- TXMACå¯„å­˜å™¨æ¥å£ -------------------------------------------*/
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    output              wire                                    o_txmac_reg_bus_we                  , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_txmac_reg_bus_we_addr             , // å¯„å­˜å™¨å†™åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_txmac_reg_bus_rd_din              , // å¯„å­˜å™¨å†™æ•°æ®
-    output              wire                                    o_txmac_reg_bus_rd_din_v            , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£ 
-    output              wire                                    o_txmac_reg_bus_rd                  , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_txmac_reg_bus_rd_addr             , // å¯„å­˜å™¨è¯»åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_txmac_reg_bus_rd_dout             , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    input               wire                                    i_txmac_reg_bus_rd_dout_v           , // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
-    /*----------------------------------- Swlistå¯„å­˜å™¨æ¥å£ -------------------------------------------*/
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    output              wire                                    o_swlist_reg_bus_we                 , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_swlist_reg_bus_we_addr            , // å¯„å­˜å™¨å†™åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_swlist_reg_bus_we_din             , // å¯„å­˜å™¨å†™æ•°æ®
-    output              wire                                    o_swlist_reg_bus_we_din_v           , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£
-    output              wire                                    o_swlist_reg_bus_rd                 , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    output              wire   [REG_ADDR_BUS_WIDTH-1:0]         o_swlist_reg_bus_rd_addr            , // å¯„å­˜å™¨è¯»åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_swlist_reg_bus_rd_dout            , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    input               wire                                    i_swlist_reg_bus_rd_dout_v           // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿ÚÓë½Ó¿ÚÆ½Ì¨½»»¥ -------------------------------------------*/
+    // ¼Ä´æÆ÷¿ØÖÆĞÅºÅ                     
+    input               wire                                    i_refresh_list_pulse                , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+    input               wire                                    i_switch_err_cnt_clr                , // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+    input               wire                                    i_switch_err_cnt_stat               , // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    input               wire                                    i_switch_reg_bus_we                 , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // ¼Ä´æÆ÷Ğ´µØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    input               wire                                    i_switch_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    input               wire                                    i_switch_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    output              wire                                    o_switch_reg_bus_rd_dout_v          , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    /*----------------------------------- Í¨ÓÃ½Ó¿Ú£¨Ë¢ĞÂÕû¸öÆ½Ì¨µÄ¼Ä´æÆ÷£© -------------------------------------------*/
+    output              wire                                    o_refresh_list_pulse                , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+    output              wire                                    o_switch_err_cnt_clr                , // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+    output              wire                                    o_switch_err_cnt_stat               , // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+    /*----------------------------------- RXMAC¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_rxmac_reg_bus_we                  , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_rxmac_reg_bus_we_addr             , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_rxmac_reg_bus_we_din              , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_rxmac_reg_bus_we_din_v            , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú 
+    output              wire                                    o_rxmac_reg_bus_rd                  , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_rxmac_reg_bus_rd_addr             , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_rxmac_reg_bus_rd_dout             , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_rxmac_reg_bus_rd_dout_v           , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    /*----------------------------------- TXMAC¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_txmac_reg_bus_we                  , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]         	o_txmac_reg_bus_we_addr             , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_txmac_reg_bus_we_din              , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_txmac_reg_bus_we_din_v            , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú 
+    output              wire                                    o_txmac_reg_bus_rd                  , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]         	o_txmac_reg_bus_rd_addr             , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_txmac_reg_bus_rd_dout             , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_txmac_reg_bus_rd_dout_v           , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    /*----------------------------------- Swlist¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    `ifdef END_POINTER_SWITCH_CORE 
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+        output              wire                                    o_swlist_reg_bus_we                 , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+        output              wire   [REG_ADDR_WIDTH-1:0]             o_swlist_reg_bus_we_addr            , // ¼Ä´æÆ÷Ğ´µØÖ·
+        output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_swlist_reg_bus_we_din             , // ¼Ä´æÆ÷Ğ´Êı¾İ
+        output              wire                                    o_swlist_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+        // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú
+        output              wire                                    o_swlist_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+        output              wire   [REG_ADDR_WIDTH-1:0]             o_swlist_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
+        input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_swlist_reg_bus_rd_dout            , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+        input               wire                                    i_swlist_reg_bus_rd_dout_v          , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    `endif
+    /*-----------------------------------   CB¼Ä´æÆ÷½Ó¿Ú  -------------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_cb_reg_bus_we                     , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_cb_reg_bus_we_addr                , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_cb_reg_bus_we_din                 , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_cb_reg_bus_we_din_v               , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú                                                                                
+    output              wire                                    o_cb_reg_bus_rd                     , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_cb_reg_bus_rd_addr                , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_cb_reg_bus_rd_dout                , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_cb_reg_bus_rd_dout_v              , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+	/*-----------------------------------   AS¼Ä´æÆ÷½Ó¿Ú  -------------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_as_reg_bus_we                     , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_as_reg_bus_we_addr                , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_as_reg_bus_we_din                 , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_as_reg_bus_we_din_v               , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú                                                                              
+    output              wire                                    o_as_reg_bus_rd                     , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_as_reg_bus_rd_addr                , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_as_reg_bus_rd_dout                , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_as_reg_bus_rd_dout_v              , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+	/*--------------------------   EtherNet Interface¼Ä´æÆ÷½Ó¿Ú  ------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_eth_reg_bus_we                     , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_eth_reg_bus_we_addr                , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_eth_reg_bus_we_din                 , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_eth_reg_bus_we_din_v               , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú                                                                              
+    output              wire                                    o_eth_reg_bus_rd                     , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_eth_reg_bus_rd_addr                , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_eth_reg_bus_rd_dout                , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_eth_reg_bus_rd_dout_v              , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    /*--------------------------   MCU Interface¼Ä´æÆ÷½Ó¿Ú  ------------------------------------*/
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    output              wire                                    o_mcu_reg_bus_we                     , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_mcu_reg_bus_we_addr                , // ¼Ä´æÆ÷Ğ´µØÖ·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_mcu_reg_bus_we_din                 , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    output              wire                                    o_mcu_reg_bus_we_din_v               , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú                                                                              
+    output              wire                                    o_mcu_reg_bus_rd                     , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    output              wire   [REG_ADDR_WIDTH-1:0]             o_mcu_reg_bus_rd_addr                , // ¼Ä´æÆ÷¶ÁµØÖ·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_mcu_reg_bus_rd_dout                , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    input               wire                                    i_mcu_reg_bus_rd_dout_v                // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
 );
 
 
+    /*---------------------------------------- ¼Ä´æÆ÷µØÖ·¶¨Òå ------------------------------------------*/
+    localparam AIO_ADDR_MSB         =		6'h00			;
+    localparam MCU_IF_ADDR_MSB      =		6'h01			;
+    localparam ETH_IF_ADDR_MSB      =		6'h02			;
+    localparam SWILIST_ADDR_MSB     =		6'h05			;
+    localparam RXMAC_ADDR_MSB       =		6'h06			;
+    localparam TXMAC_ADDR_MSB       =		6'h08			;
+    localparam CB_ADDR_MSB          =		6'h13			;
+    localparam AS_ADDR_MSB          =		6'h0C			;
+
+    /*---------------------------------------- ÄÚ²¿ĞÅºÅ¶¨Òå -------------------------------------------*/
+    reg                                    r_switch_reg_bus_we                 ;
+    reg   [REG_ADDR_BUS_WIDTH-1:0]         r_switch_reg_bus_we_addr            ;
+    reg                                    r_switch_reg_bus_we_din             ;
+    reg   [REG_ADDR_BUS_WIDTH-1:0]         r_switch_reg_bus_we_din_v           ;
+    reg                                    r_switch_reg_bus_rd                 ;
+    reg   [REG_ADDR_BUS_WIDTH-1:0]         r_switch_reg_bus_rd_addr            ;
+    reg                                    r_switch_reg_bus_rd_0               ;
+    reg   [REG_ADDR_BUS_WIDTH-1:0]         r_switch_reg_bus_rd_addr_0          ;
+    reg                                    r_switch_reg_bus_rd_1               ;
+    reg   [REG_ADDR_BUS_WIDTH-1:0]         r_switch_reg_bus_rd_addr_1          ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_swlist_reg_bus_rd_dout            ;
+    wire                                   w_swlist_reg_bus_rd_dout_v          ;
+    /*--------------------------------------  AIO¼Ä´æÆ÷  ----------------------------------------------*/				
+    localparam VERSION_0            =		16'h0000		;
+    localparam VERSION_1            =		16'h0000		;
+    localparam VERSION_2            =		16'h0000		;
+    localparam VERSION_3            =		16'h0000		;
+
+    reg   [REG_DATA_BUS_WIDTH-1:0]         r_aio_reg_bus_rd_dout               ;// AIO¼Ä´æÆ÷¶ÁÊı¾İ
+    reg   [REG_DATA_BUS_WIDTH-1:0]         r_aio_reg_bus_rd_dout_v             ;// AIO¼Ä´æÆ÷¶ÁÊı¾İÓĞĞ§Î»
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_sw_func_ind_0                ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_sw_func_ind_1                ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_sgmii_inf_ind                ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_pcie_inf_ind                 ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_llp_gen_ind_0                ;
+    wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_llp_gen_ind_1                ;
+    reg   [REG_DATA_BUS_WIDTH-1:0]         r_asic_test_register                ;
+  //wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_err_state_0                  ;
+  //wire  [REG_DATA_BUS_WIDTH-1:0]         w_asic_err_state_1                  ;    
+  //reg   [REG_DATA_BUS_WIDTH-1:0]         r_asic_err_state_clr_0              ;   
+  //reg   [REG_DATA_BUS_WIDTH-1:0]         r_asic_err_state_clr_1              ;  
+  //reg   [REG_DATA_BUS_WIDTH-1:0]         r_asic_err_cnt_clr_0                ;  
+  //reg   [REG_DATA_BUS_WIDTH-1:0]         r_asic_err_cnt_clr_1                ; 
+    `ifdef END_POINTER_SWITCH_CORE 
+        assign w_swlist_reg_bus_rd_dout = i_swlist_reg_bus_rd_dout;
+        assign w_swlist_reg_bus_rd_dout_v = i_swlist_reg_bus_rd_dout_v;
+    `else
+        assign w_swlist_reg_bus_rd_dout = {REG_DATA_BUS_WIDTH{1'b0}};
+        assign w_swlist_reg_bus_rd_dout_v = 1'b0;
+    `endif
+
+    /*------------------------------- Í¨ÓÃ½Ó¿Ú£¨Ë¢ĞÂÕû¸öÆ½Ì¨µÄ¼Ä´æÆ÷£© ---------------------------------*/
+    assign o_refresh_list_pulse  = i_refresh_list_pulse;
+    assign o_switch_err_cnt_clr  = i_switch_err_cnt_clr;
+    assign o_switch_err_cnt_stat = i_switch_err_cnt_stat;
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if(i_rst == 1'b1) begin
+            r_switch_reg_bus_rd_addr    <=  {REG_ADDR_BUS_WIDTH{1'b0}};
+            r_switch_reg_bus_rd         <=  1'b0;
+            r_switch_reg_bus_rd_addr_0  <=  {REG_ADDR_BUS_WIDTH{1'b0}};
+            r_switch_reg_bus_rd_0       <=  1'b0;
+            r_switch_reg_bus_rd_addr_1  <=  {REG_ADDR_BUS_WIDTH{1'b0}};
+            r_switch_reg_bus_rd_1       <=  1'b0;
+        end else begin
+            r_switch_reg_bus_rd_addr    <=  i_switch_reg_bus_rd_addr;
+            r_switch_reg_bus_rd         <=  i_switch_reg_bus_rd;
+            r_switch_reg_bus_rd_addr_0  <=  r_switch_reg_bus_rd_addr;
+            r_switch_reg_bus_rd_0       <=  r_switch_reg_bus_rd;
+            r_switch_reg_bus_rd_addr_1  <=  r_switch_reg_bus_rd_addr_0;
+            r_switch_reg_bus_rd_1       <=  r_switch_reg_bus_rd_0;
+        end
+    end
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if(i_rst == 1'b1) begin
+            r_switch_reg_bus_we        <=  1'b0;
+            r_switch_reg_bus_we_addr   <=  {REG_ADDR_BUS_WIDTH{1'b0}};
+            r_switch_reg_bus_we_din    <=  {REG_DATA_BUS_WIDTH{1'b0}};
+            r_switch_reg_bus_we_din_v  <=  1'b0;
+        end else begin
+            r_switch_reg_bus_we        <=  i_switch_reg_bus_we;
+            r_switch_reg_bus_we_addr   <=  i_switch_reg_bus_we_addr;
+            r_switch_reg_bus_we_din    <=  r_switch_reg_bus_we_din;
+            r_switch_reg_bus_we_din_v  <=  r_switch_reg_bus_we_din_v;
+        end
+    end
+
+    
+    assign o_switch_reg_bus_rd_dout = r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && i_rxmac_reg_bus_rd_dout_v == 1'b1 ? i_rxmac_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && i_txmac_reg_bus_rd_dout_v == 1'b1 ? i_txmac_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && w_swlist_reg_bus_rd_dout_v == 1'b1 ? w_swlist_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && i_cb_reg_bus_rd_dout_v == 1'b1 ? i_cb_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && i_as_reg_bus_rd_dout_v == 1'b1 ? i_as_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && i_eth_reg_bus_rd_dout_v == 1'b1 ? i_eth_reg_bus_rd_dout :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == AIO_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 && r_aio_reg_bus_rd_dout_v == 1'b1 ?  r_aio_reg_bus_rd_dout : 
+                                      {REG_DATA_BUS_WIDTH{1'b0}};
+
+    assign o_switch_reg_bus_rd_dout_v=r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? i_rxmac_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? i_txmac_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? w_swlist_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? i_cb_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? i_as_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? i_eth_reg_bus_rd_dout_v :
+                                      r_switch_reg_bus_rd_addr_1[REG_ADDR_BUS_WIDTH-1 -: 6] == AIO_ADDR_MSB && r_switch_reg_bus_rd_1 == 1'b1 ? r_aio_reg_bus_rd_dout_v : 
+                                      1'b0;
+
+      /*----------------------------------- RXMAC¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    assign o_rxmac_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_rxmac_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_rxmac_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_rxmac_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_rxmac_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == RXMAC_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_rxmac_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];
+
+    /*----------------------------------- TXMAC¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    assign o_txmac_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_txmac_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_txmac_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_txmac_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_txmac_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == TXMAC_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_txmac_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];
+ 
+    /*----------------------------------- Swlist¼Ä´æÆ÷½Ó¿Ú -------------------------------------------*/
+    `ifdef END_POINTER_SWITCH_CORE 
+        assign o_swlist_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+        assign o_swlist_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+        assign o_swlist_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+        assign o_swlist_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+        assign o_swlist_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == SWILIST_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+        assign o_swlist_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];
+    `endif
+    /*-----------------------------------   CB¼Ä´æÆ÷½Ó¿Ú  -------------------------------------------*/
+    assign o_cb_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_cb_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_cb_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_cb_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_cb_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == CB_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_cb_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];    
+
+	/*-----------------------------------   AS¼Ä´æÆ÷½Ó¿Ú  -------------------------------------------*/
+    assign o_as_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_as_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_as_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_as_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_as_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == AS_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_as_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];    
+
+	/*--------------------------   EtherNet Interface¼Ä´æÆ÷½Ó¿Ú  ------------------------------------*/
+    assign o_eth_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_eth_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_eth_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_eth_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_eth_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == ETH_IF_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_eth_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0]; 
+
+    /*--------------------------   MCU Interface¼Ä´æÆ÷½Ó¿Ú  ------------------------------------*/
+    assign o_mcu_reg_bus_we = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == MCU_IF_ADDR_MSB ? i_switch_reg_bus_we : 1'b0;
+    assign o_mcu_reg_bus_we_addr = i_switch_reg_bus_we_addr[REG_ADDR_WIDTH-1 : 0];
+    assign o_mcu_reg_bus_we_din = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == MCU_IF_ADDR_MSB ? i_switch_reg_bus_we_din : {REG_DATA_BUS_WIDTH{1'b0}};
+    assign o_mcu_reg_bus_we_din_v = i_switch_reg_bus_we_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == MCU_IF_ADDR_MSB ? i_switch_reg_bus_we_din_v : 1'b0;
+    assign o_mcu_reg_bus_rd = i_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == MCU_IF_ADDR_MSB ? i_switch_reg_bus_rd : 1'b0;
+    assign o_mcu_reg_bus_rd_addr = i_switch_reg_bus_rd_addr[REG_ADDR_WIDTH-1 : 0];   
+   
+    /*-----------------------------------  AIO¼Ä´æÆ÷½Ó¿Ú  -------------------------------------------*/
+    always @(posedge i_clk or posedge i_rst) begin
+        if(i_rst == 1'b1) begin
+            r_aio_reg_bus_rd_dout_v     <=  1'b0;
+        end else begin
+            r_aio_reg_bus_rd_dout_v     <=  (r_switch_reg_bus_rd_addr[REG_ADDR_BUS_WIDTH-1 -: 6] == AIO_ADDR_MSB && r_switch_reg_bus_rd == 1'b1) ? 1'b1 : 1'b0;
+        end
+    end
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if(i_rst == 1'b1) begin
+            r_aio_reg_bus_rd_dout       <=  {REG_DATA_BUS_WIDTH{1'b0}};
+        end else begin
+            r_aio_reg_bus_rd_dout       <=  r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h00} && r_switch_reg_bus_rd == 1'b1 ? VERSION_0 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h01} && r_switch_reg_bus_rd == 1'b1 ? VERSION_1 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h02} && r_switch_reg_bus_rd == 1'b1 ? VERSION_2 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h03} && r_switch_reg_bus_rd == 1'b1 ? VERSION_3 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h04} && r_switch_reg_bus_rd == 1'b1 ? w_asic_sw_func_ind_0 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h05} && r_switch_reg_bus_rd == 1'b1 ? w_asic_sw_func_ind_1 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h06} && r_switch_reg_bus_rd == 1'b1 ? w_asic_sgmii_inf_ind :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h07} && r_switch_reg_bus_rd == 1'b1 ? w_asic_pcie_inf_ind :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h08} && r_switch_reg_bus_rd == 1'b1 ? w_asic_llp_gen_ind_0 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h09} && r_switch_reg_bus_rd == 1'b1 ? w_asic_llp_gen_ind_1 :
+                                            r_switch_reg_bus_rd_addr == {AIO_ADDR_MSB,10'h10} && r_switch_reg_bus_rd == 1'b1 ? r_asic_test_register : r_aio_reg_bus_rd_dout;
+        end
+    end
+
+    /*--------------------------------------  AIO¼Ä´æÆ÷  ----------------------------------------------*/
+    assign w_asic_sw_func_ind_0 = 16'h0000;
+    assign w_asic_sw_func_ind_1 = 16'h0000;
+    assign w_asic_sgmii_inf_ind = 16'h0000;
+    assign w_asic_pcie_inf_ind  = 16'h0000;
+    assign w_asic_llp_gen_ind_0 = 16'h0000;
+    assign w_asic_llp_gen_ind_1 = 16'h0000;
+
+    always @(posedge i_clk or posedge i_rst) begin
+        if(i_rst == 1'b1) begin
+            r_asic_test_register    <=  {REG_DATA_BUS_WIDTH{1'b0}};
+        end else begin
+            r_asic_test_register    <=  r_switch_reg_bus_we == 1'b1 && r_switch_reg_bus_we_addr == {AIO_ADDR_MSB,10'h10} && r_switch_reg_bus_we_din_v == 1'b1 ?  r_switch_reg_bus_we_din : r_asic_test_register;   
+        end
+    end
 
 endmodule

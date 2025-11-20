@@ -1,30 +1,207 @@
-module rx_mac_hash_calc#(
-    parameter           CWIDTH              =           12
+module rx_mac_hash_calc#(  
+    parameter           CWIDTH              =           15
 )(
     input               wire                                    i_clk                   ,   // 250MHz
     input               wire                                    i_rst                   ,
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ -------------------------------------------*/
-    input               wire        [15:0]                      i_hash_poly_regs        ,
-    input               wire        [15:0]                      i_hash_init_val_regs    ,
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú -------------------------------------------*/
+    input               wire   [15:0]                           i_hash_poly_regs        ,
+    input               wire   [15:0]                           i_hash_init_val_regs    ,
     input               wire                                    i_hash_regs_vld         ,
-    /*--------------------------------- ä¿¡æ¯æå–æ¨¡å—è¾“å…¥çš„ MAC ä¿¡æ¯ -------------------------------------*/
-    input               wire   [7:0]                            i_dmac_data                        , // ç›®çš„ MAC åœ°å€çš„å€¼
-    input               wire                                    i_damac_data_vld                   , // æ•°æ®æœ‰æ•ˆå€¼
-    input               wire                                    i_dmac_soc                         ,
-    input               wire                                    i_dmac_eoc                         ,
-    input               wire   [7:0]                            i_smac_data                        , // æº MAC åœ°å€çš„å€¼
-    input               wire                                    i_samac_data_vld                   , // æ•°æ®æœ‰æ•ˆå€¼
-    input               wire                                    i_smac_soc                         ,
-    input               wire                                    i_smac_eoc                         ,    
-    /*--------------------------------- è¾“å‡º hash çš„è®¡ç®—ç»“æœ -------------------------------------*/     
-    output              wire   [CWIDTH - 1 : 0]                 o_dmac_hash_key                    ,
-    output              wire   [47 : 0]                         o_dmac                             ,
-    output              wire                                    o_dmac_vld                         , 
-    output              wire   [CWIDTH - 1 : 0]                 o_smac_hash_key                    ,
-    output              wire   [47 : 0]                         o_smac                             ,
-    output              wire                                    o_smac_vld                          
+    /*--------------------------------- ĞÅÏ¢ÌáÈ¡Ä£¿éÊäÈëµÄ MAC ĞÅÏ¢ -------------------------------------*/
+    input               wire   [11:0]                           i_vlan_id               , // ÊäÈë±¨ÎÄµÄVLAN ID
+    input               wire   [47:0]                           i_dmac_data             , // Ä¿µÄ MAC µØÖ·(48bit)
+    input               wire                                    i_dmac_data_vld         , // DMACÊı¾İÓĞĞ§
+    input               wire   [47:0]                           i_smac_data             , // Ô´ MAC µØÖ·(48bit)
+    input               wire                                    i_smac_data_vld         , // SMACÊı¾İÓĞĞ§
+    /*--------------------------------- Êä³ö hash µÄ¼ÆËã½á¹û -------------------------------------*/     
+    output              wire   [11:0]                           o_vlan_id               ,
+    output              wire   [CWIDTH - 1 : 0]                 o_dmac_hash_key         ,
+    output              wire   [47 : 0]                         o_dmac                  ,
+    output              wire                                    o_dmac_hash_vld         , 
+    output              wire   [CWIDTH - 1 : 0]                 o_smac_hash_key         ,
+    output              wire   [47 : 0]                         o_smac                  ,
+    output              wire                                    o_smac_hash_vld               
 );
 
+// ÊäÈëĞÅºÅ´òÅÄ
+reg     [47:0]                              ri_dmac_data                        ; // DMAC Êı¾İ´òÅÄ(48bit)
+reg                                         ri_dmac_data_vld                    ; // DMAC Êı¾İÓĞĞ§´òÅÄ
+reg     [47:0]                              ri_smac_data                        ; // SMAC Êı¾İ´òÅÄ(48bit)
+reg                                         ri_smac_data_vld                    ; // SMAC Êı¾İÓĞĞ§´òÅÄ
+reg     [11:0]                              ri_vlan_id                          ; // VLAN ID´òÅÄ
 
+// ÄÚ²¿´¦Àí±äÁ¿
+reg                                         r_dmac_hash_en                      ; // DMAC HASH Ê¹ÄÜ
+reg                                         r_smac_hash_en                      ; // SMAC HASH Ê¹ÄÜ
+reg                                         r_dmac_hash_vld                     ; // DMAC HASH ÓĞĞ§
+reg                                         r_smac_hash_vld                     ; // SMAC HASH ÓĞĞ§
+
+// Êä³ö¼Ä´æÆ÷
+reg     [11:0]                              ro_vlan_id                          ; // VLAN ID Êä³ö
+reg     [CWIDTH-1:0]                        ro_dmac_hash_key                    ; // DMAC HASH KEY Êä³ö
+reg     [47:0]                              ro_dmac                             ; // DMAC Êä³ö
+// reg                                         ro_dmac_vld                         ; // DMAC ÓĞĞ§Êä³ö
+reg     [CWIDTH-1:0]                        ro_smac_hash_key                    ; // SMAC HASH KEY Êä³ö
+reg     [47:0]                              ro_smac                             ; // SMAC Êä³ö
+// reg                                         ro_smac_vld                         ; // SMAC ÓĞĞ§Êä³ö
+reg                                         r_hash_cacl_rst                     ;
+
+// HASH ¼ÆËãÊä³ö
+wire    [CWIDTH-1:0]                        w_dmac_crc_out                      ; // DMAC CRC Êä³ö
+wire    [CWIDTH-1:0]                        w_smac_crc_out                      ; // SMAC CRC Êä³ö
+
+//---------- Êä³öĞÅºÅ¸³Öµ ----------
+assign  o_vlan_id                           =       ro_vlan_id                  ;
+assign  o_dmac_hash_key                     =       ro_dmac_hash_key            ;
+assign  o_dmac                              =       ro_dmac                     ;
+assign  o_dmac_hash_vld                     =       r_dmac_hash_vld             ;
+assign  o_smac_hash_key                     =       ro_smac_hash_key            ;
+assign  o_smac                              =       ro_smac                     ;
+assign  o_smac_hash_vld                     =       r_smac_hash_vld             ;
+ 
+// ÊäÈëĞÅºÅ´òÅÄ
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ri_dmac_data     <= 48'd0;
+        ri_dmac_data_vld <= 1'b0;
+        ri_smac_data     <= 48'd0;
+        ri_smac_data_vld <= 1'b0;
+        ri_vlan_id       <= 12'd0;
+    end else begin
+        ri_dmac_data     <= i_dmac_data_vld ? i_dmac_data : ri_dmac_data;
+        ri_dmac_data_vld <= i_dmac_data_vld;
+        ri_smac_data     <= i_smac_data_vld ? i_smac_data : ri_smac_data;
+        ri_smac_data_vld <= i_smac_data_vld;
+        ri_vlan_id       <= i_smac_data_vld ? i_vlan_id : ri_vlan_id;
+    end
+end
+
+// DMAC HASH Ê¹ÄÜÂß¼­£¨Ö±½ÓÊ¹ÓÃÊäÈëÓĞĞ§ĞÅºÅ£©
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        r_dmac_hash_en  <= 1'b0;
+    end else begin
+        r_dmac_hash_en  <= i_dmac_data_vld;
+    end
+end
+
+// SMAC HASH Ê¹ÄÜÂß¼­£¨Ö±½ÓÊ¹ÓÃÊäÈëÓĞĞ§ĞÅºÅ£©
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        r_smac_hash_en  <= 1'b0;
+    end else begin
+        r_smac_hash_en  <= i_smac_data_vld;
+    end
+end
+
+// DMAC HASH ÓĞĞ§
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        r_dmac_hash_vld <= 1'b0;
+    end else begin
+        r_dmac_hash_vld <= r_dmac_hash_en;
+    end
+end
+
+// SMAC HASH ÓĞĞ§
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        r_smac_hash_vld <= 1'b0;
+    end else begin
+        r_smac_hash_vld <= r_smac_hash_en;
+    end
+end
+
+always@(posedge i_clk or posedge i_rst ) begin
+    if(i_rst) begin
+        r_hash_cacl_rst <= 1'd1;
+    end else begin
+        r_hash_cacl_rst <= r_smac_hash_vld ? 1'd1 : 1'd0;
+    end
+
+
+end
+
+// VLAN ID Êä³ö£¨Ê¹ÓÃ´òÅÄºóµÄVLAN ID£©
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ro_vlan_id  <= 12'd0;
+    end else begin
+        ro_vlan_id  <= r_smac_hash_en ? ri_vlan_id : ro_vlan_id;
+    end
+end
+
+// DMAC Êä³ö£¨Ö±½ÓÊä³ö´òÅÄºóµÄDMAC£©
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ro_dmac     <= 48'd0;
+    end else begin
+        ro_dmac     <= r_dmac_hash_en ? ri_dmac_data : ro_dmac;
+    end
+end
+
+// // DMAC ÓĞĞ§Êä³ö
+// always @(posedge i_clk) begin
+//     if (i_rst) begin
+//         ro_dmac_vld <= 1'b0;
+//     end else begin
+//         ro_dmac_vld <= r_dmac_hash_vld;
+//     end
+// end
+
+// DMAC HASH KEY Êä³ö
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ro_dmac_hash_key <= 15'd0;
+    end else begin
+        ro_dmac_hash_key <= w_dmac_crc_out;
+    end
+end
+
+// SMAC Êä³ö£¨Ö±½ÓÊä³ö´òÅÄºóµÄSMAC£©
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ro_smac     <= 48'd0;
+    end else begin
+        ro_smac     <= r_smac_hash_en ? ri_smac_data : ro_smac;
+    end
+end
+
+// // SMAC ÓĞĞ§Êä³ö
+// always @(posedge i_clk) begin
+//     if (i_rst) begin
+//         ro_smac_vld <= 1'b0;
+//     end else begin
+//         ro_smac_vld <= r_smac_hash_vld;
+//     end
+// end
+
+// SMAC HASH KEY Êä³ö
+always @(posedge i_clk) begin
+    if (i_rst) begin
+        ro_smac_hash_key <= 15'd0;
+    end else begin
+        ro_smac_hash_key <= w_smac_crc_out;
+    end
+end
+
+//---------- HASH ¼ÆËãÄ£¿éÊµÀı»¯ ----------
+// DMAC HASH¼ÆËã£ºÊ¹ÓÃ´òÅÄºóµÄDMACºÍVLAN ID
+hash_cacl hash_cacl_u1 (
+    .i_data_in      ({i_dmac_data, i_vlan_id}  ),
+    .i_crc_en       (i_dmac_data_vld           ),
+    .o_crc_out      (w_dmac_crc_out            ),
+    .i_rst          (r_hash_cacl_rst           ),
+    .i_clk          (i_clk                     )
+);
+
+// SMAC HASH¼ÆËã£ºÊ¹ÓÃ´òÅÄºóµÄSMACºÍVLAN ID
+hash_cacl hash_cacl_u2 (
+    .i_data_in      ({i_smac_data, i_vlan_id}  ),
+    .i_crc_en       (i_smac_data_vld           ),
+    .o_crc_out      (w_smac_crc_out            ),
+    .i_rst          (r_hash_cacl_rst           ),
+    .i_clk          (i_clk                     )
+);
 
 endmodule

@@ -21,13 +21,25 @@
 
 
 module qbu_send#(
-    parameter                                           AXIS_DATA_WIDTH = 'd8       ,
-                                                        QUEUE_NUM       = 'd8    
+    parameter                                           AXIS_DATA_WIDTH         =   'd8        ,
+    parameter                                           QUEUE_NUM               =   'd8        ,                                                       
+    parameter                                           REG_ADDR_BUS_WIDTH      =     8        ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØÖ·Î»¿í
+    parameter                                           REG_DATA_BUS_WIDTH      =     16          // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êı¾İÎ»¿í
 )(
     input           wire                                i_clk                       ,
     input           wire                                i_rst                       ,
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    //input           wire                                i_switch_reg_bus_we         , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    //input           wire   [REG_ADDR_BUS_WIDTH-1:0]     i_switch_reg_bus_we_addr    , // ¼Ä´æÆ÷Ğ´µØÖ·
+    //input           wire   [REG_DATA_BUS_WIDTH-1:0]     i_switch_reg_bus_we_din     , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    //input           wire                                i_switch_reg_bus_we_din_v   , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    //input           wire                                i_switch_reg_bus_rd         , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    //input           wire   [REG_ADDR_BUS_WIDTH-1:0]     i_switch_reg_bus_rd_addr    , // ¼Ä´æÆ÷¶ÁµØÖ·
+    //output          wire   [REG_DATA_BUS_WIDTH-1:0]     o_switch_reg_bus_we_dout    , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    //output          wire                                o_switch_reg_bus_we_dout_v  , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
 
-    //pmacé€šé“æ•°æ®
+    //pmacÍ¨µÀÊı¾İ
     input           wire    [AXIS_DATA_WIDTH - 1:0]     i_pmac_tx_axis_data         , 
     input           wire    [15:0]                      i_pmac_tx_axis_user         , 
     input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_pmac_tx_axis_keep         , 
@@ -35,7 +47,7 @@ module qbu_send#(
     input           wire                                i_pmac_tx_axis_valid        , 
     input           wire    [15:0]                      i_pmac_ethertype            , 
     output          wire                                o_pmac_tx_axis_ready        ,
-    //emacé€šé“æ•°æ®
+    //emacÍ¨µÀÊı¾İ
     input           wire    [AXIS_DATA_WIDTH - 1:0]     i_emac_tx_axis_data         , 
     input           wire    [15:0]                      i_emac_tx_axis_user         , 
     input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_emac_tx_axis_keep         , 
@@ -47,19 +59,18 @@ module qbu_send#(
     input           wire                                i_qbu_verify_valid          ,
     input           wire                                i_qbu_response_valid        ,
 
-    //è¾“å‡ºç»™æ¥å£å±‚axiæ•°æ®æµ
+    //Êä³ö¸ø½Ó¿Ú²ãaxiÊı¾İÁ÷
     output          wire    [AXIS_DATA_WIDTH - 1:0]     o_mac_axi_data              ,
     output          wire    [(AXIS_DATA_WIDTH/8)-1:0]   o_mac_axi_data_keep         ,
     output          wire                                o_mac_axi_data_valid        ,
     output          wire    [15:0]                      o_mac_axi_data_user         ,
     input           wire                                i_mac_axi_data_ready        ,
     output          wire                                o_mac_axi_data_last         ,
-    //æ—¶é—´æˆ³ä¿¡å·
-    output          wire                                o_mac_time_irq              , // æ‰“æ—¶é—´æˆ³ä¸­æ–­ä¿¡å·
-    output          wire    [7:0]                       o_mac_frame_seq             , // å¸§åºåˆ—å·
-    output          wire    [7:0]                       o_timestamp_addr            , // æ‰“æ—¶é—´æˆ³å­˜å‚¨çš„ RAM åœ°å€
-    //å¯„å­˜å™¨æ¥å£
-
+    //Ê±¼ä´ÁĞÅºÅ
+    output          wire                                o_mac_time_irq              , // ´òÊ±¼ä´ÁÖĞ¶ÏĞÅºÅ
+    output          wire    [7:0]                       o_mac_frame_seq             , // Ö¡ĞòÁĞºÅ
+    output          wire    [7:0]                       o_timestamp_addr            ,  // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    //¼Ä´æÆ÷½Ó¿Ú
     output          wire    [7:0]                       o_frag_next_tx              ,
     output          wire                                o_tx_timeout                ,
     output          wire    [15:0]                      o_preempt_success_cnt       ,
@@ -68,7 +79,7 @@ module qbu_send#(
     output          wire    [15:0]                      o_tx_frames_cnt             ,
     output          wire    [15:0]                      o_tx_fragment_cnt           ,
     output          wire                                o_tx_busy                   ,
-   
+
     input           wire    [19:0]                      i_watchdog_timer            ,
     input           wire                                i_watchdog_timer_vld        ,
     input           wire    [ 7:0]                      i_min_frag_size             ,
@@ -79,24 +90,24 @@ module qbu_send#(
     input           wire                                i_verify_enabled            ,
     input           wire                                i_start_verify              ,
     input           wire                                i_clear_verify              ,
-    output 			wire 								o_verify_succ 		        ,//éªŒè¯æˆåŠŸä¿¡å·
-    output 			wire 								o_verify_succ_val 	        ,//éªŒè¯æˆåŠŸæœ‰æ•ˆä¿¡å·
-    input           wire    [15:0]                      i_verify_timer		        ,//æ§åˆ¶éªŒè¯è¯·æ±‚ä¹‹é—´çš„ç­‰å¾…æ—¶é—´
+    output 			wire 							    o_verify_succ 		        ,//ÑéÖ¤³É¹¦ĞÅºÅ-
+    output 			wire 							    o_verify_succ_val 	        ,//ÑéÖ¤³É¹¦ÓĞĞ§ĞÅºÅ-
+    input           wire    [15:0]                      i_verify_timer		        ,//¿ØÖÆÑéÖ¤ÇëÇóÖ®¼äµÄµÈ´ıÊ±¼ä
     input  			wire                                i_verify_timer_vld          ,
     output          wire    [15:0]                      o_err_verify_cnt            ,
-    output          wire                                o_preempt_enable             //qbuåŠŸèƒ½æ¿€æ´»æˆåŠŸ
+    output          wire                                o_preempt_enable             //qbu¹¦ÄÜ¼¤»î³É¹¦
+   
 
-
-    //ç¼“å­˜é˜Ÿåˆ—éœ€è¦å‘é€çš„æ•°æ®
+    //»º´æ¶ÓÁĞĞèÒª·¢ËÍµÄÊı¾İ
     // input           wire    [AXIS_DATA_WIDTH - 1:0]     i_mac_tx_axis_data          ,
-    // input           wire    [15:0]                      i_mac_tx_axis_user          , //userï¼šæ•°æ®é•¿åº¦ä¿¡æ¯
-    // input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_mac_tx_axis_keep          , //keepæ•°æ®æ©ç 
+    // input           wire    [15:0]                      i_mac_tx_axis_user          , //user£ºÊı¾İ³¤¶ÈĞÅÏ¢
+    // input           wire    [(AXIS_DATA_WIDTH/8)-1:0]   i_mac_tx_axis_keep          , //keepÊı¾İÑÚÂë
     // input           wire                                i_mac_tx_axis_last          ,
     // input           wire                                i_mac_tx_axis_valid         ,
     // output          wire                                o_mac_tx_axis_ready         ,
     
     // input           wire    [QUEUE_NUM - 1:0]           i_emac_channel_cfg          ,
-    // input           wire    [QUEUE_NUM - 1:0]           i_tx_mac_forward_info       , //å“ªä¸ªé€šé“æ¥çš„æ•°æ®ï¼Œå†…éƒ¨è®¾å®šå“ªäº›ä¼˜å…ˆçº§èµ°eMACï¼Œå“ªäº›èµ°pMAC
+    // input           wire    [QUEUE_NUM - 1:0]           i_tx_mac_forward_info       , //ÄÄ¸öÍ¨µÀÀ´µÄÊı¾İ£¬ÄÚ²¿Éè¶¨ÄÄĞ©ÓÅÏÈ¼¶×ßeMAC£¬ÄÄĞ©×ßpMAC
     // input           wire                                i_tx_mac_forward_info_vld   ,
 );            
 
@@ -129,79 +140,79 @@ wire                                                    i_top_Pmac_tx_axis_last 
 wire                                                    i_top_Pmac_tx_axis_valid ;
 wire                [15:0]                              i_top_Pmac_tx_axis_type  ;  
 
-//                  FAST_qbu_Emac_tx å˜é‡å®šä¹‰        
-wire                                                    o_emac_send_busy         ;//eamcå¿™ä¿¡å·ï¼Œè¡¨ç¤ºemacæ­£åœ¨å‘æ•°æ®
-wire                                                    o_emac_send_apply        ;//emacæ•°æ®å‘é€ç”³è¯·
-wire                                                    i_rx_ready               ;//ç»„å¸§æ¨¡å—å‡†å¤‡å¥½äº†ä¿¡å·
-wire                [15:0]                              o_emac_send_type         ;//åè®®ç±»å‹ï¼ˆå‚ç…§macå¸§æ ¼å¼ï¼‰
-wire                [AXIS_DATA_WIDTH-1 :0]              o_emac_send_data         ;//æ•°æ®ä¿¡å·
-wire                                                    o_emac_send_last         ;//æœ€åä¸€ä¸ªæ•°æ®ä¿¡å·
-wire                [15:0]                              o_emac_send_len          ;//æ•°æ®é•¿åº¦
-wire                                                    o_emac_send_valid        ;//æ•°æ®æœ‰æ•ˆä¿¡å·
-wire                                                    o_emac_smd_val           ;//SMDç¼–ç æœ‰æ•ˆä¿¡å·
-wire                [15:0]                              o_emac_smd               ;//SMDç¼–ç  
+//                  FAST_qbu_Emac_tx ±äÁ¿¶¨Òå        
+wire                                                    o_emac_send_busy         ;//eamcÃ¦ĞÅºÅ£¬±íÊ¾emacÕıÔÚ·¢Êı¾İ
+wire                                                    o_emac_send_apply        ;//emacÊı¾İ·¢ËÍÉêÇë
+wire                                                    i_rx_ready               ;//×éÖ¡Ä£¿é×¼±¸ºÃÁËĞÅºÅ
+wire                [15:0]                              o_emac_send_type         ;//Ğ­ÒéÀàĞÍ£¨²ÎÕÕmacÖ¡¸ñÊ½£©
+wire                [AXIS_DATA_WIDTH-1 :0]              o_emac_send_data         ;//Êı¾İĞÅºÅ
+wire                                                    o_emac_send_last         ;//×îºóÒ»¸öÊı¾İĞÅºÅ
+wire                [15:0]                              o_emac_send_len          ;//Êı¾İ³¤¶È
+wire                                                    o_emac_send_valid        ;//Êı¾İÓĞĞ§ĞÅºÅ
+wire                                                    o_emac_smd_val           ;//SMD±àÂëÓĞĞ§ĞÅºÅ
+wire                [15:0]                              o_emac_smd               ;//SMD±àÂë 
 
-//                  mux å˜é‡å®šä¹‰   
-wire    [AXIS_DATA_WIDTH - 1:0]                         i_eth_send_data          ;//æ•°æ®ä¿¡å·  
-wire    [15:0]                                          i_eth_send_user          ;//æ•°æ®ä¿¡æ¯  
-wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_eth_send_keep          ;//æ•°æ®æ©ç   
-wire                                                    i_eth_send_last          ;//æ•°æ®æˆªè‡³ä¿¡å·
-wire                                                    i_eth_send_valid         ;//æ•°æ®æœ‰æ•ˆä¿¡å· 
-wire                                                    o_eth_send_ready         ;//å‡†å¤‡ä¿¡å·
-wire    [15:0]                                          i_eth_send_type          ;//æ•°æ®ç±»å‹
-wire                                                    i_eth_smd                ;//SMDç¼–ç 
-wire                                                    i_eth_smd_val            ;//SMDç¼–ç æœ‰æ•ˆä¿¡å·
+//                  mux ±äÁ¿¶¨Òå   
+wire    [AXIS_DATA_WIDTH - 1:0]                         i_eth_send_data          ;//Êı¾İĞÅºÅ  
+wire    [15:0]                                          i_eth_send_user          ;//Êı¾İĞÅÏ¢  
+wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_eth_send_keep          ;//Êı¾İÑÚÂë  
+wire                                                    i_eth_send_last          ;//Êı¾İ½ØÖÁĞÅºÅ
+wire                                                    i_eth_send_valid         ;//Êı¾İÓĞĞ§ĞÅºÅ 
+wire                                                    o_eth_send_ready         ;//×¼±¸ĞÅºÅ
+wire    [15:0]                                          i_eth_send_type          ;//Êı¾İÀàĞÍ
+wire                                                    i_eth_smd                ;//SMD±àÂë
+wire                                                    i_eth_smd_val            ;//SMD±àÂëÓĞĞ§ĞÅºÅ
 
-wire    [AXIS_DATA_WIDTH - 1:0]                         i_R_rx_axis_data         ;//æ•°æ®ä¿¡å·  
-wire    [15:0]                                          i_R_rx_axis_user         ;//æ•°æ®ä¿¡æ¯  
-wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_R_rx_axis_keep         ;//æ•°æ®æ©ç   
-wire                                                    i_R_rx_axis_last         ;//æ•°æ®æˆªè‡³ä¿¡å·
-//wire                                                      i_R_rx_axis_valid        ;//æ•°æ®æœ‰æ•ˆä¿¡å·
-wire                                                    o_R_rx_axis_ready        ; //å‡†å¤‡ä¿¡å· 
-wire    [AXIS_DATA_WIDTH - 1:0]                         i_V_rx_axis_data         ;//æ•°æ®ä¿¡å·  
-wire    [15:0]                                          i_V_rx_axis_user         ;//æ•°æ®ä¿¡æ¯  
-wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_V_rx_axis_keep         ;//æ•°æ®æ©ç   
-wire                                                    i_V_rx_axis_last         ;//æ•°æ®æˆªè‡³ä¿¡å·
-//wire                                                      i_V_rx_axis_valid        ;//æ•°æ®æœ‰æ•ˆä¿¡å·
-wire                                                    o_V_rx_axis_ready        ; //å‡†å¤‡ä¿¡å·
+wire    [AXIS_DATA_WIDTH - 1:0]                         i_R_rx_axis_data         ;//Êı¾İĞÅºÅ  
+wire    [15:0]                                          i_R_rx_axis_user         ;//Êı¾İĞÅÏ¢  
+wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_R_rx_axis_keep         ;//Êı¾İÑÚÂë  
+wire                                                    i_R_rx_axis_last         ;//Êı¾İ½ØÖÁĞÅºÅ
+//wire                                                  i_R_rx_axis_valid        ;//Êı¾İÓĞĞ§ĞÅºÅ
+wire                                                    o_R_rx_axis_ready        ; //×¼±¸ĞÅºÅ 
+wire    [AXIS_DATA_WIDTH - 1:0]                         i_V_rx_axis_data         ;//Êı¾İĞÅºÅ  
+wire    [15:0]                                          i_V_rx_axis_user         ;//Êı¾İĞÅÏ¢  
+wire    [(AXIS_DATA_WIDTH/8)-1:0]                       i_V_rx_axis_keep         ;//Êı¾İÑÚÂë  
+wire                                                    i_V_rx_axis_last         ;//Êı¾İ½ØÖÁĞÅºÅ
+//wire                                                  i_V_rx_axis_valid        ;//Êı¾İÓĞĞ§ĞÅºÅ
+wire                                                    o_V_rx_axis_ready        ; //×¼±¸ĞÅºÅ
                    
-wire    [AXIS_DATA_WIDTH - 1:0]                         o_mux_axis_data          ;//æ•°æ®ä¿¡å·  
-wire    [15:0]                                          o_mux_axis_user          ;//æ•°æ®ä¿¡æ¯  
-wire    [(AXIS_DATA_WIDTH/8)-1:0]                       o_mux_axis_keep          ;//æ•°æ®æ©ç   
-wire                                                    o_mux_axis_last          ;//æ•°æ®æˆªè‡³ä¿¡å·
-wire                                                    o_mux_axis_valid         ;//æ•°æ®æœ‰æ•ˆä¿¡å· 
-wire                                                    i_mux_axis_ready         ;//å‡†å¤‡ä¿¡å·
-wire    [7:0]                                           o_mux_smd                ;//SMDç¼–ç 
-wire                                                    o_mux_smd_val            ;//SMDç¼–ç æœ‰æ•ˆä¿¡å·
-//wire                                                      o_verify_succ            ;//éªŒè¯æˆåŠŸä¿¡å·
-//wire                                                      o_verify_succ_val        ;//éªŒè¯æˆåŠŸæœ‰æ•ˆä¿¡å·
+wire    [AXIS_DATA_WIDTH - 1:0]                         o_mux_axis_data          ;//Êı¾İĞÅºÅ  
+wire    [15:0]                                          o_mux_axis_user          ;//Êı¾İĞÅÏ¢  
+wire    [(AXIS_DATA_WIDTH/8)-1:0]                       o_mux_axis_keep          ;//Êı¾İÑÚÂë  
+wire                                                    o_mux_axis_last          ;//Êı¾İ½ØÖÁĞÅºÅ
+wire                                                    o_mux_axis_valid         ;//Êı¾İÓĞĞ§ĞÅºÅ 
+wire                                                    i_mux_axis_ready         ;//×¼±¸ĞÅºÅ
+wire    [7:0]                                           o_mux_smd                ;//SMD±àÂë
+wire                                                    o_mux_smd_val            ;//SMD±àÂëÓĞĞ§ĞÅºÅ
+//wire                                                  o_verify_succ            ;//ÑéÖ¤³É¹¦ĞÅºÅ
+//wire                                                  o_verify_succ_val        ;//ÑéÖ¤³É¹¦ÓĞĞ§ĞÅºÅ
                    
-wire                                                    i_pmac_rx_ready          ;//æ­¤æ¨¡å—å‡†å¤‡å¥½äº†
-wire    [15:0]                                          o_pmac_send_type         ;//æ•°æ®ç±»å‹
-wire    [AXIS_DATA_WIDTH-1 :0]                          o_pmac_send_data         ;//æ•°æ®
-wire                                                    o_pmac_send_last         ;//æ•°æ®æˆªè‡³ä¿¡å·
-wire                                                    o_pmac_send_valid        ;//æ•°æ®æœ‰æ•ˆä¿¡å·
-wire    [15:0]                                          o_pmac_send_len          ;//æ•°æ®é•¿åº¦
+wire                                                    i_pmac_rx_ready          ;//´ËÄ£¿é×¼±¸ºÃÁË
+wire    [15:0]                                          o_pmac_send_type         ;//Êı¾İÀàĞÍ
+wire    [AXIS_DATA_WIDTH-1 :0]                          o_pmac_send_data         ;//Êı¾İ
+wire                                                    o_pmac_send_last         ;//Êı¾İ½ØÖÁĞÅºÅ
+wire                                                    o_pmac_send_valid        ;//Êı¾İÓĞĞ§ĞÅºÅ
+wire    [15:0]                                          o_pmac_send_len          ;//Êı¾İ³¤¶È
 wire                                                    o_pmac_send_len_val      ;
 wire    [15:0]                                          o_pmac_smd               ;//SMD
-wire    [15:0]                                          o_pmac_fra               ;//å¸§è®¡æ•°å™¨
-wire                                                    o_pmac_smd_vld           ;//SMDæœ‰æ•ˆä¿¡å·
-wire                                                    o_pmac_fra_vld           ;//å¸§è®¡æ•°å™¨æœ‰æ•ˆä¿¡å·
-wire                                                    o_pmac_crc               ;//ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrcã€‚
+wire    [15:0]                                          o_pmac_fra               ;//Ö¡¼ÆÊıÆ÷
+wire                                                    o_pmac_smd_vld           ;//SMDÓĞĞ§ĞÅºÅ
+wire                                                    o_pmac_fra_vld           ;//Ö¡¼ÆÊıÆ÷ÓĞĞ§ĞÅºÅ
+wire                                                    o_pmac_crc               ;//Îª1ÔòÎªcrc·ñÔòÎªmcrc¡£
                    
-wire    [15:0]                                          i_user_set               ;//ç”¨æˆ·è®¾ç½®(æš‚å®šæœ€é«˜ä½ä¸º)
-wire                                                    i_user_set_val           ;//ç”¨æˆ·è®¾ç½®æœ‰æ•ˆä¿¡å·
-wire                                                    i_mac_rx_ready           ;//æ­¤ç»„å¸§å‡†å¤‡å¥½äº†
-wire     [15:0]                                         o_mac_send_type          ;//æ•°æ®ç±»å‹
-wire     [AXIS_DATA_WIDTH-1 :0]                         o_mac_send_data          ;//æ•°æ®
-wire                                                    o_mac_send_last          ;//æ•°æ®æˆªè‡³ä¿¡å·
-wire    [15:0]                                          o_mac_send_len           ;//æ•°æ®é•¿åº¦
-wire                                                    o_mac_send_valid         ;//æ•°æ®æœ‰æ•ˆä¿¡å·
+wire    [15:0]                                          i_user_set               ;//ÓÃ»§ÉèÖÃ(Ôİ¶¨×î¸ßÎ»Îª)
+wire                                                    i_user_set_val           ;//ÓÃ»§ÉèÖÃÓĞĞ§ĞÅºÅ
+wire                                                    i_mac_rx_ready           ;//´Ë×éÖ¡×¼±¸ºÃÁË
+wire     [15:0]                                         o_mac_send_type          ;//Êı¾İÀàĞÍ
+wire     [AXIS_DATA_WIDTH-1 :0]                         o_mac_send_data          ;//Êı¾İ
+wire                                                    o_mac_send_last          ;//Êı¾İ½ØÖÁĞÅºÅ
+wire    [15:0]                                          o_mac_send_len           ;//Êı¾İ³¤¶È
+wire                                                    o_mac_send_valid         ;//Êı¾İÓĞĞ§ĞÅºÅ
 wire    [15:0]                                          o_mac_smd                ;//SMD
-wire    [15:0]                                          o_mac_fra                ;//å¸§è®¡æ•°å™¨
-wire                                                    o_mac_smd_vld            ;//SMDæœ‰æ•ˆä¿¡å·
-wire                                                    o_mac_fra_vld            ;//å¸§è®¡æ•°å™¨æœ‰æ•ˆä¿¡å·
-wire                                                    o_mac_crc                ;//ä¸º1åˆ™ä¸ºcrcå¦åˆ™ä¸ºmcrc
+wire    [15:0]                                          o_mac_fra                ;//Ö¡¼ÆÊıÆ÷
+wire                                                    o_mac_smd_vld            ;//SMDÓĞĞ§ĞÅºÅ
+wire                                                    o_mac_fra_vld            ;//Ö¡¼ÆÊıÆ÷ÓĞĞ§ĞÅºÅ
+wire                                                    o_mac_crc                ;//Îª1ÔòÎªcrc·ñÔòÎªmcrc
 wire                                                    o_occupy_succ            ;
 
 wire    [AXIS_DATA_WIDTH - 1:0]     	                o_qbu_verify_data        ;
@@ -213,21 +224,21 @@ wire                                	                i_qbu_verify_ready       ;
 wire    [7:0]                       	                o_qbu_verify_smd 	     ;
 wire                                                    o_qbu_verify_smd_valid   ;
 
-// wire    [7:0]                                           o_frag_next_tx           ;          
-// wire                                                    o_tx_timeout             ;    
-// wire    [15:0]                                          o_preempt_success_cnt    ;           
-// wire                                                    o_preempt_active         ;    
-// wire                                                    o_preemptable_frame      ;
-// wire    [15:0]                                          o_tx_frames_cnt          ;
-// wire    [15:0]                                          o_tx_fragment_cnt        ; 
-// wire                                                    o_tx_busy                ;
+// wire    [7:0]                                        o_frag_next_tx           ;          
+// wire                                                 o_tx_timeout             ;    
+// wire    [15:0]                                       o_preempt_success_cnt    ;           
+// wire                                                 o_preempt_active         ;    
+// wire                                                 o_preemptable_frame      ;
+// wire    [15:0]                                       o_tx_frames_cnt          ;
+// wire    [15:0]                                       o_tx_fragment_cnt        ; 
+// wire                                                 o_tx_busy                ;
                     
-// wire    [19:0]                                          i_watchdog_timer         ;    
-// wire                                                    i_watchdog_timer_vld     ;
-// wire    [ 7:0]                                          i_min_frag_size          ;    
-// wire                                                    i_min_frag_size_vld      ;  
-// wire    [ 7:0]                                          i_ipg_timer              ;
-// wire                                                    i_ipg_timer_vld          ;    
+// wire    [19:0]                                       i_watchdog_timer         ;    
+// wire                                                 i_watchdog_timer_vld     ;
+// wire    [ 7:0]                                       i_min_frag_size          ;    
+// wire                                                 i_min_frag_size_vld      ;  
+// wire    [ 7:0]                                       i_ipg_timer              ;
+// wire                                                 i_ipg_timer_vld          ;    
 
               
 // qbu_tx_mac_map #(
@@ -266,8 +277,8 @@ wire                                                    o_qbu_verify_smd_valid  
 //     .i_pmac_tx_axis_ready         (o_top_Pmac_tx_axis_ready  )
 // );
 
-//ä¿è¯æœ€å°å¸§é•¿
-frame_len_detect #(
+//±£Ö¤×îĞ¡Ö¡³¤
+    frame_len_detect #(
         .AXIS_DATA_WIDTH                    (AXIS_DATA_WIDTH          )
     ) inst_frame_len_detect (
         .i_clk                              (i_clk                    ),
@@ -306,222 +317,265 @@ frame_len_detect #(
         .i_top_Pmac_tx_axis_ready           (o_top_Pmac_tx_axis_ready )
     );   
     
-    
-qbu_tx_timestamp #(
-    .DWIDTH                                 (AXIS_DATA_WIDTH            )
-) inst_qbu_tx_timestamp(                        
-    .i_clk                                  (i_clk                      ),
-    .i_rst                                  (i_rst                      ),
-    .i_mac_axis_data                        (o_mac_axi_data             ),
-    .i_mac_axis_valid                       (o_mac_axi_data_valid       ),
-    .o_mac_time_irq                         (o_mac_time_irq             ), // éœ€è¦è¿æ¥æˆ–ç•™ç©º
-    .o_mac_frame_seq                        (o_mac_frame_seq            ), // éœ€è¦è¿æ¥æˆ–ç•™ç©º
-    .o_timestamp_addr                       (o_timestamp_addr           )  // éœ€è¦è¿æ¥æˆ–ç•™ç©º
-);
+    qbu_tx_timestamp #(
+        .DWIDTH                                 (AXIS_DATA_WIDTH            )
+    ) inst_qbu_tx_timestamp(                        
+        .i_clk                                  (i_clk                      ),
+        .i_rst                                  (i_rst                      ),
+        .i_mac_axis_data                        (o_mac_axi_data             ),
+        .i_mac_axis_valid                       (o_mac_axi_data_valid       ),
+        .o_mac_time_irq                         (o_mac_time_irq             ), // ĞèÒªÁ¬½Ó»òÁô¿Õ
+        .o_mac_frame_seq                        (o_mac_frame_seq            ), // ĞèÒªÁ¬½Ó»òÁô¿Õ
+        .o_timestamp_addr                       (o_timestamp_addr           )  // ĞèÒªÁ¬½Ó»òÁô¿Õ
+    );
 
-FAST_qbu_Emac_tx    #(
-    .AXIS_DATA_WIDTH                        (AXIS_DATA_WIDTH            )
-) inst_FAST_qbu_Emac_tx    (    
-    .i_clk                                  (i_clk                      ),   
-    .i_rst                                  (i_rst                      ),
-    //è¾“å…¥emacé€šé“æ•°æ®å‡†å¤‡å‘é€  
-    .i_top_Emac_tx_axis_data                (o_top_Emac_tx_axis_data    ),   
-    .i_top_Emac_tx_axis_user                (o_top_Emac_tx_axis_user    ),   
-    .i_top_Emac_tx_axis_keep                (o_top_Emac_tx_axis_keep    ),   
-    .i_top_Emac_tx_axis_last                (o_top_Emac_tx_axis_last    ),   
-    .i_top_Emac_tx_axis_valid               (o_top_Emac_tx_axis_valid   ),   
-    .i_top_Emac_tx_axis_type                (o_top_Emac_tx_axis_type    ),   
-    .o_top_Emac_tx_axis_ready               (o_top_Emac_tx_axis_ready   ),
-    //è¾“å‡ºç»™Muxæ¨¡å— 
-    .i_pmac_send_busy                       (o_pamc_send_busy           ),
-    .i_pmac_send_apply                      (o_pamc_send_apply          ),
-    .o_emac_send_busy                       (o_emac_send_busy           ),
-    .o_emac_send_apply                      (o_emac_send_apply          ),
-    .i_rx_ready                             (o_emac_rx_ready            ),
-    .o_send_type                            (o_emac_send_type           ),
-    .o_send_data                            (o_emac_send_data           ),
-    .o_send_last                            (o_emac_send_last           ),
-    .o_send_valid                           (o_emac_send_valid          ),
-    .o_smd_val                              (o_emac_smd_val             ),
-    .o_send_len                             (o_emac_send_len            ),
-    .o_smd                                  (o_emac_smd                 )                  
+    FAST_qbu_Emac_tx    #(
+        .AXIS_DATA_WIDTH                        (AXIS_DATA_WIDTH            )
+    ) inst_FAST_qbu_Emac_tx    (    
+        .i_clk                                  (i_clk                      ),   
+        .i_rst                                  (i_rst                      ),
+        //ÊäÈëemacÍ¨µÀÊı¾İ×¼±¸·¢ËÍ  
+        .i_top_Emac_tx_axis_data                (o_top_Emac_tx_axis_data    ),   
+        .i_top_Emac_tx_axis_user                (o_top_Emac_tx_axis_user    ),   
+        .i_top_Emac_tx_axis_keep                (o_top_Emac_tx_axis_keep    ),   
+        .i_top_Emac_tx_axis_last                (o_top_Emac_tx_axis_last    ),   
+        .i_top_Emac_tx_axis_valid               (o_top_Emac_tx_axis_valid   ),   
+        .i_top_Emac_tx_axis_type                (o_top_Emac_tx_axis_type    ),   
+        .o_top_Emac_tx_axis_ready               (o_top_Emac_tx_axis_ready   ),
+        //Êä³ö¸øMuxÄ£¿é 
+        .i_pmac_send_busy                       (o_pamc_send_busy           ),
+        .i_pmac_send_apply                      (o_pamc_send_apply          ),
+        .o_emac_send_busy                       (o_emac_send_busy           ),
+        .o_emac_send_apply                      (o_emac_send_apply          ),
+        .i_rx_ready                             (o_emac_rx_ready            ),
+        .o_emac_data_noempty                    (o_emac_data_noempty        ),
+        .o_send_type                            (o_emac_send_type           ),
+        .o_send_data                            (o_emac_send_data           ),
+        .o_send_last                            (o_emac_send_last           ),
+        .o_send_valid                           (o_emac_send_valid          ),
+        .o_smd_val                              (o_emac_smd_val             ),
+        .o_send_len                             (o_emac_send_len            ),
+        .o_smd                                  (o_emac_smd                 )                  
     );
 
     Mux #(
       .AXIS_DATA_WIDTH  (AXIS_DATA_WIDTH)
-) inst_Mux    (
-    .i_clk                                  (i_clk                      ),   
-    .i_rst                                  (i_rst                      ),
+    ) inst_Mux    (
+        .i_clk                                  (i_clk                      ),   
+        .i_rst                                  (i_rst                      ),
 
-    .i_eth_send_data                        (i_eth_send_data            ),
-    .i_eth_send_user                        (i_eth_send_user            ),
-    .i_eth_send_keep                        (i_eth_send_keep            ),
-    .i_eth_send_last                        (i_eth_send_last            ),
-    .i_eth_send_valid                       (i_eth_send_valid           ),
-    .o_eth_send_ready                       (o_eth_send_ready           ),
-    .i_eth_send_type                        (i_eth_send_type            ),
-    .i_eth_smd                              (i_eth_smd                  ),
-    .i_eth_smd_val                          (i_eth_smd_val              ),
+        .i_eth_send_data                        (i_eth_send_data            ),
+        .i_eth_send_user                        (i_eth_send_user            ),
+        .i_eth_send_keep                        (i_eth_send_keep            ),
+        .i_eth_send_last                        (i_eth_send_last            ),
+        .i_eth_send_valid                       (i_eth_send_valid           ),
+        .o_eth_send_ready                       (o_eth_send_ready           ),
+        .i_eth_send_type                        (i_eth_send_type            ),
+        .i_eth_smd                              (i_eth_smd                  ),
+        .i_eth_smd_val                          (i_eth_smd_val              ),
 
-    .i_verify_send_data                     (o_qbu_verify_data          ),
-    .i_verify_send_user                     (o_qbu_verify_user          ),
-    .i_verify_send_keep                     (o_qbu_verify_keep          ),
-    .i_verify_send_last                     (o_qbu_verify_last          ),
-    .i_verify_send_valid                    (o_qbu_verify_valid         ),
-    .o_verify_send_ready                    (i_qbu_verify_ready         ),
-    .i_verify_smd                           (o_qbu_verify_smd           ),
-    .i_verify_smd_val                       (o_qbu_verify_smd_valid     ),
+        .i_verify_send_data                     (o_qbu_verify_data          ),
+        .i_verify_send_user                     (o_qbu_verify_user          ),
+        .i_verify_send_keep                     (o_qbu_verify_keep          ),
+        .i_verify_send_last                     (o_qbu_verify_last          ),
+        .i_verify_send_valid                    (o_qbu_verify_valid         ),
+        .o_verify_send_ready                    (i_qbu_verify_ready         ),
+        .i_verify_smd                           (o_qbu_verify_smd           ),
+        .i_verify_smd_val                       (o_qbu_verify_smd_valid     ),
 
-    .i_verify_succ                          (o_verify_succ              ),
-    .i_verify_succ_val                      (o_verify_succ_val          ),
+        .i_verify_succ                          (o_verify_succ              ),
+        .i_verify_succ_val                      (o_verify_succ_val          ),
 
-    .o_pmac_rx_ready                        (i_pmac_rx_ready            ),
-    .i_pmac_send_type                       (o_pmac_send_type           ),
-    .i_pmac_send_data                       (o_pmac_send_data           ),
-    .i_pmac_send_last                       (o_pmac_send_last           ),
-    .i_pmac_send_valid                      (o_pmac_send_valid          ),
-    .i_pmac_send_len                        (o_pmac_send_len            ),
-    .i_pmac_smd                             (o_pmac_smd                 ),
-    .i_pmac_fra                             (o_pmac_fra                 ),
-    .i_pmac_smd_vld                         (o_pmac_smd_vld             ),
-    .i_pmac_fra_vld                         (o_pmac_fra_vld             ),
-    .i_pmac_crc                             (o_pmac_crc                 ),
+        .o_pmac_rx_ready                        (i_pmac_rx_ready            ),
+        .i_pmac_send_type                       (o_pmac_send_type           ),
+        .i_pmac_send_data                       (o_pmac_send_data           ),
+        .i_pmac_send_last                       (o_pmac_send_last           ),
+        .i_pmac_send_valid                      (o_pmac_send_valid          ),
+        .i_pmac_send_len                        (o_pmac_send_len            ),
+        .i_pmac_smd                             (o_pmac_smd                 ),
+        .i_pmac_fra                             (o_pmac_fra                 ),
+        .i_pmac_smd_vld                         (o_pmac_smd_vld             ),
+        .i_pmac_fra_vld                         (o_pmac_fra_vld             ),
+        .i_pmac_crc                             (o_pmac_crc                 ),
 
-    .o_emac_rx_ready                        (o_emac_rx_ready            ),
-    .i_emac_send_type                       (o_emac_send_type           ),
-    .i_emac_send_data                       (o_emac_send_data           ),
-    .i_emac_send_len                        (o_emac_send_len            ),
-    .i_emac_send_last                       (o_emac_send_last           ),
-    .i_emac_send_valid                      (o_emac_send_valid          ),
-    .i_emac_smd_val                         (o_emac_smd_val             ),
-    .i_emac_smd                             (o_emac_smd                 ),
-    // 
-    .i_mac_rx_ready                         (o_udp_ready                ),
-    .o_mac_send_type                        (o_mac_send_type            ),
-    .o_mac_send_data                        (o_mac_send_data            ),
-    .o_mac_send_last                        (o_mac_send_last            ),
-    .o_mac_send_valid                       (o_mac_send_valid           ),
-    .o_mac_send_len                         (o_mac_send_len             ),
-    .o_mac_smd                              (o_mac_smd                  ),
-    .o_mac_fra                              (o_mac_fra                  ),
-    .o_mac_smd_vld                          (o_mac_smd_vld              ),
-    .o_mac_fra_vld                          (o_mac_fra_vld              ),
-    .o_mac_crc                              (o_mac_crc                  )  
+        .o_emac_rx_ready                        (o_emac_rx_ready            ),
+        .i_emac_send_type                       (o_emac_send_type           ),
+        .i_emac_send_data                       (o_emac_send_data           ),
+        .i_emac_send_len                        (o_emac_send_len            ),
+        .i_emac_send_last                       (o_emac_send_last           ),
+        .i_emac_send_valid                      (o_emac_send_valid          ),
+        .i_emac_smd_val                         (o_emac_smd_val             ),
+        .i_emac_smd                             (o_emac_smd                 ),
+        // 
+        .i_mac_rx_ready                         (o_udp_ready                ),
+        .o_mac_send_type                        (o_mac_send_type            ),
+        .o_mac_send_data                        (o_mac_send_data            ),
+        .o_mac_send_last                        (o_mac_send_last            ),
+        .o_mac_send_valid                       (o_mac_send_valid           ),
+        .o_mac_send_len                         (o_mac_send_len             ),
+        .o_mac_smd                              (o_mac_smd                  ),
+        .o_mac_fra                              (o_mac_fra                  ),
+        .o_mac_smd_vld                          (o_mac_smd_vld              ),
+        .o_mac_fra_vld                          (o_mac_fra_vld              ),
+        .o_mac_crc                              (o_mac_crc                  )  
     );
 
     MAC_tx #(
       .AXIS_DATA_WIDTH  (AXIS_DATA_WIDTH)
-) inst_MAC_tx    (
-    .i_clk                                  (i_clk                      ),   
-    .i_rst                                  (i_rst                      ),
-    .i_target_mac                           (i_target_mac               ),
-    .i_target_mac_valid                     (i_target_mac_valid         ),
-    .i_source_mac                           (i_source_mac               ),
-    .i_source_mac_valid                     (i_source_mac_valid         ),
-    .o_udp_ready                            (o_udp_ready                ),
+    ) inst_MAC_tx    (
+        .i_clk                                  (i_clk                      ),   
+        .i_rst                                  (i_rst                      ),
+        .i_target_mac                           (i_target_mac               ),
+        .i_target_mac_valid                     (i_target_mac_valid         ),
+        .i_source_mac                           (i_source_mac               ),
+        .i_source_mac_valid                     (i_source_mac_valid         ),
+        .o_udp_ready                            (o_udp_ready                ),
 
-    .i_send_type                            (o_mac_send_type            ),
-    .i_send_len                             (o_mac_send_len             ),
-    .i_pmac_send_len_val                    (o_pmac_send_len_val        ),
-    .i_pmac_send_len                        (o_pmac_send_len            ),
-    .i_send_data                            (o_mac_send_data            ),
-    .i_send_last                            (o_mac_send_last            ),
-    .i_send_valid                           (o_mac_send_valid           ),
-    .i_smd                                  (o_mac_smd                  ),
-    .i_fra                                  (o_mac_fra                  ),
-    .i_smd_vld                              (o_mac_smd_vld              ),
-    .i_fra_vld                              (o_mac_fra_vld              ),
-    .i_crc                                  (o_mac_crc                  ),
-    .i_eamc_send_busy                       (o_emac_send_busy           ),
-    .i_pamc_send_busy                       (o_emac_send_apply          ),
-    //è¾“å‡ºç»™phyæ¥å£å±‚
-    .o_mac_axi_data                         (o_mac_axi_data             ),  
-    .o_mac_axi_data_keep                    (o_mac_axi_data_keep        ),  
-    .o_mac_axi_data_valid                   (o_mac_axi_data_valid       ),  
-    .o_mac_axi_data_user                    (o_mac_axi_data_user        ),  
-    .i_mac_axi_data_ready                   (i_mac_axi_data_ready       ),  
-    .o_mac_axi_data_last                    (o_mac_axi_data_last        ),  
-    //å¯„å­˜å™¨æ¥å£    
-    .o_tx_frames_cnt                        (o_tx_frames_cnt            ),    
-    .o_tx_fragment_cnt                      (o_tx_fragment_cnt          ),    
-    .i_ipg_timer                            (i_ipg_timer                ),    
-    .i_ipg_timer_vld                        (i_ipg_timer_vld            ),    
-    .o_tx_busy                              (o_tx_busy                  )   
-
+        .i_send_type                            (o_mac_send_type            ),
+        .i_send_len                             (o_mac_send_len             ),
+        .i_pmac_send_len_val                    (o_pmac_send_len_val        ),
+        .i_pmac_send_len                        (o_pmac_send_len            ),
+        .i_send_data                            (o_mac_send_data            ),
+        .i_send_last                            (o_mac_send_last            ),
+        .i_send_valid                           (o_mac_send_valid           ),
+        .i_smd                                  (o_mac_smd                  ),
+        .i_fra                                  (o_mac_fra                  ),
+        .i_smd_vld                              (o_mac_smd_vld              ),
+        .i_fra_vld                              (o_mac_fra_vld              ),
+        .i_crc                                  (o_mac_crc                  ),
+        .i_eamc_send_busy                       (o_emac_send_busy           ),
+        .i_pamc_send_busy                       (o_emac_send_apply          ),
+        //Êä³ö¸øphy½Ó¿Ú²ã
+        .o_mac_axi_data                         (o_mac_axi_data             ),  
+        .o_mac_axi_data_keep                    (o_mac_axi_data_keep        ),  
+        .o_mac_axi_data_valid                   (o_mac_axi_data_valid       ),  
+        .o_mac_axi_data_user                    (o_mac_axi_data_user        ),  
+        .i_mac_axi_data_ready                   (i_mac_axi_data_ready       ),  
+        .o_mac_axi_data_last                    (o_mac_axi_data_last        ),  
+        //¼Ä´æÆ÷½Ó¿Ú    
+        .o_tx_frames_cnt                        (o_tx_frames_cnt            ),    
+        .o_tx_fragment_cnt                      (o_tx_fragment_cnt          ),    
+        .i_ipg_timer                            (i_ipg_timer                ),    
+        .i_ipg_timer_vld                        (i_ipg_timer_vld            ),    
+        .o_tx_busy                              (o_tx_busy                  )   
     );
 
-FAST_qbu_Pmac_tx  #(
-      .AXIS_DATA_WIDTH  (AXIS_DATA_WIDTH)
-)
-inst_FAST_qbu_Pmac_tx(
-    .i_clk                                  ( i_clk                       ),
-    .i_rst                                  ( i_rst                       ),
-    .i_top_Pmac_tx_axis_data                (o_top_Pmac_tx_axis_data      ),
-    .i_top_Pmac_tx_axis_user                (o_top_Pmac_tx_axis_user      ),
-    .i_top_Pmac_tx_axis_keep                (o_top_Pmac_tx_axis_keep      ),
-    .i_top_Pmac_tx_axis_last                (o_top_Pmac_tx_axis_last      ),
-    .i_top_Pmac_tx_axis_valid               (o_top_Pmac_tx_axis_valid     ),
-    .i_top_Pmac_tx_axis_type                (o_top_Pmac_tx_axis_type      ),
-    .o_pmac_send_len                        (o_pmac_send_len              ),
-    .o_pmac_send_len_val                    (o_pmac_send_len_val          ),
-    .i_emac_send_busy                       (o_emac_send_busy             ),
-    .i_emac_send_apply                      (o_emac_send_apply            ),
-    .i_rx_ready                             (i_pmac_rx_ready              ),
-    .o_top_Pmac_tx_axis_ready               (o_top_Pmac_tx_axis_ready     ),
-    .o_pamc_send_busy                       (o_pamc_send_busy             ),
-    .o_pamc_send_apply                      (o_pamc_send_apply            ),
-    .o_send_type                            (o_pmac_send_type             ),
-    .o_send_data                            (o_pmac_send_data             ),
-    .o_send_last                            (o_pmac_send_last             ),
-    .o_send_valid                           (o_pmac_send_valid            ),
-    .o_smd                                  (o_pmac_smd                   ),
-    .o_fra                                  (o_pmac_fra                   ),
-    .o_smd_vld                              (o_pmac_smd_vld               ),
-    .o_fra_vld                              (o_pmac_fra_vld               ),
-    .o_crc                                  (o_pmac_crc                   ),
-    //å¯„å­˜å™¨æ¥å£                    
-    .o_frag_next_tx                         (o_frag_next_tx               ),     
-    .i_watchdog_timer                       (i_watchdog_timer             ),     
-    .i_watchdog_timer_vld                   (i_watchdog_timer_vld         ),     
-    .o_tx_timeout                           (o_tx_timeout                 ),     
-    .o_preempt_success_cnt                  (o_preempt_success_cnt        ),     
-    .i_min_frag_size                        (i_min_frag_size              ),     
-    .i_min_frag_size_vld                    (i_min_frag_size_vld          ),     
-    .o_preempt_active                       (o_preempt_active             ),     
-    .o_preemptable_frame                    (o_preemptable_frame          )   
-);
+    FAST_qbu_Pmac_tx  #(
+        .AXIS_DATA_WIDTH  (AXIS_DATA_WIDTH)
+    )inst_FAST_qbu_Pmac_tx(
+        .i_clk                                  ( i_clk                       ),
+        .i_rst                                  ( i_rst                       ),
+        .i_top_Pmac_tx_axis_data                (o_top_Pmac_tx_axis_data      ),
+        .i_top_Pmac_tx_axis_user                (o_top_Pmac_tx_axis_user      ),
+        .i_top_Pmac_tx_axis_keep                (o_top_Pmac_tx_axis_keep      ),
+        .i_top_Pmac_tx_axis_last                (o_top_Pmac_tx_axis_last      ),
+        .i_top_Pmac_tx_axis_valid               (o_top_Pmac_tx_axis_valid     ),
+        .i_top_Pmac_tx_axis_type                (o_top_Pmac_tx_axis_type      ),
+        .o_pmac_send_len                        (o_pmac_send_len              ),
+        .o_pmac_send_len_val                    (o_pmac_send_len_val          ),
+        .i_emac_send_busy                       (o_emac_send_busy             ),
+        .i_emac_data_noempty                    (o_emac_data_noempty          ),
+        .i_emac_send_apply                      (o_emac_send_apply            ),
+        .i_rx_ready                             (i_pmac_rx_ready              ),
+        .o_top_Pmac_tx_axis_ready               (o_top_Pmac_tx_axis_ready     ),
+        .o_pamc_send_busy                       (o_pamc_send_busy             ),
+        .o_pamc_send_apply                      (o_pamc_send_apply            ),
+        .o_send_type                            (o_pmac_send_type             ),
+        .o_send_data                            (o_pmac_send_data             ),
+        .o_send_last                            (o_pmac_send_last             ),
+        .o_send_valid                           (o_pmac_send_valid            ),
+        .o_smd                                  (o_pmac_smd                   ),
+        .o_fra                                  (o_pmac_fra                   ),
+        .o_smd_vld                              (o_pmac_smd_vld               ),
+        .o_fra_vld                              (o_pmac_fra_vld               ),
+        .o_crc                                  (o_pmac_crc                   ),
+        //¼Ä´æÆ÷½Ó¿Ú                    
+        .o_frag_next_tx                         (o_frag_next_tx               ),     
+        .i_watchdog_timer                       (i_watchdog_timer             ),     
+        .i_watchdog_timer_vld                   (i_watchdog_timer_vld         ),     
+        .o_tx_timeout                           (o_tx_timeout                 ),     
+        .o_preempt_success_cnt                  (o_preempt_success_cnt        ),     
+        .i_min_frag_size                        (i_min_frag_size              ),     
+        .i_min_frag_size_vld                    (i_min_frag_size_vld          ),     
+        .o_preempt_active                       (o_preempt_active             ),     
+        .o_preemptable_frame                    (o_preemptable_frame          )   
+    );
 
-verified #(
-    .AXIS_DATA_WIDTH                        (AXIS_DATA_WIDTH            )
-) inst_verified (                             
-    .i_clk                                  (i_clk                      ),
-    .i_rst                                  (i_rst                      ),
+    verified #(
+        .AXIS_DATA_WIDTH                        (AXIS_DATA_WIDTH            )
+    ) inst_verified (                             
+        .i_clk                                  (i_clk                      ),
+        .i_rst                                  (i_rst                      ),
 
-    .i_qbu_verify_valid                     (i_qbu_verify_valid         ),
-    .i_qbu_response_valid                   (i_qbu_response_valid       ),
-    
-    .o_verify_succ                          (o_verify_succ              ),
-    .o_verify_succ_val                      (o_verify_succ_val          ),
-    // verified_to_txmac
-    .o_qbu_verify_data                      (o_qbu_verify_data          ), 
-    .o_qbu_verify_user                      (o_qbu_verify_user          ), 
-    .o_qbu_verify_keep                      (o_qbu_verify_keep          ), 
-    .o_qbu_verify_last                      (o_qbu_verify_last          ), 
-    .o_qbu_verify_valid                     (o_qbu_verify_valid         ), 
-    .i_qbu_verify_ready                     (i_qbu_verify_ready         ), 
-    .o_qbu_verify_smd                       (o_qbu_verify_smd           ), 
-    .o_qbu_verify_smd_valid                 (o_qbu_verify_smd_valid     ), 
-    //å¯„å­˜å™¨ä¿¡å·
-    .i_verify_enabled                       (i_verify_enabled           ),
-    .i_start_verify                         (i_start_verify             ),
-    .i_clear_verify                         (i_clear_verify             ),
-    .i_verify_timer                         (i_verify_timer             ),
-    .i_verify_timer_vld                     (i_verify_timer_vld         ),
-    .o_err_verify_cnt                       (o_err_verify_cnt           ),
-    .o_preempt_enable                       (o_preempt_enable           )
-);
+        .i_qbu_verify_valid                     (i_qbu_verify_valid         ),
+        .i_qbu_response_valid                   (i_qbu_response_valid       ),
+        
+        .o_verify_succ                          (o_verify_succ              ),
+        .o_verify_succ_val                      (o_verify_succ_val          ),
+        // verified_to_txmac
+        .o_qbu_verify_data                      (o_qbu_verify_data          ), 
+        .o_qbu_verify_user                      (o_qbu_verify_user          ), 
+        .o_qbu_verify_keep                      (o_qbu_verify_keep          ), 
+        .o_qbu_verify_last                      (o_qbu_verify_last          ), 
+        .o_qbu_verify_valid                     (o_qbu_verify_valid         ), 
+        .i_qbu_verify_ready                     (i_qbu_verify_ready         ), 
+        .o_qbu_verify_smd                       (o_qbu_verify_smd           ), 
+        .o_qbu_verify_smd_valid                 (o_qbu_verify_smd_valid     ), 
+        //¼Ä´æÆ÷ĞÅºÅ
+        .i_verify_enabled                       (i_verify_enabled           ),
+        .i_start_verify                         (i_start_verify             ),
+        .i_clear_verify                         (i_clear_verify             ),
+        .i_verify_timer                         (i_verify_timer             ),
+        .i_verify_timer_vld                     (i_verify_timer_vld         ),
+        .o_err_verify_cnt                       (o_err_verify_cnt           ),
+        .o_preempt_enable                       (o_preempt_enable           )
+    );
 /*
-        ila_0 your_inst_ila_0 (
+    qbu_tx_reg inst_qbu_tx_reg (
+        .i_clk                      (i_clk                      ),
+        .i_rst                      (i_rst                      ),
+        // .i_qbu_bus_we           (i_qbu_bus_we               ),
+        // .i_qbu_bus_addr         (i_qbu_bus_addr             ),
+        // .i_qbu_bus_din          (i_qbu_bus_din              ),
+        // .i_qbu_bus_rd           (i_qbu_bus_rd               ),
+        .i_switch_reg_bus_we        (i_switch_reg_bus_we       ),
+        .i_switch_reg_bus_we_addr   (i_switch_reg_bus_we_addr  ),
+        .i_switch_reg_bus_we_din    (i_switch_reg_bus_we_din   ),
+        .i_switch_reg_bus_we_din_v  (i_switch_reg_bus_we_din_v ),
+        .i_switch_reg_bus_rd        (i_switch_reg_bus_rd       ),
+        .i_switch_reg_bus_rd_addr   (i_switch_reg_bus_rd_addr  ),
+        .o_switch_reg_bus_we_dout   (o_switch_reg_bus_we_dout  ),
+        .o_switch_reg_bus_we_dout_v (o_switch_reg_bus_we_dout_v),
+
+        .i_tx_busy                  (o_tx_busy                  ),
+        .i_preemptable_frame        (o_preemptable_frame        ),
+        .i_preempt_active           (o_preempt_active           ),
+        .i_preempt_enable           (o_preempt_enable           ),
+        .i_tx_fragment_cnt          (o_tx_fragment_cnt          ),
+        .i_err_verify_cnt           (o_err_verify_cnt           ),
+        .i_tx_frames_cnt            (o_tx_frames_cnt            ),
+        .i_preempt_success_cnt      (o_preempt_success_cnt      ),
+        .i_tx_timeout               (o_tx_timeout               ),
+        .i_frag_next_tx             (o_frag_next_tx             ),
+
+        .o_verify_enabled           (i_verify_enabled           ),
+        .o_min_frag_size            (i_min_frag_size            ),
+        .o_min_frag_size_valid      (i_min_frag_size_vld        ),
+        .o_verify_timer             (i_verify_timer             ),
+        .o_verify_timer_valid       (i_verify_timer_vld         ),
+        .o_ipg_timer                (i_ipg_timer                ),
+        .o_ipg_timer_valid          (i_ipg_timer_vld            ),
+        .o_reset                    (o_reset                    ),
+        .o_start_verify             (i_start_verify             ),
+        .o_clear_verify             (i_clear_verify             ),
+        .o_watchdog_timer           (i_watchdog_timer           ),
+        .o_watchdog_timer_valid     (i_watchdog_timer_vld       ) 
+
+        // .o_qbu_bus_dout             (o_qbu_bus_dout             )
+    );
+*/
+/*
+    ila_0 your_inst_ila_0 (
     .i_clk(i_clk), // input wire i_clk
 
 

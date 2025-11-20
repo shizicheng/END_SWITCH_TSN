@@ -26,19 +26,28 @@ module FAST_RAM #(
     input        wire                                          i_rx_axis_ready       //准备信号                                            
     );
 
-
-/***************function**************/
+  /*---------------------------------------- clog2计算函数 ---------------------------------------------*/
+  function integer clog2;
+    input integer value;
+    integer temp;
+    begin
+      temp = value - 1;
+      for (clog2 = 0; temp > 0; clog2 = clog2 + 1)
+        temp = temp >> 1;
+    end
+  endfunction
 
 /***************parameter*************/
 
 
 //ram内部参数
 localparam           RAM_DEPTH       = 'd2048;//4096
+localparam           ADDR_WIDTH         = clog2(RAM_DEPTH);
 localparam           RAM_PERFORMANCE = "LOW_LATENCY";
 localparam           INIT_FILE = ""  ;   
 
 //fifo参数
-localparam           DATAWIDTH = 'd36;//写位宽
+localparam           DATAWIDTH = ADDR_WIDTH*3;//写位宽
 localparam           DEPT_W = 'd16;//写深度
 localparam           AL_FUL =  DEPT_W - 10;//满信号
 localparam           AL_EMP =  10;  //空信号    
@@ -74,8 +83,8 @@ reg         [15:0]                     ro_rx_axis_user          ;
 
 
 //ram
-reg         [11:0]                      write_ram_addr          ;//13位
-reg         [11:0]                      read_ram_addr           ;//13位
+reg         [ADDR_WIDTH-1:0]            write_ram_addr          ;//13位
+reg         [ADDR_WIDTH-1:0]            read_ram_addr           ;//13位
 wire        [DWIDTH - 1:0]              write_ram_data          ;
 wire        [DWIDTH - 1:0]              read_ram_data           ;
 reg                                     write_ram_en            ;
@@ -84,25 +93,25 @@ reg                                     r_read_ram_en           ;
     
 wire        [(DWIDTH/8)-1:0]            write_ram_keep,read_ram_keep;   
     
-reg         [11:0]                      read_ram_add_begin      ;//13位
-reg         [11:0]                      read_ram_add_end        ;//13位      
-reg ro_rx_axis_valid;
+reg         [ADDR_WIDTH-1:0]            read_ram_add_begin      ;//13位
+reg         [ADDR_WIDTH-1:0]            read_ram_add_end        ;//13位      
+reg                                     ro_rx_axis_valid        ;
 
-reg [11:0] read_ram_add_begin_last;
+reg         [ADDR_WIDTH-1:0]            read_ram_add_begin_last ;
 //out
-reg         r_rx_last_valid;
-reg ri_rx_axis_ready;
+reg                                     r_rx_last_valid         ;
+reg                                     ri_rx_axis_ready        ;
 /***************wire******************/
 
 
-wire   [23:0]  addr_begin_to_end ;//起点与终点数据位置
+wire   [ADDR_WIDTH*2-1:0]               addr_begin_to_end        ;//起点与终点数据位置
 
 //fifo
-wire  [35:0]   write_fifo_data;
-reg            write_fifo_en;
-wire  [35:0]   read_fifo_data;
-reg            read_fifo_en;
-wire           empty;
+wire  [ADDR_WIDTH*3-1:0]                write_fifo_data         ;
+reg                                     write_fifo_en           ;
+wire  [ADDR_WIDTH*3-1:0]                read_fifo_data          ;
+reg                                     read_fifo_en            ;
+wire                                    empty                   ;
 
     
 /***************component*************/
@@ -164,17 +173,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD (0                     ),
     .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
 ) inst_sync_fifo (
-    .CLK                    (i_clk                 ),
-    .RST                    (i_rst                 ),
-    .WR_EN                  (write_fifo_en         ),
-    .DIN                    (write_fifo_data       ),
-    .RD_EN                  (read_fifo_en          ),
-    .DOUT                   (read_fifo_data        ),
-    .FULL                   (                      ),
-    .EMPTY                  (empty                 ),
-    .ALMOST_FULL            (                      ),
-    .ALMOST_EMPTY           (                      ),
-    .DATA_CNT               (                      )
+    .i_clk                  (i_clk                 ),
+    .i_rst                  (i_rst                 ),
+    .i_wr_en                (write_fifo_en         ),
+    .i_din                  (write_fifo_data       ),
+    .o_full                 (                      ),
+    .i_rd_en                (read_fifo_en          ),
+    .o_dout                 (read_fifo_data        ),
+    .o_empty                (empty                 ),
+    .o_almost_full          (                      ),
+    .o_almost_empty         (                      ),
+    .o_data_cnt             (                      )
 );
 
 
@@ -294,13 +303,23 @@ end
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        ro_rx_axis_user <= 'b0;
+        ro_rx_axis_user <= 16'b0;
     end
     else if(r_read_ram_en & !read_ram_en)begin
-        ro_rx_axis_user <= 'b0;
+        ro_rx_axis_user <= 16'b0;
     end
     else if (read_fifo_en) begin
-        ro_rx_axis_user <= read_fifo_data[35:24] - read_ram_add_begin_last;
+        // 处理地址回绕的情况：如果结束地址小于起始地址，说明发生了回绕
+        // 回绕时的长度 = (RAM_DEPTH - 起始地址) + 结束地址
+        // 正常时的长度 = 结束地址 - 起始地址
+        if (read_fifo_data[ADDR_WIDTH-1:0] < read_fifo_data[ADDR_WIDTH*2-1:ADDR_WIDTH]) begin
+            // 地址回绕情况
+            ro_rx_axis_user <= (RAM_DEPTH - read_fifo_data[ADDR_WIDTH*2-1:ADDR_WIDTH]) + read_fifo_data[ADDR_WIDTH-1:0] + 1'd1;
+        end
+        else begin
+            // 正常情况
+            ro_rx_axis_user <= read_fifo_data[ADDR_WIDTH-1:0] - read_fifo_data[ADDR_WIDTH*2-1:ADDR_WIDTH]  + 1'd1;
+        end
     end
     
 end
@@ -311,7 +330,7 @@ always @(posedge i_clk or posedge i_rst) begin
         read_ram_add_begin_last <= 'b0;
     end
     else if (read_fifo_en) begin
-        read_ram_add_begin_last <= read_fifo_data[35:24];
+        read_ram_add_begin_last <= read_fifo_data[ADDR_WIDTH*3-1:ADDR_WIDTH*2];
     end
 end
 //write_ram_add接收数据时自加，在数据无效回溯地址
@@ -399,7 +418,7 @@ end
 
 
 //用一个寄存器保存从fifo读出来的起始地址数据
-assign addr_begin_to_end = read_fifo_en ? read_fifo_data : addr_begin_to_end;
+assign addr_begin_to_end = read_fifo_en ? read_fifo_data[ADDR_WIDTH*2-1:0] : addr_begin_to_end;
 
 
 //read_ram_en当fifo有数据输出的时候就开始读，一直读到尾地址停下
@@ -410,7 +429,7 @@ always @(posedge i_clk or posedge i_rst) begin
     else if (read_fifo_en) begin
         read_ram_en <= 1'b1;
     end
-    else if(read_ram_addr==addr_begin_to_end[11:0]) begin
+    else if(read_ram_addr==addr_begin_to_end[ADDR_WIDTH-1:0]) begin
         read_ram_en <= 1'b0;
     end
     else begin
@@ -434,7 +453,7 @@ always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_rx_last_valid <= 1'b0;
     end
-    else if (read_ram_addr == addr_begin_to_end[11:0]) begin
+    else if (read_ram_addr == addr_begin_to_end[ADDR_WIDTH-1:0]) begin
         r_rx_last_valid <= 1'b1;
     end
     else begin

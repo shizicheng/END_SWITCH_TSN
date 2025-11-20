@@ -37,6 +37,7 @@ module FAST_qbu_Pmac_tx#(
     output          wire                                o_pamc_send_apply           ,
     input           wire                                i_emac_send_busy            ,
     input           wire                                i_emac_send_apply           ,
+    input           wire                                i_emac_data_noempty         ,
     // output          reg                                 occupy_succ,
     //PMAC2NEXT
     input                                               i_rx_ready                  ,//组帧模块准备好了
@@ -183,21 +184,21 @@ ram_simple2port #(
 sync_fifo #(
     .DEPTH                  (DEPT_W                ),
     .WIDTH                  (DATAWIDTH             ),
-    .ALMOST_FULL_THRESHOLD  (0                     ),
-    .ALMOST_EMPTY_THRESHOLD (0                     ),
+    .ALMOST_FULL_THRESHOLD  (1                     ),
+    .ALMOST_EMPTY_THRESHOLD (1                     ),
     .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
 ) inst_sync_fifo (
-    .CLK                    (i_clk                 ),
-    .RST                    (i_rst                 ),
-    .WR_EN                  (write_fifo_en         ),
-    .DIN                    (write_fifo_data       ),
-    .RD_EN                  (read_fifo_en          ),
-    .DOUT                   (read_fifo_data        ),
-    .FULL                   (                      ),
-    .EMPTY                  (empty                 ),
-    .ALMOST_FULL            (                      ),
-    .ALMOST_EMPTY           (                      ),
-    .DATA_CNT               (                      )
+    .i_clk                  (i_clk                 ),
+    .i_rst                  (i_rst                 ),
+    .i_wr_en                (write_fifo_en         ),
+    .i_din                  (write_fifo_data       ),
+    .i_rd_en                (read_fifo_en          ),
+    .o_dout                 (read_fifo_data        ),
+    .o_full                 (                      ),
+    .o_empty                (empty                 ),
+    .o_almost_full          (                      ),
+    .o_almost_empty         (                      ),
+    .o_data_cnt             (                      )
 );
     
 // async_fifo_fwft #(
@@ -429,10 +430,11 @@ always @(posedge i_clk or posedge i_rst) begin
     end
     else if(r_pmac_timeout_flag)
          data_len <= 'b0;
-    else if(occupy_succ||read_fifo_en==1)begin
+    // else if(occupy_succ||read_fifo_en==1)begin
+    else if(occupy_succ )begin
          data_len <= data_len;
     end
-    else if(empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1)begin
+    else if(i_emac_send_busy==0&&read_fifo_en==1 &&result_send_apply&&r_mux_ready&&fre_cnt<1)begin
          data_len <= read_fifo_data[31:16];
     end
     else data_len <= data_len ;
@@ -446,10 +448,11 @@ always @(posedge i_clk or posedge i_rst) begin
     end
     else if(r_pmac_timeout_flag)
          o_send_type <= 'b0;
-    else if(occupy_succ||read_fifo_en==1)begin
+    // else if(occupy_succ||read_fifo_en==1)begin
+    else if(occupy_succ )begin
          o_send_type <= o_send_type;
     end
-    else if(empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1)begin
+    else if(i_emac_send_busy==0&&read_fifo_en==1 &&result_send_apply&&r_mux_ready&&fre_cnt<1)begin
          o_send_type <= read_fifo_data[15:0];
     end
     else o_send_type <= o_send_type ;
@@ -560,7 +563,7 @@ always @(posedge i_clk) begin
         data_len_supply <= 'b0;
     end
     else if (read_fifo_en==1) begin
-         data_len_supply <=data_len-1;
+         data_len_supply <= read_fifo_data[31:16]-1'd1;
     end
     else if (read_ram_en)begin
          data_len_supply <=data_len_supply-1;
@@ -722,7 +725,7 @@ always @(posedge i_clk) begin
      else if (send_data_cnt==0&&empty==1&&!r_occupy) begin //加了这个避免一组数据读完后，send_data_cnt=0，且empty==1且非抢占组 时再次读     
            read_ram_en <= 1'b0;     
      end    // send_data_cnt<(data_len-1)
-     else if ((empty == 0 || data_len_supply) && result_send_apply && i_emac_send_busy==0 && r_mux_ready) begin    //当fifo有数据或者发送的数据量小于总长度    
+     else if ((empty == 0 || data_len_supply) && result_send_apply && i_emac_send_busy==0 && r_mux_ready && i_emac_data_noempty == 1'd0) begin    //当fifo有数据或者发送的数据量小于总长度    
            read_ram_en <= 1'b1;
     end
     else begin
@@ -737,11 +740,8 @@ always @(posedge i_clk) begin
     end
     else if (occupy_succ||read_fifo_en==1) begin 
         read_fifo_en  <= 1'b0;
-    end
-    // else if (r_occupy_succ_cnt == TIME_OUT - 1 && r_occupy_succ_flag) begin 
-    //     read_fifo_en  <= 1'b1;
-    // end                                                                                                     //加上fre_cnt为了防止被抢占后上一组数据还没发完就发下一组
-    else if (empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1) begin//加了result_send_apply
+    end                                                                                                //加上fre_cnt为了防止被抢占后上一组数据还没发完就发下一组
+    else if (empty==0&&i_emac_send_busy==0&&read_fifo_en==0&&read_ram_en==0&&result_send_apply&&r_mux_ready&&fre_cnt<1 && i_emac_data_noempty == 1'd0) begin//加了result_send_apply
         read_fifo_en  <= 1'b1;
     end
     else begin

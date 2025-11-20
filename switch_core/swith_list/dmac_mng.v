@@ -1,54 +1,73 @@
 module dmac_mng #(
-        parameter                           PORT_NUM                =      8                                    ,   // äº¤æ¢æœºçš„ç«¯å£æ•°
-        parameter                           HASH_DATA_WIDTH         =      15                                   ,   // å“ˆå¸Œè®¡ç®—çš„å€¼çš„ä½å®½ï¼Œæ”¯æŒ32Kè¡¨
-        parameter                           REG_ADDR_BUS_WIDTH      =      8                                    ,   // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨åœ°å€ä½å®½
-        parameter                           REG_DATA_BUS_WIDTH      =      16                                   ,   // æ¥æ”¶ MAC å±‚çš„é…ç½®å¯„å­˜å™¨æ•°æ®ä½å®½
-        parameter                           PORT_NUM_BIT            =      clog2(PORT_NUM)                      ,   // ç«¯å£å·ä½å®½
-        parameter                           MAC_TABLE_DEPTH         =      2**HASH_DATA_WIDTH                   ,   // MACè¡¨æ·±åº¦ï¼Œ32K
-        parameter                           AGE_TIME_WIDTH          =      10                                   ,   // è€åŒ–æ—¶é—´ä½å®½ï¼Œæ”¯æŒ1024ç§’
-        parameter                           VLAN_ID_WIDTH           =      12                                   ,   // VLAN IDä½å®½
-        parameter                           MAC_ADDR_WIDTH          =      48                                   ,   // MACåœ°å€ä½å®½
-        parameter                           CLK_FREQ_MHZ            =      250                                  ,   // è¾“å…¥æ—¶é’Ÿé¢‘ç‡ 
-        parameter                           TABLE_FULL_THRESHOLD    =      29491                                ,   // MACè¡¨æ»¡é˜ˆå€¼ï¼ˆ90% of 32K = 29491ï¼‰
+        parameter                           PORT_NUM                =      8                                    ,   // ½»»»»úµÄ¶Ë¿Ú??
+        parameter                           HASH_DATA_WIDTH         =      15                                   ,   // ¹şÏ£¼ÆËãµÄ???µÄÎ»¿í£¬Ö§??32K??
+        parameter                           REG_ADDR_BUS_WIDTH      =      8                                    ,   // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØ??Î»¿í
+        parameter                           REG_DATA_BUS_WIDTH      =      16                                   ,   // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êı¾İÎ»??
+        parameter                           PORT_NUM_BIT            =      clog2(PORT_NUM)                      ,   // ¶Ë¿ÚºÅÎ»??
+        parameter                           MAC_TABLE_DEPTH         =      2**HASH_DATA_WIDTH                   ,   // MAC±íÉî¶È£¬32K
+        parameter                           AGE_TIME_WIDTH          =      10                                   ,   // ÀÏ»¯Ê±¼äÎ»¿í£¬Ö§??1024??
+        parameter                           VLAN_ID_WIDTH           =      12                                   ,   // VLAN IDÎ»¿í
+        parameter                           MAC_ADDR_WIDTH          =      48                                   ,   // MACµØÖ·Î»¿í
+        parameter                           CLK_FREQ_MHZ            =      250                                  ,   // ÊäÈëÊ±ÖÓÆµÂÊ 
+        parameter                           TABLE_FULL_THRESHOLD    =      29491                                ,   // MAC±íÂúãĞ???£¨90% of 32K = 29491??
         parameter                           ENTRY_WIDTH             =      1 + AGE_TIME_WIDTH + VLAN_ID_WIDTH 
-                                                                         + PORT_NUM + MAC_ADDR_WIDTH            ,   // è¡¨é¡¹ä½å®½: [æœ‰æ•ˆä½[1] + è€åŒ–æ—¶é—´[AGE_TIME_WIDTH-1:0] + VLAN_ID[VLAN_ID_WIDTH-1:0] + ç«¯å£å·[PORT_NUM-1:0] + MACåœ°å€[MAC_ADDR_WIDTH-1:0]]
-        parameter                           AGE_SCAN_INTERVAL       =      5                                    ,   // è€åŒ–æ‰«æé—´éš”ï¼ˆç§’ï¼‰
-        parameter                           SIM_MODE                =      0                                        // ä»¿çœŸæ¨¡å¼ï¼š1=å¿«é€Ÿä»¿çœŸæ¨¡å¼ï¼Œ0=æ­£å¸¸æ¨¡å¼
+                                                                           + PORT_NUM + MAC_ADDR_WIDTH          ,   // ±íÏîÎ»¿í: [ÓĞĞ§Î»[1] + ÀÏ»¯Ê±¼ä[AGE_TIME_WIDTH-1:0] + VLAN_ID[VLAN_ID_WIDTH-1:0] + ¶Ë¿ÚºÅ[PORT_NUM-1:0] + MACµØÖ·[MAC_ADDR_WIDTH-1:0]]
+        parameter                           AGE_SCAN_INTERVAL       =      5                                    ,   // ÀÏ»¯É¨Ãè¼ä¸ô£¨Ãë??
+        parameter                           SIM_MODE                =      0                                        // ·ÂÕæÄ£Ê½??1=¿ì???·ÂÕæÄ£Ê½£¬0=Õı³£Ä£Ê½
 )(                      
         input               wire                                        i_clk                                   ,
-        input               wire                                        i_rst                                  , 
+        input               wire                                        i_rst                                   , 
+        /*----------------------------- ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú ------------------------------*/     
+        //input               wire                                        i_reg_bus_we                            , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+        //input               wire        [REG_ADDR_BUS_WIDTH-1:0]        i_reg_bus_addr                          , // ¼Ä´æÆ÷Ğ´µØÖ·
+        //input               wire        [REG_DATA_BUS_WIDTH-1:0]        i_reg_bus_data                          , // ¼Ä´æÆ÷Ğ´Êı¾İ
+        //input               wire                                        i_reg_bus_data_vld                      , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
         
-        /*----------------------------- å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£ ------------------------------*/     
-        input               wire                                        i_reg_bus_we                            , // å¯„å­˜å™¨å†™ä½¿èƒ½
-        input               wire        [REG_ADDR_BUS_WIDTH-1:0]        i_reg_bus_addr                          , // å¯„å­˜å™¨å†™åœ°å€
-        input               wire        [REG_DATA_BUS_WIDTH-1:0]        i_reg_bus_data                          , // å¯„å­˜å™¨å†™æ•°æ®
-        input               wire                                        i_reg_bus_data_vld                      , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
+        /*----------------------------- ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú ------------------------------*/
+        //input               wire                                        i_reg_bus_re                            , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+        //input               wire        [REG_ADDR_BUS_WIDTH-1:0]        i_reg_bus_raddr                         , // ¼Ä´æÆ÷¶ÁµØÖ·
+        //output              wire        [REG_DATA_BUS_WIDTH-1:0]        o_reg_bus_rdata                         , // ¼Ä´æÆ÷¶ÁÊı¾İ
+        //output              wire                                        o_reg_bus_rdata_vld                     , // ¼Ä´æÆ÷¶ÁÊı¾İÓĞĞ§
         
-        /*----------------------------- å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£ ------------------------------*/
-        input               wire                                        i_reg_bus_re                            , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-        input               wire        [REG_ADDR_BUS_WIDTH-1:0]        i_reg_bus_raddr                         , // å¯„å­˜å™¨è¯»åœ°å€
-        output              wire        [REG_DATA_BUS_WIDTH-1:0]        o_reg_bus_rdata                         , // å¯„å­˜å™¨è¯»æ•°æ®
-        output              wire                                        o_reg_bus_rdata_vld                     , // å¯„å­˜å™¨è¯»æ•°æ®æœ‰æ•ˆ
+        /*----------------------------- DMAC/SMAC ²é±í½Ó¿Ú ------------------------------*/
+        input               wire        [VLAN_ID_WIDTH-1:0]             i_vlan_id                               , // ÊäÈë±¨ÎÄµÄVLAN ID
+        input               wire        [MAC_ADDR_WIDTH-1:0]            i_dmac                                  , // Ä¿µÄMACµØÖ·ÊäÈë
+        input               wire        [HASH_DATA_WIDTH-1:0]           i_dmac_hash_addr                        , // Ä¿µÄMACµÄhashµØÖ·
+        input               wire                                        i_dmac_hash_vld                         , // DMAC hash¼ÆËã½á¹ûÓĞĞ§  
+        input               wire        [MAC_ADDR_WIDTH-1:0]            i_smac                                  , // Ô´MACµØÖ·ÊäÈë
+        input               wire        [HASH_DATA_WIDTH-1:0]           i_smac_hash_addr                        , // Ô´MACµÄhashµØÖ·
+        input               wire                                        i_smac_hash_vld                         , // SMAC hash¼ÆËã½á¹ûÓĞĞ§  
+        input               wire        [PORT_NUM-1:0]                  i_rx_port                               , // ½ÓÊÕ¶Ë¿Úbitmap,Ã¿¸öbit´ú±í??¸ö¶Ë??
         
-        /*----------------------------- DMAC/SMAC æŸ¥è¡¨æ¥å£ ------------------------------*/
-        input               wire        [VLAN_ID_WIDTH-1:0]             i_vlan_id                               , // è¾“å…¥æŠ¥æ–‡çš„VLAN ID
-        input               wire        [MAC_ADDR_WIDTH-1:0]            i_dmac                                  , // ç›®çš„MACåœ°å€è¾“å…¥
-        input               wire        [HASH_DATA_WIDTH-1:0]           i_dmac_hash_addr                        , // ç›®çš„MACçš„hashåœ°å€
-        input               wire                                        i_dmac_hash_vld                         , // DMAC hashè®¡ç®—ç»“æœæœ‰æ•ˆ  
-        input               wire        [MAC_ADDR_WIDTH-1:0]            i_smac                                  , // æºMACåœ°å€è¾“å…¥
-        input               wire        [HASH_DATA_WIDTH-1:0]           i_smac_hash_addr                        , // æºMACçš„hashåœ°å€
-        input               wire                                        i_smac_hash_vld                         , // SMAC hashè®¡ç®—ç»“æœæœ‰æ•ˆ  
-        input               wire        [PORT_NUM_BIT-1:0]              i_rx_port                               , // æ¥æ”¶ç«¯å£å·
-        
-        /*----------------------------- æŸ¥è¡¨è¾“å‡ºæ¥å£ ------------------------------*/                           
-        output              wire                                        o_dmac_lookup_vld                       , // DMACæŸ¥è¡¨ç»“æœæœ‰æ•ˆ
-        output              wire        [PORT_NUM-1:0]                  o_dmac_tx_port                          , // DMACæŸ¥è¡¨ç»“æœï¼šè½¬å‘ç«¯å£ 
-        output              wire                                        o_dmac_lookup_hit                       , // DMACæŸ¥è¡¨å‘½ä¸­æ ‡å¿—
-        output              wire                                        o_lookup_clash                          , // æŸ¥è¡¨å†²çªæ ‡å¿—ï¼šå“ˆå¸Œåœ°å€æœ‰è¡¨é¡¹ä½†MAC/VLANä¸åŒ¹é…
-        output              wire                                        o_table_full                              // MACè¡¨æ»¡æ ‡å¿—
+        /*----------------------------- ²é±íÊä³ö½Ó¿Ú ------------------------------*/                           
+        output              wire                                        o_dmac_lookup_vld                       , // DMAC²é±í½á¹ûÓĞĞ§
+        output              wire        [PORT_NUM-1:0]                  o_dmac_tx_port                          , // DMAC²é±í½á¹û£º×ª·¢¶Ë?? 
+        output              wire                                        o_dmac_lookup_hit                       , // DMAC²é±íÃüÖĞ±êÖ¾
+        output              wire                                        o_lookup_clash                          , // ²é±í³åÍ»±êÖ¾£º¹şÏ£µØ??ÓĞ±íÏîµ«MAC/VLAN²»Æ¥??
+        output              wire                                        o_table_full                            , // MAC±íÂú±êÖ¾
+
+        output              wire        [HASH_DATA_WIDTH-1:0]           o_mac_table_addr                        ,
+        output              wire        [3:0]                           o_fsm_cur_state                         ,
+
+        input               wire                                        i_table_clear_req                       ,
+        input               wire        [AGE_TIME_WIDTH-1:0]            i_age_time_threshold                    ,
+        input               wire                                        i_table_rd                              ,
+        input               wire        [11:0]                          i_table_raddr                           ,
+        input              wire         [14:0]                          i_table_full_threshold                  ,
+        input              wire         [31:0]                          i_age_scan_interval                     , // ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æÆ÷£¨Ãë£©
+
+        output              wire        [57:0]                          o_dmac_list_dout                        ,
+        output              wire        [15:0]                          o_dmac_list_cnt                         ,
+        output              wire                                        o_dmac_list_full_er_stat                ,
+        output              wire        [15:0]                          o_dmac_list_full_er_cnt                 ,
+
+        output              wire        [14:0]                          o_table_entry_cnt                       ,
+        output              wire        [15:0]                          o_learn_success_cnt                     ,
+        output              wire        [REG_DATA_BUS_WIDTH-1:0]        o_collision_cnt                         ,
+        output              wire        [REG_DATA_BUS_WIDTH-1:0]        o_port_move_cnt                        
 );
 
-/*---------------------------------------- clog2è®¡ç®—å‡½æ•° -------------------------------------------*/
+/*---------------------------------------- clog2¼ÆËãº¯Êı -------------------------------------------*/
 function integer clog2;
     input integer value;
     integer temp;
@@ -59,188 +78,196 @@ function integer clog2;
     end
 endfunction 
 
-/*---------------------------------------- å¯„å­˜å™¨åœ°å€å®šä¹‰ -------------------------------------------*/
-localparam  REG_AGE_TIME_THRESHOLD      = 8'h00                             ; // è€åŒ–æ—¶é—´é˜ˆå€¼é…ç½®å¯„å­˜å™¨
-localparam  REG_TABLE_CLEAR             = 8'h01                             ; // MACè¡¨æ¸…ç©ºå¯„å­˜å™¨
-localparam  REG_TABLE_FULL_THRESHOLD    = 8'h02                             ; // MACè¡¨æ»¡é˜ˆå€¼é…ç½®å¯„å­˜å™¨
-localparam  REG_AGE_SCAN_INTERVAL       = 8'h03                             ; // è€åŒ–æ‰«æé—´éš”é…ç½®å¯„å­˜å™¨
-localparam  REG_TABLE_ENTRY_cnt       = 8'h04                             ; // MACè¡¨é¡¹è®¡æ•°å™¨ï¼ˆåªè¯»ï¼‰
-localparam  REG_LEARN_STATISTICS        = 8'h05                             ; // MACå­¦ä¹ ç»Ÿè®¡å¯„å­˜å™¨ï¼ˆåªè¯»ï¼‰
-localparam  REG_COLLISION_STATISTICS    = 8'h06                             ; // å“ˆå¸Œå†²çªç»Ÿè®¡å¯„å­˜å™¨ï¼ˆåªè¯»ï¼‰
-localparam  REG_PORT_MOVE_STATISTICS    = 8'h07                             ; // ç«¯å£ç§»åŠ¨ç»Ÿè®¡å¯„å­˜å™¨ï¼ˆåªè¯»ï¼‰
+/*---------------------------------------- ¼Ä´æÆ÷µØ??¶¨Òå -------------------------------------------*/
+//localparam  REG_AGE_TIME_THRESHOLD      = 8'h00                             ; // ÀÏ»¯Ê±¼äãĞ???ÅäÖÃ¼Ä´æÆ÷
+//localparam  REG_TABLE_CLEAR             = 8'h01                             ; // MAC±íÇå¿Õ¼Ä´æÆ÷
+//localparam  REG_TABLE_FULL_THRESHOLD    = 8'h02                             ; // MAC±íÂúãĞ???ÅäÖÃ¼Ä´æÆ÷
+//localparam  REG_AGE_SCAN_INTERVAL       = 8'h03                             ; // ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æ??
+//localparam  REG_TABLE_ENTRY_cnt         = 8'h04                             ; // MAC±íÏî¼ÆÊıÆ÷£¨Ö»¶Á??
+//localparam  REG_LEARN_STATISTICS        = 8'h05                             ; // MACÑ§Ï°Í³¼Æ¼Ä´æÆ÷£¨Ö»¶Á??
+//localparam  REG_COLLISION_STATISTICS    = 8'h06                             ; // ¹şÏ£³åÍ»Í³¼Æ¼Ä´æÆ÷£¨Ö»¶Á??
+//localparam  REG_PORT_MOVE_STATISTICS    = 8'h07                             ; // ¶Ë¿ÚÒÆ¶¯Í³¼Æ¼Ä´æÆ÷£¨Ö»¶Á??
 
-/*---------------------------------------- çŠ¶æ€æœºå®šä¹‰ -------------------------------------------*/
-localparam  IDLE                        = 4'd0                              ; // ç©ºé—²çŠ¶æ€
-localparam  FIFO_READ_WAIT              = 4'd1                              ; // FIFOè¯»å–ç­‰å¾…çŠ¶æ€ï¼ˆSTDæ¨¡å¼éœ€è¦ï¼‰
-localparam  DMAC_LOOKUP                 = 4'd2                              ; // DMACæŸ¥è¡¨çŠ¶æ€
-localparam  DMAC_REFRESH                = 4'd3                              ; // DMACå‘½ä¸­è€åŒ–æ—¶é—´åˆ·æ–°çŠ¶æ€
-localparam  SMAC_LEARN_CHECK            = 4'd4                              ; // SMACå­¦ä¹ æ£€æŸ¥çŠ¶æ€
-localparam  SMAC_LEARN_UPDATE           = 4'd5                              ; // SMACå­¦ä¹ æ›´æ–°çŠ¶æ€
-localparam  AGE_SCAN                    = 4'd6                              ; // è€åŒ–æ‰«æçŠ¶æ€
-localparam  AGE_UPDATE                  = 4'd7                              ; // è€åŒ–æ›´æ–°çŠ¶æ€
+/*---------------------------------------- ×´???»ú¶¨Òå -------------------------------------------*/
+localparam  IDLE                        = 4'd0                              ; // ¿ÕÏĞ×´???
+localparam  FIFO_READ_WAIT              = 4'd1                              ; // FIFO¶ÁÈ¡µÈ´ı×´???£¨STDÄ£Ê½??Òª£©
+localparam  DMAC_LOOKUP                 = 4'd2                              ; // DMAC²é±í×´???
+localparam  DMAC_REFRESH                = 4'd3                              ; // DMACÃüÖĞÀÏ»¯Ê±¼äË¢ĞÂ×´???
+localparam  SMAC_LEARN_CHECK            = 4'd4                              ; // SMACÑ§Ï°??²é×´??
+localparam  SMAC_LEARN_UPDATE           = 4'd5                              ; // SMACÑ§Ï°¸üĞÂ×´???
+localparam  AGE_SCAN                    = 4'd6                              ; // ÀÏ»¯É¨Ãè×´???
+localparam  AGE_UPDATE                  = 4'd7                              ; // ÀÏ»¯¸üĞÂ×´???
 
-/*---------------------------------------- å†…éƒ¨ä¿¡å·å®šä¹‰ -------------------------------------------*/
-// è¾“å…¥æ•°æ®FIFOç›¸å…³å‚æ•°å’Œä¿¡å·
-localparam  INPUT_FIFO_DEPTH            = 8                                 ; // è¾“å…¥FIFOæ·±åº¦ï¼Œæ”¯æŒ8ä¸ªæŠ¥æ–‡ç¼“å­˜
+/*---------------------------------------- ÄÚ²¿ĞÅºÅ¶¨Òå -------------------------------------------*/
+// ÊäÈëÊı¾İFIFOÏà¹Ø²ÎÊıºÍĞÅ??
+localparam  INPUT_FIFO_DEPTH            = 8                                 ; // ÊäÈëFIFOÉî¶È£¬Ö§??8¸ö±¨ÎÄ»º??
 localparam  INPUT_DATA_WIDTH            = VLAN_ID_WIDTH + MAC_ADDR_WIDTH*2 + 
-                                          HASH_DATA_WIDTH*2 + 2 + PORT_NUM_BIT ; // è¾“å…¥æ•°æ®ä½å®½ï¼šVLAN+DMAC+SMAC+DMAC_HASH+SMAC_HASH+2ä¸ªVLD+PORT
+                                          HASH_DATA_WIDTH*2 + 2 + PORT_NUM_BIT ; // ÊäÈëÊı¾İÎ»¿í£ºVLAN+DMAC+SMAC+DMAC_HASH+SMAC_HASH+2¸öVLD+PORT
 
-// 5ä¸ªåˆ†ç¦»FIFOçš„ä½å®½å®šä¹‰
-localparam  FIFO1_WIDTH                 = VLAN_ID_WIDTH + PORT_NUM_BIT      ; // FIFO1: VLAN_ID + RX_PORT
+// 5¸ö·ÖÀëFIFOµÄÎ»¿í¶¨??
+localparam  FIFO1_WIDTH                 = VLAN_ID_WIDTH + PORT_NUM         ; // FIFO1: VLAN_ID + RX_PORT(bitmap)
 localparam  FIFO2_WIDTH                 = MAC_ADDR_WIDTH                    ; // FIFO2: DMAC
 localparam  FIFO3_WIDTH                 = MAC_ADDR_WIDTH                    ; // FIFO3: SMAC  
 localparam  FIFO4_WIDTH                 = HASH_DATA_WIDTH + 1               ; // FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
 localparam  FIFO5_WIDTH                 = HASH_DATA_WIDTH + 1               ; // FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
 
-// 5ä¸ªåˆ†ç¦»FIFOçš„æ¥å£ä¿¡å·
+// 5¸ö·ÖÀëFIFOµÄ½Ó¿ÚĞÅ??
 // FIFO1: VLAN_ID + RX_PORT
-wire                                    w_fifo1_wr_en                       ; // FIFO1å†™ä½¿èƒ½
-wire        [FIFO1_WIDTH-1:0]           w_fifo1_din                         ; // FIFO1è¾“å…¥æ•°æ®
-wire                                    w_fifo1_full                        ; // FIFO1æ»¡æ ‡å¿—
-wire                                    w_fifo1_rd_en                       ; // FIFO1è¯»ä½¿èƒ½
-wire        [FIFO1_WIDTH-1:0]           w_fifo1_dout                        ; // FIFO1è¾“å‡ºæ•°æ®
-wire                                    w_fifo1_empty                       ; // FIFO1ç©ºæ ‡å¿—
+wire                                    w_fifo1_wr_en                       ; // FIFO1Ğ´Ê¹??
+wire        [FIFO1_WIDTH-1:0]           w_fifo1_din                         ; // FIFO1ÊäÈëÊı¾İ
+wire                                    w_fifo1_full                        ; // FIFO1Âú±ê??
+wire                                    w_fifo1_rd_en                       ; // FIFO1¶ÁÊ¹??
+wire        [FIFO1_WIDTH-1:0]           w_fifo1_dout                        ; // FIFO1Êä³öÊı¾İ
+wire                                    w_fifo1_empty                       ; // FIFO1¿Õ±ê??
 
 // FIFO2: DMAC
-wire                                    w_fifo2_wr_en                       ; // FIFO2å†™ä½¿èƒ½
-wire        [FIFO2_WIDTH-1:0]           w_fifo2_din                         ; // FIFO2è¾“å…¥æ•°æ®
-wire                                    w_fifo2_full                        ; // FIFO2æ»¡æ ‡å¿—
-wire                                    w_fifo2_rd_en                       ; // FIFO2è¯»ä½¿èƒ½
-wire        [FIFO2_WIDTH-1:0]           w_fifo2_dout                        ; // FIFO2è¾“å‡ºæ•°æ®
-wire                                    w_fifo2_empty                       ; // FIFO2ç©ºæ ‡å¿—
+wire                                    w_fifo2_wr_en                       ; // FIFO2Ğ´Ê¹??
+wire        [FIFO2_WIDTH-1:0]           w_fifo2_din                         ; // FIFO2ÊäÈëÊı¾İ
+wire                                    w_fifo2_full                        ; // FIFO2Âú±ê??
+wire                                    w_fifo2_rd_en                       ; // FIFO2¶ÁÊ¹??
+wire        [FIFO2_WIDTH-1:0]           w_fifo2_dout                        ; // FIFO2Êä³öÊı¾İ
+wire                                    w_fifo2_empty                       ; // FIFO2¿Õ±ê??
 
 // FIFO3: SMAC  
-wire                                    w_fifo3_wr_en                       ; // FIFO3å†™ä½¿èƒ½
-wire        [FIFO3_WIDTH-1:0]           w_fifo3_din                         ; // FIFO3è¾“å…¥æ•°æ®
-wire                                    w_fifo3_full                        ; // FIFO3æ»¡æ ‡å¿—
-wire                                    w_fifo3_rd_en                       ; // FIFO3è¯»ä½¿èƒ½
-wire        [FIFO3_WIDTH-1:0]           w_fifo3_dout                        ; // FIFO3è¾“å‡ºæ•°æ®
-wire                                    w_fifo3_empty                       ; // FIFO3ç©ºæ ‡å¿—
+wire                                    w_fifo3_wr_en                       ; // FIFO3Ğ´Ê¹??
+wire        [FIFO3_WIDTH-1:0]           w_fifo3_din                         ; // FIFO3ÊäÈëÊı¾İ
+wire                                    w_fifo3_full                        ; // FIFO3Âú±ê??
+wire                                    w_fifo3_rd_en                       ; // FIFO3¶ÁÊ¹??
+wire        [FIFO3_WIDTH-1:0]           w_fifo3_dout                        ; // FIFO3Êä³öÊı¾İ
+wire                                    w_fifo3_empty                       ; // FIFO3¿Õ±ê??
 
 // FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
-wire                                    w_fifo4_wr_en                       ; // FIFO4å†™ä½¿èƒ½
-wire        [FIFO4_WIDTH-1:0]           w_fifo4_din                         ; // FIFO4è¾“å…¥æ•°æ®
-wire                                    w_fifo4_full                        ; // FIFO4æ»¡æ ‡å¿—
-wire                                    w_fifo4_rd_en                       ; // FIFO4è¯»ä½¿èƒ½
-wire        [FIFO4_WIDTH-1:0]           w_fifo4_dout                        ; // FIFO4è¾“å‡ºæ•°æ®
-wire                                    w_fifo4_empty                       ; // FIFO4ç©ºæ ‡å¿—
+wire                                    w_fifo4_wr_en                       ; // FIFO4Ğ´Ê¹??
+wire        [FIFO4_WIDTH-1:0]           w_fifo4_din                         ; // FIFO4ÊäÈëÊı¾İ
+wire                                    w_fifo4_full                        ; // FIFO4Âú±ê??
+wire                                    w_fifo4_rd_en                       ; // FIFO4¶ÁÊ¹??
+wire        [FIFO4_WIDTH-1:0]           w_fifo4_dout                        ; // FIFO4Êä³öÊı¾İ
+wire                                    w_fifo4_empty                       ; // FIFO4¿Õ±ê??
 
 // FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
-wire                                    w_fifo5_wr_en                       ; // FIFO5å†™ä½¿èƒ½
-wire        [FIFO5_WIDTH-1:0]           w_fifo5_din                         ; // FIFO5è¾“å…¥æ•°æ®
-wire                                    w_fifo5_full                        ; // FIFO5æ»¡æ ‡å¿—
-wire                                    w_fifo5_rd_en                       ; // FIFO5è¯»ä½¿èƒ½
-wire        [FIFO5_WIDTH-1:0]           w_fifo5_dout                        ; // FIFO5è¾“å‡ºæ•°æ®
-wire                                    w_fifo5_empty                       ; // FIFO5ç©ºæ ‡å¿—
+wire                                    w_fifo5_wr_en                       ; // FIFO5Ğ´Ê¹??
+wire        [FIFO5_WIDTH-1:0]           w_fifo5_din                         ; // FIFO5ÊäÈëÊı¾İ
+wire                                    w_fifo5_full                        ; // FIFO5Âú±ê??
+wire                                    w_fifo5_rd_en                       ; // FIFO5¶ÁÊ¹??
+wire        [FIFO5_WIDTH-1:0]           w_fifo5_dout                        ; // FIFO5Êä³öÊı¾İ
+wire                                    w_fifo5_empty                       ; // FIFO5¿Õ±ê??
 
-// ç»¼åˆFIFOçŠ¶æ€ä¿¡å·
-wire                                    w_all_fifo_full                     ; // æ‰€æœ‰FIFOæ»¡æ ‡å¿—
-wire                                    w_all_fifo_empty                    ; // æ‰€æœ‰FIFOç©ºæ ‡å¿—
+// ×ÛºÏFIFO×´???ĞÅ??
+wire                                    w_all_fifo_full                     ; // ??ÓĞFIFOÂú±ê??
+wire                                    w_all_fifo_empty                    ; // ??ÓĞFIFO¿Õ±ê??
 
-// ä»FIFOè¾“å‡ºæ•°æ®ä¸­è§£æå„ä¸ªå­—æ®µ
+// ´ÓFIFOÊä³öÊı¾İÖĞ½âÎö¸÷¸ö×Ö??
 wire        [VLAN_ID_WIDTH-1:0]         w_fifo_vlan_id                      ;
 wire        [MAC_ADDR_WIDTH-1:0]        w_fifo_dmac                         ;
 wire        [MAC_ADDR_WIDTH-1:0]        w_fifo_smac                         ;
 wire        [HASH_DATA_WIDTH-1:0]       w_fifo_dmac_hash_addr               ;       
 wire        [HASH_DATA_WIDTH-1:0]       w_fifo_smac_hash_addr               ;
-wire        [PORT_NUM_BIT-1:0]          w_fifo_rx_port                      ;
+wire        [PORT_NUM-1:0]              w_fifo_rx_port                      ; // ½ÓÊÕ¶Ë¿Úbitmap
 
-// å¯„å­˜å™¨ç›¸å…³ä¿¡å·  
-reg                                     r_reg_bus_we                        ;
-reg         [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_addr                      ;
-reg         [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_data                      ;
-reg                                     r_reg_bus_data_vld                  ;
+// ¼Ä´æÆ÷Ïà¹ØĞÅ??  
+//reg                                     r_reg_bus_we                        ;
+//reg         [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_addr                      ;
+//reg         [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_data                      ;
+//reg                                     r_reg_bus_data_vld                  ;
 
-// å¯„å­˜å™¨è¯»æ§åˆ¶ä¿¡å·
-reg                                     r_reg_bus_re                        ;
-reg         [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_raddr                     ;
-reg         [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_rdata                     ;
-reg                                     r_reg_bus_rdata_vld                 ;
+// ¼Ä´æÆ÷¶Á¿ØÖÆĞÅºÅ
+//reg                                     r_reg_bus_re                        ;
+//reg         [REG_ADDR_BUS_WIDTH-1:0]    r_reg_bus_raddr                     ;
+//reg         [REG_DATA_BUS_WIDTH-1:0]    r_reg_bus_rdata                     ;
+//reg                                     r_reg_bus_rdata_vld                 ;
 
-// è¾“å‡ºå¯„å­˜å™¨
+// Êä³ö¼Ä´æ??
 reg                                     r_dmac_lookup_vld                   ;
 reg         [PORT_NUM-1:0]              r_dmac_tx_port                      ;             
 reg                                     r_dmac_lookup_hit                   ;
-reg                                     r_lookup_clash                      ; // æŸ¥è¡¨å†²çªæ ‡å¿—å¯„å­˜å™¨
+reg                                     r_lookup_clash                      ; // ²é±í³åÍ»±êÖ¾¼Ä´æ??
 
-// çŠ¶æ€æœºç›¸å…³
+// ×´???»úÏà¹Ø
 reg         [3:0]                       r_fsm_cur_state                     ;
 reg         [3:0]                       r_fsm_nxt_state                     ;
-reg         [15:0]                      r_state_cnt                         ; // çŠ¶æ€è®¡æ•°å™¨ï¼Œè®¡æ•°æ¯ä¸ªçŠ¶æ€ä¿æŒæ—¶é—´
+reg         [15:0]                      r_state_cnt                         ; // ×´???¼ÆÊıÆ÷£¬¼ÆÊıÃ¿¸ö×´Ì¬±£³ÖÊ±??
 
-// MACè¡¨å­˜å‚¨å™¨æ¥å£
+// MAC±í´æ´¢Æ÷½Ó¿Ú
 reg         [HASH_DATA_WIDTH-1:0]       r_mac_table_addr                    ;
 reg         [ENTRY_WIDTH-1:0]           r_mac_table_wdata                   ;
 wire        [ENTRY_WIDTH-1:0]           w_mac_table_rdata                   ;
 reg                                     r_mac_table_we                      ;
 reg                                     r_mac_table_re                      ;
 
+// ¼Ä´æÆ÷¶ÁÈ¡MAC±íµÄ¶ÀÁ¢Í¨µÀ
+reg         [HASH_DATA_WIDTH-1:0]       r_reg_table_raddr                   ; // ¼Ä´æÆ÷¶Á±íµØ??
+reg                                     r_reg_table_rd                      ; // ¼Ä´æÆ÷¶Á±íÊ¹??
 
-// é…ç½®å¯„å­˜å™¨
-reg         [AGE_TIME_WIDTH-1:0]        r_age_time_threshold                ; // è€åŒ–æ—¶é—´é˜ˆå€¼ï¼ˆé»˜è®¤300ç§’ï¼‰
-reg                                     r_table_clear_req                   ; // è¡¨æ¸…ç©ºè¯·æ±‚
-reg         [14:0]                      r_table_full_threshold              ; // MACè¡¨æ»¡é˜ˆå€¼é…ç½®å¯„å­˜å™¨
-reg         [31:0]                      r_age_scan_interval                 ; // è€åŒ–æ‰«æé—´éš”é…ç½®å¯„å­˜å™¨ï¼ˆç§’ï¼‰
 
-// ç»Ÿè®¡å¯„å­˜å™¨
-reg         [31:0]                      r_learn_success_cnt               ; // å­¦ä¹ æˆåŠŸè®¡æ•°å™¨
-reg         [31:0]                      r_learn_fail_cnt                  ; // å­¦ä¹ å¤±è´¥è®¡æ•°å™¨
-reg         [31:0]                      r_collision_cnt                   ; // å“ˆå¸Œå†²çªè®¡æ•°å™¨
-reg         [31:0]                      r_port_move_cnt                   ; // ç«¯å£ç§»åŠ¨è®¡æ•°å™¨
+// ÅäÖÃ¼Ä´æ??
+//reg         [AGE_TIME_WIDTH-1:0]        r_age_time_threshold                ; // ÀÏ»¯Ê±¼äãĞ???£¨Ä¬ÈÏ300Ãë£©
+//reg                                     r_table_clear_req                   ; // ±íÇå¿ÕÇë??
+//reg         [14:0]                      r_table_full_threshold              ; // MAC±íÂúãĞ???ÅäÖÃ¼Ä´æÆ÷
+//reg         [31:0]                      r_age_scan_interval                 ; // ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æÆ÷£¨Ãë£©
+reg                                       r_dmac_list_full_er_stat            ; // DMACÁĞ±íÂú¹ı±êÖ¾
+reg           [15:0]                      r_dmac_list_full_er_cnt             ; // DMACÁĞ±íÂú¹ı¼ÆÊı??
 
-// è¡¨é¡¹è®¡æ•°ç›¸å…³
-reg         [14:0]                      r_table_entry_cnt                   ; // MACè¡¨æœ‰æ•ˆè¡¨é¡¹è®¡æ•°å™¨ï¼ˆæœ€å¤§32768ï¼‰
-reg                                     r_entry_add                         ; // è¡¨é¡¹æ·»åŠ æ ‡å¿—
-reg                                     r_entry_del                         ; // è¡¨é¡¹åˆ é™¤æ ‡å¿—
-wire                                    w_table_full                        ; // è¡¨æ»¡çŠ¶æ€ä¿¡å·
-wire                                    w_age_scan_trigger                  ; // è€åŒ–æ‰«æè§¦å‘ä¿¡å·
+// Í³¼Æ¼Ä´æ??
+reg         [31:0]                      r_learn_success_cnt               ; // Ñ§Ï°³É¹¦¼ÆÊı??
+reg         [31:0]                      r_learn_fail_cnt                  ; // Ñ§Ï°Ê§°Ü¼ÆÊı??
+reg         [31:0]                      r_collision_cnt                   ; // ¹şÏ£³åÍ»¼ÆÊı??
+reg         [31:0]                      r_port_move_cnt                   ; // ¶Ë¿ÚÒÆ¶¯¼ÆÊı??
 
-// è€åŒ–ç›¸å…³ä¿¡å·
-reg                                     r_age_scan_en                       ; // è€åŒ–æ‰«æä½¿èƒ½
-reg                                     r_age_timer_pulse                   ; // è€åŒ–å®šæ—¶å™¨è„‰å†²ï¼ˆ1ç§’è„‰å†²ï¼‰
-reg         [AGE_TIME_WIDTH-1:0]        r_global_timestamp                  ; // å…¨å±€æ—¶é—´æˆ³è®¡æ•°å™¨ï¼ˆç§’ï¼‰
-reg         [7:0]                       r_clear_burst_cnt                   ; // æ¸…è¡¨çªå‘è®¡æ•°å™¨ï¼Œé™åˆ¶è¿ç»­æ¸…è¡¨æ“ä½œæ•°
-reg                                     r_agescan_cnt                       ; // è€åŒ–åœ°å€ä¿æŒè®¡æ•°å™¨
-reg         [HASH_DATA_WIDTH-1:0]       r_age_scan_breakpoint               ; // è€åŒ–æ‰«ææ–­ç‚¹åœ°å€
+// ±íÏî¼ÆÊıÏà¹Ø
+reg         [14:0]                      r_table_entry_cnt                   ; // MAC±íÓĞĞ§±íÏî¼ÆÊıÆ÷£¨×î??32768??
+reg                                     r_entry_add                         ; // ±íÏîÌí¼Ó±êÖ¾
+reg                                     r_entry_del                         ; // ±íÏîÉ¾³ı±êÖ¾
+wire                                    w_table_full                        ; // ±íÂú×´???ĞÅ??
+wire                                    w_age_scan_trigger                  ; // ÀÏ»¯É¨Ãè´¥·¢ĞÅºÅ
+reg                                     r_table_full                        ; // ±íÂú×´???ĞÅ??
+// ÀÏ»¯Ïà¹ØĞÅºÅ
+reg                                     r_age_scan_en                       ; // ÀÏ»¯É¨ÃèÊ¹ÄÜ
+reg                                     r_age_timer_pulse                   ; // ÀÏ»¯¶¨Ê±Æ÷Âö³å£¨1ÃëÂö³å£©
+reg         [AGE_TIME_WIDTH-1:0]        r_global_timestamp                  ; // È«¾ÖÊ±¼ä´Á¼ÆÊıÆ÷£¨Ãë??
+reg         [7:0]                       r_clear_burst_cnt                   ; // Çå±íÍ»·¢¼ÆÊıÆ÷£¬ÏŞÖÆÁ¬ĞøÇå±í²Ù×÷??
+reg                                     r_agescan_cnt                       ; // ÀÏ»¯µØÖ·±£³Ö¼ÆÊı??
+reg         [HASH_DATA_WIDTH-1:0]       r_age_scan_breakpoint               ; // ÀÏ»¯É¨Ãè¶ÏµãµØÖ·
 
-// åˆ†çº§æ—¶é—´è®¡æ•°å™¨ç›¸å…³ä¿¡å·
-reg         [15:0]                      r_us_cnt                            ; // å¾®ç§’è®¡æ•°å™¨ï¼ˆ1-65535usï¼Œæ”¯æŒä¸åŒæ—¶é’Ÿé¢‘ç‡ï¼‰
-reg         [9:0]                       r_ms_cnt                            ; // æ¯«ç§’è®¡æ•°å™¨
-reg         [31:0]                      r_s_cnt                             ; // æ¯«ç§’æ€»è®¡æ•°å™¨ï¼ˆç”¨äºå†…éƒ¨1ç§’è„‰å†²ç”Ÿæˆï¼‰
-reg         [31:0]                      r_age_scan_timer                    ; // è€åŒ–æ‰«æé—´éš”è®¡æ•°å™¨ï¼ˆç§’ï¼‰
+// ·Ö¼¶Ê±¼ä¼ÆÊıÆ÷Ïà¹ØĞÅ??
+reg         [15:0]                      r_us_cnt                            ; // Î¢Ãë¼ÆÊıÆ÷£¨1-65535us£¬Ö§³Ö²»Í¬Ê±ÖÓÆµÂÊ£©
+reg         [9:0]                       r_ms_cnt                            ; // ºÁÃë¼ÆÊı??
+reg         [31:0]                      r_s_cnt                             ; // ºÁÃë×Ü¼ÆÊıÆ÷£¨ÓÃÓÚÄÚ??1ÃëÂö³åÉú³É£©
+reg         [31:0]                      r_age_scan_timer                    ; // ÀÏ»¯É¨Ãè¼ä¸ô¼ÆÊıÆ÷£¨Ãë£©
 reg                                     r_us_pulse                          ;  
 reg                                     r_ms_pulse                          ;  
 
-// æ—¶é—´è®¡ç®— - æ”¯æŒä»¿çœŸæ¨¡å¼å’Œæ­£å¸¸æ¨¡å¼
-localparam  US_CNT_MAX                  = SIM_MODE ? 16'd5 : CLK_FREQ_MHZ   ; // ä»¿çœŸæ¨¡å¼ï¼š10ä¸ªæ—¶é’Ÿå‘¨æœŸ=1usï¼Œæ­£å¸¸æ¨¡å¼ï¼šCLK_FREQ_MHZä¸ªæ—¶é’Ÿå‘¨æœŸ=1us
-localparam  MS_CNT_MAX                  = SIM_MODE ? 10'd5 : 10'd1000       ; // ä»¿çœŸæ¨¡å¼ï¼š10us=1msï¼Œæ­£å¸¸æ¨¡å¼ï¼š1000us=1ms  
-localparam  S_CNT_MAX                   = SIM_MODE ? 10'd5 : 10'd1000       ; // ä»¿çœŸæ¨¡å¼ï¼š10ms=1sï¼Œæ­£å¸¸æ¨¡å¼ï¼š1000ms=1s  
-localparam  CLEAR_BURST_LIMIT           = 8'd16                             ; // æ¸…è¡¨çªå‘é™åˆ¶ï¼šè¿ç»­æ¸…é™¤16ä¸ªåœ°å€åè®©ä½ç»™æ•°æ®åŒ…å¤„ç†  
+reg                                     r_can_use_direct_path               ;
 
-// è¡¨é¡¹è§£æä¿¡å·
-wire                                    w_entry_valid                       ; // è¡¨é¡¹æœ‰æ•ˆæ ‡å¿—
-wire        [AGE_TIME_WIDTH-1:0]        w_entry_age_time                    ; // è¡¨é¡¹è€åŒ–æ—¶é—´
-wire        [VLAN_ID_WIDTH-1:0]         w_entry_vlan_id                     ; // è¡¨é¡¹VLAN ID
-wire        [PORT_NUM-1:0]              w_entry_port                        ; // è¡¨é¡¹ç«¯å£å·ï¼ˆone-hotç¼–ç ï¼‰
-wire        [MAC_ADDR_WIDTH-1:0]        w_entry_mac                         ; // è¡¨é¡¹MACåœ°å€
+// Ê±¼ä¼ÆËã - Ö§³Ö·ÂÕæÄ£Ê½ºÍÕı³£Ä£??
+localparam  US_CNT_MAX                  = SIM_MODE ? 16'd5 : CLK_FREQ_MHZ   ; // ·ÂÕæÄ£Ê½??10¸öÊ±ÖÓÖÜ??=1us£¬Õı³£Ä£Ê½£ºCLK_FREQ_MHZ¸öÊ±ÖÓÖÜ??=1us
+localparam  MS_CNT_MAX                  = SIM_MODE ? 10'd5 : 10'd1000       ; // ·ÂÕæÄ£Ê½??10us=1ms£¬Õı³£Ä£Ê½£º1000us=1ms  
+localparam  S_CNT_MAX                   = SIM_MODE ? 10'd5 : 10'd1000       ; // ·ÂÕæÄ£Ê½??10ms=1s£¬Õı³£Ä£Ê½£º1000ms=1s  
+localparam  CLEAR_BURST_LIMIT           = 8'd16                             ; // Çå±íÍ»·¢ÏŞÖÆ£ºÁ¬ĞøÇå??16¸öµØ??ºóÈÃÎ»¸øÊı¾İ°ü´¦??  
 
-// æŸ¥è¡¨åŒ¹é…ä¿¡å·
-wire                                    w_dmac_match                        ; // DMACåŒ¹é…
-wire                                    w_smac_match                        ; // SMACåŒ¹é…
-wire                                    w_smac_port_match                   ; // SMACç«¯å£åŒ¹é…
-wire                                    w_entry_expired                     ; // è¡¨é¡¹è¿‡æœŸæ ‡å¿—
+// ±íÏî½âÎöĞÅºÅ
+wire                                    w_entry_valid                       ; // ±íÏîÓĞĞ§±êÖ¾
+wire        [AGE_TIME_WIDTH-1:0]        w_entry_age_time                    ; // ±íÏîÀÏ»¯Ê±¼ä
+wire        [VLAN_ID_WIDTH-1:0]         w_entry_vlan_id                     ; // ±íÏîVLAN ID
+wire        [PORT_NUM-1:0]              w_entry_port                        ; // ±íÏî¶Ë¿ÚºÅ£¨one-hot±àÂë??
+wire        [MAC_ADDR_WIDTH-1:0]        w_entry_mac                         ; // ±íÏîMACµØÖ·
 
-/*---------------------------------------- è¾“å…¥æ•°æ®FIFOç®¡ç† -------------------------------------------*/
-// ä¸Šå‡æ²¿æ£€æµ‹å¯„å­˜å™¨
-reg                                     r_dmac_hash_vld_d1                  ; // DMACå“ˆå¸Œæœ‰æ•ˆä¿¡å·å»¶è¿Ÿä¸€æ‹
-reg                                     r_smac_hash_vld_d1                  ; // SMACå“ˆå¸Œæœ‰æ•ˆä¿¡å·å»¶è¿Ÿä¸€æ‹
+// ²é±íÆ¥ÅäĞÅºÅ
+wire                                    w_dmac_match                        ; // DMACÆ¥Åä
+wire                                    w_smac_match                        ; // SMACÆ¥Åä
+wire                                    w_smac_port_match                   ; // SMAC¶Ë¿ÚÆ¥Åä
+wire                                    w_entry_expired                     ; // ±íÏî¹ıÆÚ±êÖ¾
+
+/*---------------------------------------- ÊäÈëÊı¾İFIFO¹ÜÀí -------------------------------------------*/
+// ÉÏÉıÑØ¼ì²â¼Ä´æÆ÷
+reg                                     r_dmac_hash_vld_d1                  ; // DMAC¹şÏ£ÓĞĞ§ĞÅºÅÑÓ³Ù????
+reg                                     r_smac_hash_vld_d1                  ; // SMAC¹şÏ£ÓĞĞ§ĞÅºÅÑÓ³Ù????
 reg                                     r_entry_expired_flag                ;
-// ä¸Šå‡æ²¿æ£€æµ‹é€»è¾‘
-wire                                    w_dmac_hash_vld_posedge             ; // DMACå“ˆå¸Œæœ‰æ•ˆä¸Šå‡æ²¿
-wire                                    w_smac_hash_vld_posedge             ; // SMACå“ˆå¸Œæœ‰æ•ˆä¸Šå‡æ²¿
-wire                                    w_both_hash_valid                   ; // ä¸¤ä¸ªhashéƒ½æœ‰æ•ˆ
-wire                                    w_new_packet_arrival                ; // æ–°æŠ¥æ–‡åˆ°è¾¾ä¿¡å·
-wire                                    w_can_use_direct_path               ; // å¯ä»¥ä½¿ç”¨ç›´è¿è·¯å¾„ä¿¡å·
+// ÉÏÉıÑØ¼ì²â???¼­
+wire                                    w_dmac_hash_vld_posedge             ; // DMAC¹şÏ£ÓĞĞ§ÉÏÉı??
+wire                                    w_smac_hash_vld_posedge             ; // SMAC¹şÏ£ÓĞĞ§ÉÏÉı??
+wire                                    w_both_hash_valid                   ; // Á½¸öhash¶¼ÓĞ??
+wire                                    w_new_packet_arrival                ; // ĞÂ±¨ÎÄµ½´ïĞÅ??
+wire                                    w_can_use_direct_path               ; // ¿ÉÒÔÊ¹ÓÃÖ±Á¬Â·¾¶ĞÅºÅ
 wire                                    w_fifo_dmac_hash_vld                ;
 wire                                    w_fifo_smac_hash_vld                ;
 
@@ -249,41 +276,80 @@ assign w_smac_hash_vld_posedge = i_smac_hash_vld == 1'd1 && r_smac_hash_vld_d1 =
 assign w_both_hash_valid = w_dmac_hash_vld_posedge == 1'd1 && w_smac_hash_vld_posedge == 1'd1 ? 1'd1 : 1'd0;
 assign w_new_packet_arrival = w_both_hash_valid;
 
-// ç»¼åˆFIFOçŠ¶æ€ä¿¡å·
-assign w_all_fifo_full = (w_fifo1_full == 1'd1) || (w_fifo2_full == 1'd1) || (w_fifo3_full == 1'd1) || (w_fifo4_full == 1'd1) || (w_fifo5_full == 1'd1);
+// ×ÛºÏFIFO×´???ĞÅ??
+assign w_all_fifo_full =  (w_fifo1_full == 1'd1) || (w_fifo2_full == 1'd1) || (w_fifo3_full == 1'd1) || (w_fifo4_full == 1'd1) || (w_fifo5_full == 1'd1);
 assign w_all_fifo_empty = (w_fifo1_empty == 1'd1) && (w_fifo2_empty == 1'd1) && (w_fifo3_empty == 1'd1) && (w_fifo4_empty == 1'd1) && (w_fifo5_empty == 1'd1);
 
-// ç›´è¿è·¯å¾„åˆ¤æ–­ï¼šFIFOä¸ºç©ºä¸”æ¨¡å—ç©ºé—²æ—¶å¯ä»¥ç›´æ¥å¤„ç†
-assign w_can_use_direct_path = w_new_packet_arrival == 1'd1 && w_all_fifo_empty == 1'd1 && (r_fsm_cur_state == IDLE) && r_table_clear_req == 1'd0 && r_age_scan_en == 1'd0 
-                               ? 1'd1 : 1'd0;
+// Ö±Á¬Â·¾¶ÅĞ¶Ï£ºFIFOÎª¿ÕÇÒÄ£¿é¿ÕÏĞÊ±¿ÉÒÔÖ±½Ó´¦Àí
+assign w_can_use_direct_path = w_new_packet_arrival == 1'd1 && w_all_fifo_empty == 1'd1 && i_table_clear_req == 1'd0 ? 1'd1 : 1'd0;
+
+assign o_mac_table_addr                        = r_mac_table_addr;
+assign o_fsm_cur_state                         = r_fsm_cur_state;
+assign o_table_entry_cnt                       = r_table_entry_cnt;
+assign o_learn_success_cnt                     = r_learn_success_cnt;
+assign o_collision_cnt                         = r_collision_cnt;
+assign o_port_move_cnt                         = r_port_move_cnt;  
+assign o_dmac_list_full_er_cnt                 = r_dmac_list_full_er_cnt;
+assign o_dmac_list_full_er_stat                = r_dmac_list_full_er_stat;
+assign o_dmac_list_cnt                         = r_table_entry_cnt;
+
+
+
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_dmac_hash_vld_d1 <= 1'b0;
         r_smac_hash_vld_d1 <= 1'b0;
+        r_can_use_direct_path <= 1'd0;
     end else begin
         r_dmac_hash_vld_d1 <= i_dmac_hash_vld;
         r_smac_hash_vld_d1 <= i_smac_hash_vld;
+        r_can_use_direct_path <= w_can_use_direct_path;
     end
 end
 
-// 5ä¸ªåˆ†ç¦»FIFOçš„æ•°æ®æ‰“åŒ…ï¼šå°†è¾“å…¥ä¿¡å·åˆ†åˆ«å†™å…¥å¯¹åº”çš„FIFO
-assign w_fifo1_din = {i_vlan_id, i_rx_port};                         // VLAN_ID + RX_PORT
+/*======================================== ¼Ä´æÆ÷¶ÁÈ¡MAC±í¿ØÖÆ???¼­ ========================================*/
+// ¼Ä´æÆ÷¶Á±íµØ??Ëø´æ
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reg_table_raddr <= {HASH_DATA_WIDTH{1'b0}};
+    end else if (i_table_rd == 1'b1) begin
+        r_reg_table_raddr <= i_table_raddr[HASH_DATA_WIDTH-1:0];
+    end
+end
+
+// ¼Ä´æÆ÷¶Á±íÊ¹ÄÜ£¨ÑÓ³Ù1ÅÄÓÃÓÚRAM¶ÁÈ¡??
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_reg_table_rd <= 1'b0;
+    end else begin
+        r_reg_table_rd <= i_table_rd;
+    end
+end
+
+// Êä³ö¼Ä´æÆ÷¶ÁÈ¡µÄMAC±íÊı¾İ£¨Ö»Êä³öÓĞĞ§µÄ58bit£ºVLAN_ID[11:0] + PORT[7:0] + MAC[47:0]??
+// ¸ñÊ½£º{VLAN_ID[11:2], PORT[7:0], MAC[47:0]}
+assign o_dmac_list_dout                        = { w_mac_table_rdata[VLAN_ID_WIDTH+PORT_NUM+MAC_ADDR_WIDTH-1:PORT_NUM+MAC_ADDR_WIDTH-2], 
+                                                   w_mac_table_rdata[PORT_NUM+MAC_ADDR_WIDTH-1:MAC_ADDR_WIDTH], 
+                                                   w_mac_table_rdata[MAC_ADDR_WIDTH-1:0]}; 
+
+// 5¸ö·ÖÀëFIFOµÄÊı¾İ´ò°ü£º½«ÊäÈëĞÅºÅ·Ö±ğĞ´Èë¶ÔÓ¦µÄFIFO
+assign w_fifo1_din = {i_vlan_id, i_rx_port};                         // VLAN_ID + RX_PORT(bitmap)
 assign w_fifo2_din = i_dmac;                                         // DMAC
 assign w_fifo3_din = i_smac;                                         // SMAC
-assign w_fifo4_din = {i_dmac_hash_addr, i_dmac_hash_vld};           // DMAC_HASH_ADDR + DMAC_HASH_VLD
-assign w_fifo5_din = {i_smac_hash_addr, i_smac_hash_vld};           // SMAC_HASH_ADDR + SMAC_HASH_VLD
+assign w_fifo4_din = {i_dmac_hash_addr, i_dmac_hash_vld};            // DMAC_HASH_ADDR + DMAC_HASH_VLD
+assign w_fifo5_din = {i_smac_hash_addr, i_smac_hash_vld};            // SMAC_HASH_ADDR + SMAC_HASH_VLD
 
-// 5ä¸ªFIFOçš„å†™ä½¿èƒ½ï¼šåŒæ—¶å†™å…¥ï¼Œåªæœ‰å½“æ‰€æœ‰FIFOéƒ½ä¸æ»¡æ—¶æ‰å†™å…¥
+// 5¸öFIFOµÄĞ´Ê¹ÄÜ£ºÍ¬Ê±Ğ´Èë£¬Ö»ÓĞµ±ËùÓĞFIFO¶¼²»ÂúÊ±²ÅĞ´??
 assign w_fifo1_wr_en = (w_dmac_hash_vld_posedge == 1'd1) && (w_smac_hash_vld_posedge == 1'd1) && (w_all_fifo_full == 1'd0) && (w_can_use_direct_path == 1'd0);
 assign w_fifo2_wr_en = w_fifo1_wr_en;
 assign w_fifo3_wr_en = w_fifo1_wr_en;
 assign w_fifo4_wr_en = w_fifo1_wr_en;
 assign w_fifo5_wr_en = w_fifo1_wr_en;
 
-// ä»5ä¸ªFIFOè¾“å‡ºæ•°æ®ä¸­è§£æå„ä¸ªå­—æ®µ
-assign w_fifo_vlan_id = w_fifo1_dout[FIFO1_WIDTH-1:PORT_NUM_BIT];
-assign w_fifo_rx_port = w_fifo1_dout[PORT_NUM_BIT-1:0];
+// ??5¸öFIFOÊä³öÊı¾İÖĞ½âÎö¸÷¸ö×Ö??
+assign w_fifo_vlan_id = w_fifo1_dout[FIFO1_WIDTH-1:PORT_NUM];
+assign w_fifo_rx_port = w_fifo1_dout[PORT_NUM-1:0];
 assign w_fifo_dmac = w_fifo2_dout;
 assign w_fifo_smac = w_fifo3_dout;
 assign w_fifo_dmac_hash_addr = w_fifo4_dout[FIFO4_WIDTH-1:1];
@@ -293,26 +359,25 @@ assign w_fifo_smac_hash_addr = w_fifo5_dout[FIFO5_WIDTH-1:1];
 
 assign w_fifo_smac_hash_vld = w_fifo5_dout[0];
 
-// 5ä¸ªFIFOçš„è¯»ä½¿èƒ½ï¼šåŒæ—¶è¯»å–ï¼Œåªæœ‰å½“æ‰€æœ‰FIFOéƒ½ä¸ç©ºæ—¶æ‰è¯»å–
-assign w_fifo1_rd_en = (r_fsm_cur_state == IDLE) && (w_all_fifo_empty == 1'd0) && (r_table_clear_req == 1'd0) && (r_age_scan_en == 1'd0) ? 1'd1 : 1'd0;
+// 5¸öFIFOµÄ¶ÁÊ¹ÄÜ£ºÍ¬Ê±¶ÁÈ¡£¬Ö»ÓĞµ±ËùÓĞFIFO¶¼²»¿ÕÊ±²Å¶Á??
+assign w_fifo1_rd_en = (r_fsm_cur_state == IDLE) && (w_all_fifo_empty == 1'd0) && (i_table_clear_req == 1'd0)  ? 1'd1 : 1'd0;
 assign w_fifo2_rd_en = w_fifo1_rd_en;
 assign w_fifo3_rd_en = w_fifo1_rd_en;
 assign w_fifo4_rd_en = w_fifo1_rd_en;
 assign w_fifo5_rd_en = w_fifo1_rd_en;
 
-
-// é”å­˜FIFOè¾“å‡ºçš„å½“å‰å¤„ç†æ•°æ®
+// Ëø´æFIFOÊä³öµÄµ±Ç°´¦ÀíÊı??
 reg         [VLAN_ID_WIDTH-1:0]         r_cur_vlan_id                       ;
 reg         [MAC_ADDR_WIDTH-1:0]        r_cur_dmac                          ;
 reg         [HASH_DATA_WIDTH-1:0]       r_cur_dmac_hash_addr                ;       
 reg         [MAC_ADDR_WIDTH-1:0]        r_cur_smac                          ;
 reg         [HASH_DATA_WIDTH-1:0]       r_cur_smac_hash_addr                ;
-reg         [PORT_NUM_BIT-1:0]          r_cur_rx_port                       ;
+reg         [PORT_NUM-1:0]              r_cur_rx_port                       ; // ½ÓÊÕ¶Ë¿Úbitmap
 
-// STDæ¨¡å¼FIFOè¯»ä½¿èƒ½å»¶è¿Ÿå¯„å­˜å™¨ï¼Œç”¨äºæ­£ç¡®çš„æ•°æ®é”å­˜æ—¶åº
-reg                                     r_fifo_rd_en_d1                     ; // è¯»ä½¿èƒ½å»¶è¿Ÿä¸€æ‹
+// STDÄ£Ê½FIFO¶ÁÊ¹ÄÜÑÓ³Ù¼Ä´æÆ÷
+reg                                     r_fifo_rd_en_d1                     ; // ¶ÁÊ¹ÄÜÑÓ³ÙÒ»??
 
-// STDæ¨¡å¼è¯»ä½¿èƒ½å»¶è¿Ÿé€»è¾‘
+// STDÄ£Ê½¶ÁÊ¹ÄÜÑÓ³Ù???¼­
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_fifo_rd_en_d1 <= 1'b0;
@@ -321,8 +386,8 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// åœ¨è¯»å–FIFOæˆ–ç›´è¿è¾“å…¥æ—¶é”å­˜å½“å‰å¤„ç†æ•°æ®
-// STDæ¨¡å¼ï¼šåœ¨rd_ençš„ä¸‹ä¸€ä¸ªå‘¨æœŸæ•°æ®æ‰æœ‰æ•ˆï¼Œæ‰€ä»¥ä½¿ç”¨å»¶è¿Ÿçš„rd_enä¿¡å·
+// ÔÚ¶ÁÈ¡FIFO»òÖ±Á¬ÊäÈëÊ±Ëø´æµ±Ç°´¦ÀíÊı¾İ
+// STDÄ£Ê½£ºÔÚrd_enµÄÏÂ??¸öÖÜÆÚÊı¾İ²ÅÓĞĞ§£¬ËùÒÔÊ¹ÓÃÑÓ³ÙµÄrd_enĞÅºÅ 
 always @(posedge i_clk) begin
     if (i_rst) begin
         r_cur_vlan_id       <= {VLAN_ID_WIDTH{1'b0}};
@@ -330,8 +395,8 @@ always @(posedge i_clk) begin
         r_cur_dmac_hash_addr<= {HASH_DATA_WIDTH{1'b0}};
         r_cur_smac          <= {MAC_ADDR_WIDTH{1'b0}};
         r_cur_smac_hash_addr<= {HASH_DATA_WIDTH{1'b0}};
-        r_cur_rx_port       <= {PORT_NUM_BIT{1'b0}};
-    end else if (r_fifo_rd_en_d1 == 1'd1) begin  // ä½¿ç”¨å»¶è¿Ÿçš„è¯»ä½¿èƒ½ä¿¡å·
+        r_cur_rx_port       <= {PORT_NUM{1'b0}};
+    end else if (r_fifo_rd_en_d1 == 1'd1) begin  // Ê¹ÓÃÑÓ³ÙµÄ¶ÁÊ¹ÄÜĞÅºÅ
         r_cur_vlan_id       <= w_fifo_vlan_id;
         r_cur_dmac          <= w_fifo_dmac;
         r_cur_dmac_hash_addr<= w_fifo_dmac_hash_addr;
@@ -348,7 +413,7 @@ always @(posedge i_clk) begin
     end
 end
 
-/*---------------------------------------- 5ä¸ªåˆ†ç¦»sync_fifoå®ä¾‹åŒ– -------------------------------------------*/
+/*---------------------------------------- 5¸ö·ÖÀësync_fifoÊµÀı?? -------------------------------------------*/
 // FIFO1: VLAN_ID + RX_PORT
 sync_fifo #(
     .DEPTH                 ( INPUT_FIFO_DEPTH       ),
@@ -357,17 +422,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD( 1                      ),
     .FLOP_DATA_OUT         ( 0                      )  
 ) u_fifo1_vlan_port (
-    .CLK                   ( i_clk                  ),
-    .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_fifo1_wr_en          ),
-    .DIN                   ( w_fifo1_din            ),
-    .FULL                  ( w_fifo1_full           ),
-    .RD_EN                 ( w_fifo1_rd_en          ),
-    .DOUT                  ( w_fifo1_dout           ),
-    .EMPTY                 ( w_fifo1_empty          ),
-    .ALMOST_FULL           (                        ),
-    .ALMOST_EMPTY          (                        ),
-    .DATA_CNT              (                        )
+    .i_clk                 ( i_clk                  ),
+    .i_rst                 ( i_rst                  ),
+    .i_wr_en               ( w_fifo1_wr_en          ),
+    .i_din                 ( w_fifo1_din            ),
+    .o_full                ( w_fifo1_full           ),
+    .i_rd_en               ( w_fifo1_rd_en          ),
+    .o_dout                ( w_fifo1_dout           ),
+    .o_empty               ( w_fifo1_empty          ),
+    .o_almost_full         (                        ),
+    .o_almost_empty        (                        ),
+    .o_data_cnt            (                        )
 );
 
 // FIFO2: DMAC
@@ -378,17 +443,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD( 1                      ),
     .FLOP_DATA_OUT         ( 0                      )  
 ) u_fifo2_dmac (
-    .CLK                   ( i_clk                  ),
-    .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_fifo2_wr_en          ),
-    .DIN                   ( w_fifo2_din            ),
-    .FULL                  ( w_fifo2_full           ),
-    .RD_EN                 ( w_fifo2_rd_en          ),
-    .DOUT                  ( w_fifo2_dout           ),
-    .EMPTY                 ( w_fifo2_empty          ),
-    .ALMOST_FULL           (                        ),
-    .ALMOST_EMPTY          (                        ),
-    .DATA_CNT              (                        )
+    .i_clk                 ( i_clk                  ),
+    .i_rst                 ( i_rst                  ),
+    .i_wr_en               ( w_fifo2_wr_en          ),
+    .i_din                 ( w_fifo2_din            ),
+    .o_full                ( w_fifo2_full           ),
+    .i_rd_en               ( w_fifo2_rd_en          ),
+    .o_dout                ( w_fifo2_dout           ),
+    .o_empty               ( w_fifo2_empty          ),
+    .o_almost_full         (                        ),
+    .o_almost_empty        (                        ),
+    .o_data_cnt            (                        )
 );
 
 // FIFO3: SMAC  
@@ -399,17 +464,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD( 1                      ),
     .FLOP_DATA_OUT         ( 0                      )  
 ) u_fifo3_smac (
-    .CLK                   ( i_clk                  ),
-    .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_fifo3_wr_en          ),
-    .DIN                   ( w_fifo3_din            ),
-    .FULL                  ( w_fifo3_full           ),
-    .RD_EN                 ( w_fifo3_rd_en          ),
-    .DOUT                  ( w_fifo3_dout           ),
-    .EMPTY                 ( w_fifo3_empty          ),
-    .ALMOST_FULL           (                        ),
-    .ALMOST_EMPTY          (                        ),
-    .DATA_CNT              (                        )
+    .i_clk                 ( i_clk                  ),
+    .i_rst                 ( i_rst                  ),
+    .i_wr_en               ( w_fifo3_wr_en          ),
+    .i_din                 ( w_fifo3_din            ),
+    .o_full                ( w_fifo3_full           ),
+    .i_rd_en               ( w_fifo3_rd_en          ),
+    .o_dout                ( w_fifo3_dout           ),
+    .o_empty               ( w_fifo3_empty          ),
+    .o_almost_full         (                        ),
+    .o_almost_empty        (                        ),
+    .o_data_cnt            (                        )
 );
 
 // FIFO4: DMAC_HASH_ADDR + DMAC_HASH_VLD
@@ -420,17 +485,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD( 1                      ),
     .FLOP_DATA_OUT         ( 0                      )  
 ) u_fifo4_dmac_hash (
-    .CLK                   ( i_clk                  ),
-    .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_fifo4_wr_en          ),
-    .DIN                   ( w_fifo4_din            ),
-    .FULL                  ( w_fifo4_full           ),
-    .RD_EN                 ( w_fifo4_rd_en          ),
-    .DOUT                  ( w_fifo4_dout           ),
-    .EMPTY                 ( w_fifo4_empty          ),
-    .ALMOST_FULL           (                        ),
-    .ALMOST_EMPTY          (                        ),
-    .DATA_CNT              (                        )
+    .i_clk                 ( i_clk                  ),
+    .i_rst                 ( i_rst                  ),
+    .i_wr_en               ( w_fifo4_wr_en          ),
+    .i_din                 ( w_fifo4_din            ),
+    .o_full                ( w_fifo4_full           ),
+    .i_rd_en               ( w_fifo4_rd_en          ),
+    .o_dout                ( w_fifo4_dout           ),
+    .o_empty               ( w_fifo4_empty          ),
+    .o_almost_full         (                        ),
+    .o_almost_empty        (                        ),
+    .o_data_cnt            (                        )
 );
 
 // FIFO5: SMAC_HASH_ADDR + SMAC_HASH_VLD
@@ -441,70 +506,104 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD( 1                      ),
     .FLOP_DATA_OUT         ( 0                      )  
 ) u_fifo5_smac_hash (
-    .CLK                   ( i_clk                  ),
-    .RST                   ( i_rst                  ),
-    .WR_EN                 ( w_fifo5_wr_en          ),
-    .DIN                   ( w_fifo5_din            ),
-    .FULL                  ( w_fifo5_full           ),
-    .RD_EN                 ( w_fifo5_rd_en          ),
-    .DOUT                  ( w_fifo5_dout           ),
-    .EMPTY                 ( w_fifo5_empty          ),
-    .ALMOST_FULL           (                        ),
-    .ALMOST_EMPTY          (                        ),
-    .DATA_CNT              (                        )
+    .i_clk                 ( i_clk                  ),
+    .i_rst                 ( i_rst                  ),
+    .i_wr_en               ( w_fifo5_wr_en          ),
+    .i_din                 ( w_fifo5_din            ),
+    .o_full                ( w_fifo5_full           ),
+    .i_rd_en               ( w_fifo5_rd_en          ),
+    .o_dout                ( w_fifo5_dout           ),
+    .o_empty               ( w_fifo5_empty          ),
+    .o_almost_full         (                        ),
+    .o_almost_empty        (                        ),
+    .o_data_cnt            (                        )
 );
 
-/*---------------------------------------- è¡¨é¡¹å­—æ®µè§£æ -------------------------------------------*/
-// è¡¨é¡¹æ ¼å¼: [æœ‰æ•ˆä½[1] + è€åŒ–æ—¶é—´[AGE_TIME_WIDTH-1:0] + VLAN_ID[VLAN_ID_WIDTH-1:0] + ç«¯å£å·[PORT_NUM-1:0] + MACåœ°å€[MAC_ADDR_WIDTH-1:0]]
+/*---------------------------------------- ±íÏî×Ö¶Î½âÎö -------------------------------------------*/
+// ±íÏî¸ñÊ½: [ÓĞĞ§Î»[1] + ÀÏ»¯Ê±¼ä[AGE_TIME_WIDTH-1:0] + VLAN_ID[VLAN_ID_WIDTH-1:0] + ¶Ë¿ÚºÅ[PORT_NUM-1:0] + MACµØÖ·[MAC_ADDR_WIDTH-1:0]]
 assign w_entry_valid    = w_mac_table_rdata[ENTRY_WIDTH-1]                                                                    ;
 assign w_entry_age_time = w_mac_table_rdata[ENTRY_WIDTH-2:ENTRY_WIDTH-1-AGE_TIME_WIDTH]                                       ;  
 assign w_entry_vlan_id  = w_mac_table_rdata[ENTRY_WIDTH-1-AGE_TIME_WIDTH-1:ENTRY_WIDTH-1-AGE_TIME_WIDTH-VLAN_ID_WIDTH]        ;
 assign w_entry_port     = w_mac_table_rdata[PORT_NUM+MAC_ADDR_WIDTH-1:MAC_ADDR_WIDTH]                                         ;
 assign w_entry_mac      = w_mac_table_rdata[MAC_ADDR_WIDTH-1:0]                                                               ;
 
-/*---------------------------------------- åŒ¹é…é€»è¾‘ ----------------------------------------------*/
+/*---------------------------------------- bitmapÓĞĞ§ĞÔ¼ì?? ----------------------------------------------*/
+// ??²ér_cur_rx_portÊÇ·ñÎªÓĞĞ§µÄone-hot±àÂë(Ö»ÓĞ??¸öbit??1)»òÈ«0
+wire                                    w_rx_port_valid                     ; // ½ÓÊÕ¶Ë¿ÚbitmapÓĞĞ§±êÖ¾
+wire  [AGE_TIME_WIDTH-1:0]              w_age_time_diff                     ;
+assign w_rx_port_valid = (r_cur_rx_port != {PORT_NUM{1'b0}}) && ((r_cur_rx_port & (r_cur_rx_port - {{(PORT_NUM-1){1'b0}}, 1'b1})) == {PORT_NUM{1'b0}}) ? 1'd1 : 1'd0;
+
+/*---------------------------------------- Æ¥ÅäÂß¼­ ----------------------------------------------*/
 assign w_dmac_match     = (w_entry_valid == 1'd1 && (w_entry_mac == r_cur_dmac) && (w_entry_vlan_id == r_cur_vlan_id)) ? 1'd1 : 1'd0      ;
 assign w_smac_match     = (w_entry_valid == 1'd1 && (w_entry_mac == r_cur_smac) && (w_entry_vlan_id == r_cur_vlan_id)) ? 1'd1 : 1'd0      ;
-assign w_smac_port_match= (w_smac_match  == 1'd1 && (r_cur_rx_port < PORT_NUM) && (w_entry_port == ({{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port))) ? 1'd1 : 1'd0 ;
+assign w_smac_port_match= (w_smac_match  == 1'd1 && w_rx_port_valid == 1'd1 && (w_entry_port == r_cur_rx_port)) ? 1'd1 : 1'd0 ;
 
-// è€åŒ–æ£€æµ‹é€»è¾‘ï¼š  å½“å‰æ—¶é—´æˆ³å‡å»è¡¨é¡¹æ—¶é—´æˆ³çš„å·®å€¼å¤§äºç­‰äºè€åŒ–é˜ˆå€¼æ—¶è®¤ä¸ºè¿‡æœŸ
+// ÀÏ»¯??²â???¼­??  µ±Ç°Ê±¼ä´Á¼õÈ¥±íÏîÊ±¼ä´ÁµÄ²îÖµ´óÓÚµÈÓÚ???»¯ãĞ???Ê±ÈÏÎª¹ıÆÚ
 assign w_entry_expired  = w_entry_valid == 1'd1 && (r_entry_expired_flag == 1'd1) ? 1'd1 : 1'd0 ;
-
+assign w_age_time_diff = r_global_timestamp - w_entry_age_time;
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_entry_expired_flag <= 1'b0;
     end else begin
-        r_entry_expired_flag <= (r_global_timestamp - w_entry_age_time) >= r_age_time_threshold ? 1'd1 : 1'd0;
+        r_entry_expired_flag <= (w_age_time_diff >= i_age_time_threshold) && w_entry_valid == 1'd1 ? 1'd1 : 1'd0;
     end
 end
-/*---------------------------------------- è¡¨æ»¡æ£€æµ‹é€»è¾‘ -------------------------------------------*/
-assign w_table_full     = (r_table_entry_cnt >= r_table_full_threshold) ? 1'd1 : 1'd0                   ;
+/*---------------------------------------- ±íÂú??²â???¼­ -------------------------------------------*/
+assign w_table_full     = (r_table_entry_cnt >= i_table_full_threshold) ? 1'd1 : 1'd0                   ;
 
-/*---------------------------------------- è€åŒ–æ‰«æè§¦å‘é€»è¾‘ -------------------------------------------*/
-// 32bitåˆ†æˆ4æ®µæ¯”è¾ƒï¼Œæ¯æ®µ8bit
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_table_full <= 1'b0;
+    end else begin
+        r_table_full <= w_table_full;
+    end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_dmac_list_full_er_stat <= 1'b0;
+    end else if (i_table_clear_req) begin
+        r_dmac_list_full_er_stat <= 1'b0;
+    end else begin
+        r_dmac_list_full_er_stat <= w_table_full == 1'b1 && r_table_full == 1'b0 ? 1'b1 : 1'b0;
+    end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_dmac_list_full_er_cnt <= 16'd0;
+    end else if (i_table_clear_req) begin
+        r_dmac_list_full_er_cnt <= 16'd0;
+    end else begin
+        r_dmac_list_full_er_cnt <= w_table_full == 1'b1 && r_table_full == 1'b0 ? r_dmac_list_full_er_cnt + 1'd1 : r_dmac_list_full_er_cnt;
+    end
+end
+
+/*---------------------------------------- ÀÏ»¯É¨Ãè´¥·¢Âß¼­ -------------------------------------------*/
+// 32bit·Ö³É4¶Î±È½Ï£¬Ã¿¶Î8bit
 wire w_age_scan_flag0 ;
 wire w_age_scan_flag1 ;
 wire w_age_scan_flag2 ;
 wire w_age_scan_flag3 ;
 
-assign w_age_scan_flag0 = (r_age_scan_timer[7:0]   >= r_age_scan_interval[7:0]);
-assign w_age_scan_flag1 = (r_age_scan_timer[15:8]  >= r_age_scan_interval[15:8]);
-assign w_age_scan_flag2 = (r_age_scan_timer[23:16] >= r_age_scan_interval[23:16]);
-assign w_age_scan_flag3 = (r_age_scan_timer[31:24] >= r_age_scan_interval[31:24]);
+assign w_age_scan_flag0 = (r_age_scan_timer[7:0]   >= i_age_scan_interval[7:0]);
+assign w_age_scan_flag1 = (r_age_scan_timer[15:8]  >= i_age_scan_interval[15:8]);
+assign w_age_scan_flag2 = (r_age_scan_timer[23:16] >= i_age_scan_interval[23:16]);
+assign w_age_scan_flag3 = (r_age_scan_timer[31:24] >= i_age_scan_interval[31:24]);
 
 assign w_age_scan_trigger = (w_age_scan_flag0 == 1'd1 && w_age_scan_flag1 == 1'd1 && w_age_scan_flag2 == 1'd1 && w_age_scan_flag3 == 1'd1) && (r_table_entry_cnt > 15'd0) ? 1'd1 : 1'd0;
 
-/*---------------------------------------- è¾“å‡ºèµ‹å€¼ -------------------------------------------*/
+/*---------------------------------------- Êä³ö¸³??? -------------------------------------------*/
 assign o_dmac_lookup_vld    = r_dmac_lookup_vld                                                           ;
 assign o_dmac_tx_port       = r_dmac_tx_port                                                              ;
 assign o_dmac_lookup_hit    = r_dmac_lookup_hit                                                           ;
 assign o_lookup_clash       = r_lookup_clash                                                              ;
 assign o_table_full         = w_table_full                                                                ;
-assign o_reg_bus_rdata      = r_reg_bus_rdata                                                             ;
-assign o_reg_bus_rdata_vld  = r_reg_bus_rdata_vld                                                         ;
+//assign o_reg_bus_rdata      = r_reg_bus_rdata                                                             ;
+//assign o_reg_bus_rdata_vld  = r_reg_bus_rdata_vld                                                         ;
 
 
-/*======================================== çŠ¶æ€æœº  ========================================*/
+/*======================================== ×´???»ú  ========================================*/
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_fsm_cur_state <= IDLE;
@@ -527,41 +626,41 @@ always @(*) begin
     r_fsm_nxt_state = r_fsm_cur_state;   
     case (r_fsm_cur_state)
         IDLE: 
-            r_fsm_nxt_state = (r_table_clear_req == 1'd1) ? AGE_SCAN :       // æ¸…è¡¨ä¼˜å…ˆçº§æœ€é«˜
-                              // æ£€æŸ¥FIFOæ˜¯å¦æœ‰æ•°æ®å¯å¤„ç†æˆ–æœ‰ç›´è¿æ•°æ®å¯ç”¨
-                              (w_can_use_direct_path == 1'd1) ? DMAC_LOOKUP :  // ç›´è¿è·¯å¾„è·³è¿‡ç­‰å¾…çŠ¶æ€
-                              (w_all_fifo_empty == 1'd0) ? FIFO_READ_WAIT :    // STDæ¨¡å¼éœ€è¦ç­‰å¾…æ•°æ®å‡†å¤‡
-                              (r_age_scan_en == 1'd1) ? AGE_SCAN :             // è€åŒ–æ‰«æ
+            r_fsm_nxt_state = (i_table_clear_req == 1'd1) ? AGE_SCAN :       // Çå±íÓÅÏÈ¼¶×î??
+                              // ??²éFIFOÊÇ·ñÓĞÊı¾İ¿É´¦Àí»òÓĞÖ±Á¬Êı¾İ¿ÉÓÃ
+                              (r_can_use_direct_path == 1'd1) ? DMAC_LOOKUP :  // Ö±Á¬Â·¾¶Ìø¹ıµÈ´ı×´???
+                              (w_all_fifo_empty == 1'd0) ? FIFO_READ_WAIT :    // STDÄ£Ê½??ÒªµÈ´ıÊı¾İ×¼??
+                              (r_age_scan_en == 1'd1) ? AGE_SCAN :             // ÀÏ»¯É¨Ãè
                               IDLE;
-        FIFO_READ_WAIT:   // STDæ¨¡å¼FIFOè¯»å–ç­‰å¾…çŠ¶æ€
-            r_fsm_nxt_state = DMAC_LOOKUP;                                    // ç­‰å¾…ä¸€ä¸ªå‘¨æœŸåæ•°æ®å‡†å¤‡å¥½ï¼Œè¿›å…¥æŸ¥è¡¨
+        FIFO_READ_WAIT:   // STDÄ£Ê½FIFO¶ÁÈ¡µÈ´ı×´???
+            r_fsm_nxt_state = DMAC_LOOKUP;                                    // µÈ´ı??¸öÖÜÆÚºóÊı¾İ×¼±¸ºÃ£¬½øÈë²é±í
         DMAC_LOOKUP:   
-            r_fsm_nxt_state = (r_state_cnt == 16'd1) ? 
-                              (w_dmac_match == 1'd1) ? DMAC_REFRESH : SMAC_LEARN_CHECK : // åŒ¹é…åˆ™åˆ·æ–°è€åŒ–æ—¶é—´ ï¼Œç„¶åå­¦ä¹ SMAC
-                              DMAC_LOOKUP;                                            
+            r_fsm_nxt_state = (r_state_cnt == 16'd1 &&  w_dmac_match == 1'd1) ? DMAC_REFRESH :  
+                              (r_state_cnt == 16'd1 &&  w_dmac_match == 1'd0) ? SMAC_LEARN_CHECK : DMAC_LOOKUP;// Æ¥ÅäÔòË¢ĞÂ???»¯Ê±¼ä £¬È»ºóÑ§Ï°SMAC                                          
         DMAC_REFRESH: 
-            r_fsm_nxt_state = SMAC_LEARN_CHECK;                     // åˆ·æ–°å®Œæˆï¼Œè¿›å…¥SMACå­¦ä¹         
+            r_fsm_nxt_state = SMAC_LEARN_CHECK;                     // Ë¢ĞÂÍê³É£¬½øÈëSMACÑ§Ï°        
         SMAC_LEARN_CHECK: 
-            r_fsm_nxt_state = ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd0))) ? SMAC_LEARN_UPDATE :  // SMAC+VLANåŒ¹é…æˆ–ç©ºè¡¨é¡¹å¯å­¦ä¹ 
-                              IDLE;                                  // å“ˆå¸Œå†²çªï¼ˆMAC+VLANä¸åŒ¹é…ï¼‰æˆ–è¡¨å·²æ»¡ï¼Œè¿”å›ç©ºé—²        
+            r_fsm_nxt_state = ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd0))) ? SMAC_LEARN_UPDATE :  // SMAC+VLANÆ¥Åä»ò¿Õ±íÏî¿ÉÑ§??
+                              IDLE;                                  // ¹şÏ£³åÍ»£¨MAC+VLAN²»Æ¥Åä£©»ò±íÒÑÂú£¬·µ»Ø¿Õ??        
         SMAC_LEARN_UPDATE: 
-            r_fsm_nxt_state = (r_state_cnt == 16'd1) ? IDLE : SMAC_LEARN_UPDATE;   // ç­‰å¾…1ä¸ªæ—¶é’Ÿå‘¨æœŸè®©RAMæ•°æ®ç¨³å®šåè¿”å›IDLE        
+            r_fsm_nxt_state = (r_state_cnt == 16'd1) ? IDLE : SMAC_LEARN_UPDATE;   // µÈ´ı1¸öÊ±ÖÓÖÜÆÚÈÃRAMÊı¾İÎÈ¶¨ºó·µ»ØIDLE        
         AGE_SCAN: 
-            r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :    // æ‰«æå®Œæˆï¼ˆåŒ…æ‹¬æ¸…è¡¨å®Œæˆï¼‰
-                              ((w_all_fifo_empty == 1'd0) && ((r_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // æœ‰æŠ¥æ–‡ç­‰å¾…ä¸”(éæ¸…è¡¨æ¨¡å¼ æˆ– å·²è¾¾åˆ°çªå‘é™åˆ¶)æ—¶æ‰ä¼˜å…ˆå¤„ç†æŠ¥æ–‡
-                              ((w_entry_valid == 1'd1) && (w_entry_expired == 1'd1) && (r_table_clear_req == 1'd0) && (r_state_cnt >= 16'd1)) ? AGE_UPDATE :    // éœ€è¦è€åŒ–æ›´æ–°ï¼ˆéæ¸…è¡¨æ¨¡å¼ï¼‰ï¼Œç¡®ä¿æ•°æ®ç¨³å®š
-                              AGE_SCAN;                                              // ç»§ç»­æ‰«æä¸‹ä¸€ä¸ªåœ°å€        
+            r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :    // É¨ÃèÍê³É£¨°üÀ¨Çå±íÍê³É£©
+                              ((w_new_packet_arrival == 1'd1) && ((i_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // ÓĞ±¨ÎÄµÈ´ıÇÒ(·ÇÇå±íÄ£?? ?? ÒÑ´ïµ½Í»·¢ÏŞ??)Ê±²ÅÓÅÏÈ´¦Àí±¨ÎÄ
+                              ((w_entry_valid == 1'd1) && (w_entry_expired == 1'd1) && (i_table_clear_req == 1'd0) && (r_state_cnt >= 16'd1)) ? AGE_UPDATE :    // ??Òª???»¯¸üĞÂ£¨·ÇÇå±íÄ£Ê½£©£¬È·±£Êı¾İÎÈ¶¨
+                              AGE_SCAN;                                              // ¼ÌĞøÉ¨ÃèÏÂÒ»¸öµØ??        
         AGE_UPDATE: 
-            r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :  // æ‰«æå®Œæˆ
-                              ((w_all_fifo_empty == 1'd0) && ((r_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // æœ‰æŠ¥æ–‡ç­‰å¾…ä¸”(éæ¸…è¡¨æ¨¡å¼ æˆ– å·²è¾¾åˆ°çªå‘é™åˆ¶)æ—¶æ‰ä¼˜å…ˆå¤„ç†æŠ¥æ–‡
-                              AGE_SCAN;                                                // è€åŒ–æ›´æ–°å®Œæˆï¼Œç»§ç»­æ‰«æ        
+            r_fsm_nxt_state = (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) ? IDLE :  // É¨ÃèÍê³É
+                              ((w_all_fifo_empty == 1'd0) && ((i_table_clear_req == 1'd0) || (r_clear_burst_cnt >= CLEAR_BURST_LIMIT))) ? IDLE : // ÓĞ±¨ÎÄµÈ´ıÇÒ(·ÇÇå±íÄ£?? ?? ÒÑ´ïµ½Í»·¢ÏŞ??)Ê±²ÅÓÅÏÈ´¦Àí±¨ÎÄ
+                              AGE_SCAN;                                                // ÀÏ»¯¸üĞÂÍê³É£¬¼ÌĞøÉ¨??        
         default: 
             r_fsm_nxt_state = IDLE;
     endcase
 end
 
-/*========================================  è¾“å…¥æ•°æ®ç®¡ç† ========================================*/
-// FIFOè¾“å…¥ç¼“å­˜ç®¡ç†ï¼šæ”¯æŒè¿ç»­è¾“å…¥è€Œä¸ä¼šè¦†ç›–æ­£åœ¨å¤„ç†çš„æ•°æ®
+/*========================================  ÊäÈëÊı¾İ¹ÜÀí ========================================*/
+/*
+// FIFOÊäÈë»º´æ¹ÜÀí£ºÖ§³ÖÁ¬ĞøÊäÈë???²»»á¸²¸ÇÕıÔÚ´¦ÀíµÄÊı¾İ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_reg_bus_we          <= 1'b0;
@@ -579,20 +678,21 @@ always @(posedge i_clk or posedge i_rst) begin
         r_reg_bus_raddr    <= i_reg_bus_raddr;
     end
 end
-
-/*======================================== é…ç½®å¯„å­˜å™¨ç®¡ç† ========================================*/
-// è€åŒ–æ—¶é—´é˜ˆå€¼é…ç½®å¯„å­˜å™¨
+*/
+/*======================================== ÅäÖÃ¼Ä´æÆ÷¹Ü?? ========================================*/
+/*
+// ÀÏ»¯Ê±¼äãĞ???ÅäÖÃ¼Ä´æÆ÷
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_time_threshold <= 10'd300;
     end else if(SIM_MODE == 1) begin
-        r_age_time_threshold <= 10'd3;
+        r_age_time_threshold <= 10'd8;
     end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_AGE_TIME_THRESHOLD)) begin
         r_age_time_threshold <= r_reg_bus_data[AGE_TIME_WIDTH-1:0];
     end
 end
 
-// è¡¨æ¸…ç©ºè¯·æ±‚å¯„å­˜å™¨
+// ±íÇå¿ÕÇëÇó¼Ä´æÆ÷
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_table_clear_req <= 1'b0;
@@ -603,7 +703,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// è¡¨æ»¡é˜ˆå€¼é…ç½®å¯„å­˜å™¨
+// ±íÂúãĞ???ÅäÖÃ¼Ä´æÆ÷
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_table_full_threshold <= TABLE_FULL_THRESHOLD;
@@ -612,7 +712,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// è€åŒ–æ‰«æé—´éš”é…ç½®å¯„å­˜å™¨
+// ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æ??
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_scan_interval <= AGE_SCAN_INTERVAL;
@@ -620,29 +720,29 @@ always @(posedge i_clk or posedge i_rst) begin
         r_age_scan_interval <= {{16{1'b0}}, r_reg_bus_data};
     end
 end
-
-/*======================================== ç»Ÿè®¡è®¡æ•°å™¨ç®¡ç† ========================================*/
-// MACå­¦ä¹ æˆåŠŸç»Ÿè®¡è®¡æ•°å™¨  
+*/
+/*======================================== Í³¼Æ¼ÆÊıÆ÷¹Ü?? ========================================*/
+// MACÑ§Ï°³É¹¦Í³¼Æ¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_learn_success_cnt <= 32'd0;
-    end else if (r_table_clear_req == 1'd1) begin
+    end else if (i_table_clear_req == 1'd1) begin
         r_learn_success_cnt <= 32'd0;
     end else if ((r_fsm_cur_state == SMAC_LEARN_UPDATE) && (r_state_cnt == 16'd1)) begin
-        if ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (r_cur_rx_port < PORT_NUM) && (w_table_full == 1'd0))) begin
+        if ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && w_rx_port_valid == 1'd1 && (w_table_full == 1'd0))) begin
             r_learn_success_cnt <= r_learn_success_cnt + 1'b1;
         end
     end
 end
 
-// MACå­¦ä¹ å¤±è´¥ç»Ÿè®¡è®¡æ•°å™¨  
+// MACÑ§Ï°Ê§°ÜÍ³¼Æ¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_learn_fail_cnt <= 32'd0;
-    end else if (r_table_clear_req == 1'd1) begin
+    end else if (i_table_clear_req == 1'd1) begin
         r_learn_fail_cnt <= 32'd0;
     end else if ((r_fsm_cur_state == SMAC_LEARN_UPDATE) && (r_state_cnt == 16'd1)) begin
-        if (((w_entry_valid == 1'd1) && (w_smac_match == 1'd0)) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd1)) || (r_cur_rx_port >= PORT_NUM)) begin
+        if (((w_entry_valid == 1'd1) && (w_smac_match == 1'd0)) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd1)) || (w_rx_port_valid == 1'd0)) begin
             r_learn_fail_cnt <= r_learn_fail_cnt + 1'b1;
         end
     end else if (r_fsm_cur_state == SMAC_LEARN_CHECK) begin
@@ -652,11 +752,11 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// å“ˆå¸Œå†²çªç»Ÿè®¡è®¡æ•°å™¨  
+// ¹şÏ£³åÍ»Í³¼Æ¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_collision_cnt <= 32'd0;
-    end else if (r_table_clear_req) begin
+    end else if (i_table_clear_req) begin
         r_collision_cnt <= 32'd0;
     end else if (r_fsm_cur_state == DMAC_LOOKUP && r_state_cnt == 16'd1 && w_entry_valid == 1'd1 && w_dmac_match == 1'd0) begin
         r_collision_cnt <= r_collision_cnt + 1'b1;
@@ -665,26 +765,25 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// ç«¯å£ç§»åŠ¨ç»Ÿè®¡è®¡æ•°å™¨  
+// ¶Ë¿ÚÒÆ¶¯Í³¼Æ¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_port_move_cnt <= 32'd0;
-    end else if (r_table_clear_req) begin
+    end else if (i_table_clear_req) begin
         r_port_move_cnt <= 32'd0;
     end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1) begin
-        if (w_smac_match == 1'd1 && (r_cur_rx_port < PORT_NUM) && 
-            (w_entry_port != ({{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port))) begin
+        if (w_smac_match == 1'd1 && w_rx_port_valid == 1'd1 && (w_entry_port != r_cur_rx_port)) begin
             r_port_move_cnt <= r_port_move_cnt + 1'b1;
         end
     end
 end
 
-/*======================================== è¡¨é¡¹è®¡æ•°å™¨ç®¡ç† ========================================*/
-// è¡¨é¡¹è®¡æ•°å™¨ - è·Ÿè¸ªæœ‰æ•ˆMACè¡¨é¡¹æ•°é‡ï¼Œé˜²æ­¢ä¸‹æº¢å’Œä¸Šæº¢
+/*======================================== ±íÏî¼ÆÊıÆ÷¹Ü?? ========================================*/
+// ±íÏî¼ÆÊı?? - ¸ú×ÙÓĞĞ§MAC±íÏîÊıÁ¿£¬·ÀÖ¹ÏÂÒçºÍÉÏÒç
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_table_entry_cnt <= 15'd0;
-    end else if (r_table_clear_req) begin
+    end else if (i_table_clear_req) begin
         r_table_entry_cnt <= 15'd0;
     end else if (r_entry_add == 1'd1 && r_entry_del == 1'd0) begin
         if (r_table_entry_cnt < 15'h7FFF) begin  
@@ -697,39 +796,31 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-/*======================================== å¯„å­˜å™¨è¯»æ§åˆ¶é€»è¾‘ ========================================*/
-// å¯„å­˜å™¨è¯»æ•°æ®é€»è¾‘
+/*======================================== ¼Ä´æÆ÷¶Á¿ØÖÆÂß¼­ ========================================*/
+// ¼Ä´æÆ÷¶ÁÊı¾İÂß¼­
+/*
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
     end else if (r_reg_bus_re) begin
         case (r_reg_bus_raddr)
             REG_AGE_TIME_THRESHOLD: begin
-                r_reg_bus_rdata <= {{(REG_DATA_BUS_WIDTH-AGE_TIME_WIDTH){1'b0}}, r_age_time_threshold};
+                // ×Ô???Ó¦Î»¿í:Ö±½Ó½ØÈ¡»òÀ©??,·ÀÖ¹REG_DATA_BUS_WIDTH<AGE_TIME_WIDTHÊ±³ö??
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_age_time_threshold[AGE_TIME_WIDTH-1:0];
             end
             REG_TABLE_CLEAR: begin
                 r_reg_bus_rdata <= {{(REG_DATA_BUS_WIDTH-1){1'b0}}, r_table_clear_req};
             end
             REG_TABLE_FULL_THRESHOLD: begin
-                if (REG_DATA_BUS_WIDTH >= 15) begin
-                    r_reg_bus_rdata <= {{(REG_DATA_BUS_WIDTH-15){1'b0}}, r_table_full_threshold};
-                end else begin
-                    r_reg_bus_rdata <= r_table_full_threshold[REG_DATA_BUS_WIDTH-1:0];
-                end
+                // ×Ô???Ó¦Î»¿í:Ö±½Ó½ØÈ¡µÍÎ»,·ÀÖ¹REG_DATA_BUS_WIDTH<15Ê±³ö??
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_table_full_threshold[14:0];
             end
-            REG_AGE_SCAN_INTERVAL: begin
-                if (REG_DATA_BUS_WIDTH >= 32) begin
-                    r_reg_bus_rdata <= {{(REG_DATA_BUS_WIDTH-32){1'b0}}, r_age_scan_interval};
-                end else begin
-                    r_reg_bus_rdata <= r_age_scan_interval[REG_DATA_BUS_WIDTH-1:0];
-                end
+            REG_AGE_SCAN_INTERVAL: begin 
+                r_reg_bus_rdata <= r_age_scan_interval[REG_DATA_BUS_WIDTH-1:0]; 
             end
-            REG_TABLE_ENTRY_cnt: begin
-                if (REG_DATA_BUS_WIDTH >= 15) begin
-                    r_reg_bus_rdata <= {{(REG_DATA_BUS_WIDTH-15){1'b0}}, r_table_entry_cnt};
-                end else begin
-                    r_reg_bus_rdata <= r_table_entry_cnt[REG_DATA_BUS_WIDTH-1:0];
-                end
+            REG_TABLE_ENTRY_cnt: begin 
+                // ×Ô???Ó¦Î»¿í:Ö±½Ó½ØÈ¡µÍÎ»,·ÀÖ¹REG_DATA_BUS_WIDTH<15Ê±³ö??
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_table_entry_cnt[14:0]; 
             end
             REG_LEARN_STATISTICS: begin
                 r_reg_bus_rdata <= {r_learn_success_cnt[15:0]};
@@ -748,8 +839,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
     end
 end
-
-// å¯„å­˜å™¨è¯»æ•°æ®æœ‰æ•ˆæ ‡å¿—
+// ¼Ä´æÆ÷¶ÁÊı¾İÓĞĞ§±êÖ¾
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_reg_bus_rdata_vld <= 1'b0;
@@ -757,9 +847,9 @@ always @(posedge i_clk or posedge i_rst) begin
         r_reg_bus_rdata_vld <= r_reg_bus_re;
     end
 end
-
-/*======================================== æ—¶é—´è®¡æ•°å™¨ ========================================*/
-// å¾®ç§’è®¡æ•°å™¨  
+*/
+/*======================================== Ê±¼ä¼ÆÊı?? ========================================*/
+// Î¢Ãë¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_us_cnt <= 16'd0;
@@ -770,7 +860,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// å¾®ç§’è„‰å†²ä¿¡å·ç”Ÿæˆ  
+// Î¢ÃëÂö³åĞÅºÅÉú³É  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_us_pulse <= 1'b0;
@@ -778,7 +868,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_us_pulse <= (r_us_cnt == US_CNT_MAX - 1);
     end
 end
-// æ¯«ç§’è®¡æ•°å™¨  
+// ºÁÃë¼ÆÊı??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_ms_cnt <= 10'd0;
@@ -791,7 +881,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// æ¯«ç§’è„‰å†²ä¿¡å·ç”Ÿæˆ  
+// ºÁÃëÂö³åĞÅºÅÉú³É  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_ms_pulse <= 1'b0;
@@ -800,7 +890,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// æ¯«ç§’æ€»è®¡æ•°å™¨ 
+// ºÁÃë×Ü¼ÆÊıÆ÷ 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_s_cnt <= 32'd0;
@@ -813,7 +903,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// 1ç§’è„‰å†²ä¿¡å·ç”Ÿæˆ  
+// 1ÃëÂö³åĞÅºÅÉú??  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_timer_pulse <= 1'b0;
@@ -822,7 +912,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// å…¨å±€æ—¶é—´æˆ³è®¡æ•°å™¨  
+// È«¾ÖÊ±¼ä´Á¼ÆÊıÆ÷  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_global_timestamp <= {AGE_TIME_WIDTH{1'b0}};
@@ -831,44 +921,44 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// è€åŒ–æ‰«æé—´éš”è®¡æ•°å™¨
+// ÀÏ»¯É¨Ãè¼ä¸ô¼ÆÊı??
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_scan_timer <= 32'd0;
     end else if (w_age_scan_trigger) begin
         r_age_scan_timer <= 32'd0;
-    end else if (r_age_timer_pulse) begin
+    end else if (r_age_timer_pulse == 1'd1 && r_table_entry_cnt > 15'd0) begin
         r_age_scan_timer <= r_age_scan_timer + 1'b1;
     end
 end
 
-/*======================================== æ¸…è¡¨çªå‘æ§åˆ¶é€»è¾‘ ========================================*/
-// æ¸…è¡¨çªå‘è®¡æ•°å™¨ 
+/*======================================== Çå±íÍ»·¢¿ØÖÆÂß¼­ ========================================*/
+// Çå±íÍ»·¢¼ÆÊı?? 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_clear_burst_cnt <= 8'd0;
-    end else if (r_fsm_cur_state != AGE_SCAN || r_table_clear_req == 1'd0) begin
+    end else if (r_fsm_cur_state != AGE_SCAN || i_table_clear_req == 1'd0) begin
         r_clear_burst_cnt <= 8'd0;
-    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req == 1'd1) begin
+    end else if (r_fsm_cur_state == AGE_SCAN && i_table_clear_req == 1'd1) begin
         if (r_clear_burst_cnt < CLEAR_BURST_LIMIT) begin
             r_clear_burst_cnt <= r_clear_burst_cnt + 1'b1;
         end
     end
 end
 
-/*======================================== è€åŒ–æ‰«æåœ°å€ç®¡ç† ========================================*/
-// è€åŒ–æ‰«ææ–­ç‚¹åœ°å€æ§åˆ¶
+/*======================================== ÀÏ»¯É¨ÃèµØÖ·¹ÜÀí ========================================*/
+// ÀÏ»¯É¨Ãè¶ÏµãµØÖ·¿ØÖÆ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_scan_breakpoint <= {HASH_DATA_WIDTH{1'b0}};
     end else if (r_fsm_cur_state == AGE_SCAN && r_fsm_nxt_state == IDLE && r_mac_table_addr != {HASH_DATA_WIDTH{1'b1}}) begin
-        r_age_scan_breakpoint <= r_mac_table_addr;  // è¢«æ‰“æ–­æ—¶ä¿å­˜å½“å‰åœ°å€
+        r_age_scan_breakpoint <= r_mac_table_addr;  // ±»´ò¶ÏÊ±±£´æµ±Ç°µØÖ·
     end else if (r_mac_table_addr == {HASH_DATA_WIDTH{1'b1}}) begin
-        r_age_scan_breakpoint <= {HASH_DATA_WIDTH{1'b0}};  // æ‰«æå®Œæˆæ—¶é‡ç½®æ–­ç‚¹
+        r_age_scan_breakpoint <= {HASH_DATA_WIDTH{1'b0}};  // É¨ÃèÍê³ÉÊ±ÖØÖÃ¶Ï??
     end
 end
 
-// è€åŒ–æ‰«æä½¿èƒ½ä¿¡å· 
+// ÀÏ»¯É¨ÃèÊ¹ÄÜĞÅºÅ 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_age_scan_en <= 1'b0;
@@ -879,28 +969,28 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-/*======================================== MACè¡¨å­˜å‚¨å™¨è®¿é—®æ§åˆ¶ ========================================*/
-// MACè¡¨åœ°å€æ§åˆ¶  
+/*======================================== MAC±í´æ´¢Æ÷·ÃÎÊ¿ØÖÆ ========================================*/
+// MAC±íµØ??¿ØÖÆ  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};
     end else begin
         case (r_fsm_cur_state)
             IDLE: begin
-                if (w_can_use_direct_path == 1'd1) begin
-                    r_mac_table_addr <= i_dmac_hash_addr;  // ç›´è¿è·¯å¾„å¯ä»¥ç«‹å³ä½¿ç”¨
+                if (r_can_use_direct_path == 1'd1||w_can_use_direct_path == 1'd1) begin
+                    r_mac_table_addr <= i_dmac_hash_addr;  // Ö±Á¬Â·¾¶¿ÉÒÔÁ¢¼´Ê¹ÓÃ
                 end else if (w_all_fifo_empty == 1'd0) begin
-                    // STDæ¨¡å¼ï¼šä¸èƒ½ç«‹å³ä½¿ç”¨FIFOè¾“å‡ºï¼Œéœ€è¦ç­‰è¯»å–åå†åœ¨FIFO_READ_WAITçŠ¶æ€è®¾ç½®
-                    r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};  // å…ˆæ¸…é›¶
+                    // STDÄ£Ê½£º²»ÄÜÁ¢¼´Ê¹ÓÃFIFOÊä³ö£¬ĞèÒªµÈ¶ÁÈ¡ºóÔÙÔÚFIFO_READ_WAIT×´???Éè??
+                    r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};  // ÏÈÇå??
                 end else begin
                     r_mac_table_addr <= {HASH_DATA_WIDTH{1'b0}};
                 end
             end
-            FIFO_READ_WAIT: begin  // åœ¨æ­¤çŠ¶æ€è®¾ç½®ä»é”å­˜æ•°æ®ä¸­è·å–çš„åœ°å€
-                r_mac_table_addr <= r_cur_dmac_hash_addr;  // ä½¿ç”¨å·²é”å­˜çš„æ•°æ®
+            FIFO_READ_WAIT: begin  // ÔÚ´Ë×´???ÉèÖÃ´ÓËø´æÊı¾İÖĞ»ñÈ¡µÄµØÖ·
+                r_mac_table_addr <= r_cur_dmac_hash_addr;  // Ê¹ÓÃÒÑËø´æµÄÊı¾İ
             end
-            DMAC_LOOKUP: begin
-                r_mac_table_addr <= r_cur_dmac_hash_addr;  // ä½¿ç”¨å·²é”å­˜çš„æ•°æ®
+            DMAC_LOOKUP: begin 
+                r_mac_table_addr <= r_state_cnt == 16'd1 &&  w_dmac_match == 1'd0 ? r_cur_smac_hash_addr : r_cur_dmac_hash_addr;  // Ê¹ÓÃÒÑËø´æµÄÊı¾İ
             end
             DMAC_REFRESH: begin
                 r_mac_table_addr <= r_cur_smac_hash_addr;
@@ -910,9 +1000,9 @@ always @(posedge i_clk or posedge i_rst) begin
             end
             AGE_SCAN, AGE_UPDATE: begin
                 if (r_fsm_cur_state == IDLE && (r_fsm_nxt_state == AGE_SCAN)) begin
-                    r_mac_table_addr <= r_age_scan_breakpoint;  // ä»æ–­ç‚¹æ¢å¤æˆ–ä»0å¼€å§‹
+                    r_mac_table_addr <= r_age_scan_breakpoint;  // ´Ó¶Ïµã»Ö¸´»ò??0????
                 end else if (r_fsm_cur_state == AGE_SCAN) begin
-                    if (r_table_clear_req == 1'd1) begin
+                    if (i_table_clear_req == 1'd1) begin
                         if (r_mac_table_addr != {HASH_DATA_WIDTH{1'b1}}) begin
                             r_mac_table_addr <= r_mac_table_addr + 1'b1;
                         end
@@ -940,7 +1030,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// è®©AGE_SCNAæ—¶éƒ½åœ°å€çŠ¶æ€ä¿æŒä¸¤æ‹
+// ÈÃAGE_SCNAÊ±¶¼µØÖ·×´???±£³ÖÁ½??
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_agescan_cnt <= 1'd0;
@@ -951,16 +1041,16 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// MACè¡¨è¯»ä½¿èƒ½æ§åˆ¶  
+// MAC±í¶ÁÊ¹ÄÜ¿ØÖÆ  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_mac_table_re <= 1'b0;
     end else begin
         case (r_fsm_cur_state)
             IDLE: begin
-                r_mac_table_re <= ((w_can_use_direct_path == 1'd1) || (w_all_fifo_empty == 1'd0)) && (r_table_clear_req == 1'd0) && (r_age_scan_en == 1'd0) ? 1'd1 : 1'd0;
+                r_mac_table_re <= ((r_can_use_direct_path == 1'd1||w_can_use_direct_path == 1'd1) || (w_all_fifo_empty == 1'd0)) && (i_table_clear_req == 1'd0) ? 1'd1 : 1'd0;
             end
-            FIFO_READ_WAIT: begin  // FIFOè¯»å–ç­‰å¾…çŠ¶æ€ï¼Œå¯åŠ¨RAMè¯»å–
+            FIFO_READ_WAIT: begin  // FIFO¶ÁÈ¡µÈ´ı×´???£¬Æô¶¯RAM¶ÁÈ¡
                 r_mac_table_re <= 1'b1;
             end
             DMAC_LOOKUP, SMAC_LEARN_CHECK: begin
@@ -973,7 +1063,7 @@ always @(posedge i_clk or posedge i_rst) begin
                 r_mac_table_re <= 1'b0;
             end
             AGE_SCAN: begin
-                if ((r_table_clear_req == 1'd1) && (r_fsm_nxt_state == AGE_UPDATE)) begin
+                if ((i_table_clear_req == 1'd1) && (r_fsm_nxt_state == AGE_UPDATE)) begin
                     r_mac_table_re <= 1'b0;
                 end else if(((r_state_cnt == 1'd0) || !((w_entry_valid == 1'd1) && (w_entry_expired == 1'd1)))  )begin
                     r_mac_table_re <= 1'b1;
@@ -991,7 +1081,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// MACè¡¨å†™ä½¿èƒ½æ§åˆ¶  
+// MAC±íĞ´Ê¹ÄÜ¿ØÖÆ  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_mac_table_we <= 1'b0;
@@ -1002,13 +1092,13 @@ always @(posedge i_clk or posedge i_rst) begin
             end
             SMAC_LEARN_UPDATE: begin
                 if (r_state_cnt == 16'd1) begin
-                    r_mac_table_we <= (w_smac_match || (w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0));
+                    r_mac_table_we <= (w_smac_match || (w_entry_valid == 1'd0 && w_rx_port_valid == 1'd1 && w_table_full == 1'd0));
                 end else begin
                     r_mac_table_we <= 1'b0;  
                 end
             end
             AGE_SCAN: begin
-                if (r_table_clear_req) begin
+                if (i_table_clear_req) begin
                     r_mac_table_we <= 1'b1;
                 end else begin
                     r_mac_table_we <= r_fsm_nxt_state == AGE_UPDATE ? 1'b1 : 1'b0;
@@ -1024,7 +1114,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// MACè¡¨å†™æ•°æ®æ§åˆ¶ - ä½¿ç”¨å½“å‰å¤„ç†çš„ç¼“å­˜æ•°æ®
+// MAC±íĞ´Êı¾İ¿ØÖÆ - Ê¹ÓÃµ±Ç°´¦ÀíµÄ»º´æÊı??
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
@@ -1044,14 +1134,14 @@ always @(posedge i_clk or posedge i_rst) begin
                             r_mac_table_wdata <= {1'b1, 
                                                 r_global_timestamp[AGE_TIME_WIDTH-1:0], 
                                                 r_cur_vlan_id[VLAN_ID_WIDTH-1:0], 
-                                                {{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port, 
+                                                r_cur_rx_port[PORT_NUM-1:0], 
                                                 r_cur_smac[MAC_ADDR_WIDTH-1:0]};
                         end
-                    end else if (w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0) begin
+                    end else if (w_entry_valid == 1'd0 && w_rx_port_valid == 1'd1 && w_table_full == 1'd0) begin
                         r_mac_table_wdata <= {1'b1, 
                                             r_global_timestamp[AGE_TIME_WIDTH-1:0], 
                                             r_cur_vlan_id[VLAN_ID_WIDTH-1:0], 
-                                            {{(PORT_NUM-1){1'b0}}, 1'b1} << r_cur_rx_port, 
+                                            r_cur_rx_port[PORT_NUM-1:0], 
                                             r_cur_smac[MAC_ADDR_WIDTH-1:0]};
                     end else begin  
                         r_mac_table_wdata <= w_mac_table_rdata;
@@ -1064,7 +1154,7 @@ always @(posedge i_clk or posedge i_rst) begin
                 r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
             end
             AGE_SCAN: begin
-                if (r_table_clear_req) begin
+                if (i_table_clear_req) begin
                     r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
                 end else if (w_entry_valid == 1'd1 && w_entry_expired == 1'd1) begin
                     r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
@@ -1079,34 +1169,34 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-/*======================================== è¡¨é¡¹è®¡æ•°æ§åˆ¶é€»è¾‘ ========================================*/
-// è¡¨é¡¹æ·»åŠ æ ‡å¿—æ§åˆ¶  
+/*======================================== ±íÏî¼ÆÊı¿ØÖÆÂß¼­ ========================================*/
+// ±íÏîÌí¼Ó±êÖ¾¿ØÖÆ  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_entry_add <= 1'b0;
     end else if (r_fsm_cur_state == SMAC_LEARN_UPDATE && r_state_cnt == 16'd1 && 
-                 w_entry_valid == 1'd0 && (r_cur_rx_port < PORT_NUM) && w_table_full == 1'd0) begin
+                 w_entry_valid == 1'd0 && w_rx_port_valid == 1'd1 && w_table_full == 1'd0) begin
         r_entry_add <= 1'b1;
     end else begin
         r_entry_add <= 1'b0;
     end
 end
 
-// è¡¨é¡¹åˆ é™¤æ ‡å¿—æ§åˆ¶  
+// ±íÏîÉ¾³ı±êÖ¾¿ØÖÆ  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_entry_del <= 1'b0;
     end else if (r_fsm_cur_state == AGE_UPDATE && w_entry_valid == 1'd1 && w_entry_expired == 1'd1) begin
         r_entry_del <= 1'b1;
-    end else if (r_fsm_cur_state == AGE_SCAN && r_table_clear_req == 1'd1 && w_entry_valid == 1'd1) begin
+    end else if (r_fsm_cur_state == AGE_SCAN && i_table_clear_req == 1'd1 && w_entry_valid == 1'd1) begin
         r_entry_del <= 1'b1;
     end else begin
         r_entry_del <= 1'b0;
     end
 end
 
-/*======================================== è¾“å‡ºæ§åˆ¶é€»è¾‘ ========================================*/
-// DMACæŸ¥è¡¨ç»“æœæœ‰æ•ˆæ ‡å¿—  
+/*======================================== Êä³ö¿ØÖÆÂß¼­ ========================================*/
+// DMAC²é±í½á¹ûÓĞĞ§±êÖ¾  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_dmac_lookup_vld <= 1'b0;
@@ -1117,7 +1207,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// DMACæŸ¥è¡¨å‘½ä¸­æ ‡å¿—  
+// DMAC²é±íÃüÖĞ±êÖ¾  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_dmac_lookup_hit <= 1'b0;
@@ -1128,7 +1218,7 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-// DMACè½¬å‘ç«¯å£  
+// DMAC×ª·¢¶Ë¿Ú  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_dmac_tx_port <= {PORT_NUM{1'b0}};
@@ -1136,14 +1226,14 @@ always @(posedge i_clk or posedge i_rst) begin
         if (w_dmac_match) begin
             r_dmac_tx_port <= w_entry_port;
         end else begin
-            r_dmac_tx_port <= {PORT_NUM{1'b0}};  // æœªæŸ¥åˆ°æ—¶ç›´æ¥è¾“å‡º0
+            r_dmac_tx_port <= {PORT_NUM{1'b0}};  // Î´²éµ½Ê±Ö±½ÓÊä³ö0
         end
     end else begin
         r_dmac_tx_port <= {PORT_NUM{1'b0}};
     end
 end
 
-// æŸ¥è¡¨å†²çªæ£€æµ‹é€»è¾‘  
+// ²é±í³åÍ»??²â???¼­  
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
         r_lookup_clash <= 1'b0;
@@ -1154,23 +1244,24 @@ always @(posedge i_clk or posedge i_rst) begin
     end
 end
 
-/*======================================== MACè¡¨å­˜å‚¨ ========================================*/
+/*======================================== MAC±í´æ?? ========================================*/
+
 ram_simple2port #(
-    .RAM_WIDTH      (ENTRY_WIDTH                ),
-    .RAM_DEPTH      (MAC_TABLE_DEPTH            ),
-    .RAM_PERFORMANCE("LOW_LATENCY"              ), 
-    .INIT_FILE      (                           )  
+    .RAM_WIDTH      ( ENTRY_WIDTH               ),
+    .RAM_DEPTH      ( MAC_TABLE_DEPTH           ),
+    .RAM_PERFORMANCE( "LOW_LATENCY"             ), 
+    .INIT_FILE      (  0                      )  
 ) u_mac_table_ram (
-    .addra          (r_mac_table_addr           ),
-    .addrb          (r_mac_table_addr           ),
-    .dina           (r_mac_table_wdata          ), 
-    .clka           (i_clk                      ), 
-    .clkb           (i_clk                      ), 
-    .wea            (r_mac_table_we             ), 
-    .enb            (r_mac_table_re             ), 
-    .rstb           (i_rst                     ), 
-    .regceb         (1'b0                       ),
-    .doutb          (w_mac_table_rdata          )  
+    .addra          ( r_mac_table_addr                      ),
+    .addrb          ( r_mac_table_addr                      ),
+    .dina           ( r_mac_table_wdata                     ), 
+    .clka           ( i_clk                                 ), 
+    .clkb           ( i_clk                                 ), 
+    .wea            ( r_mac_table_we                        ), // Ñ§Ï°
+    .enb            ( r_mac_table_re                        ), // ²é±í
+    .rstb           ( i_rst                                 ), 
+    .regceb         ( 1'b0                                  ),
+    .doutb          ( w_mac_table_rdata                     )  
 );
 
 endmodule

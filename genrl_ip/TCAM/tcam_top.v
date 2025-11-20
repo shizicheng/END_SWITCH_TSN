@@ -6,7 +6,7 @@ module tcam_top #(
     parameter                       REG_ADDR_BUS_WIDTH      =      8        ,   // 接收 MAC 层的配置寄存器地址位宽
     parameter                       REG_DATA_BUS_WIDTH      =      16       ,   // 接收 MAC 层的配置寄存器数据位宽
     parameter                       ACTION_WIDTH            =      24       ,   // ACTION
-    parameter                       CAM_NUM                 =      1024         // 表项数量
+    parameter                       CAM_NUM                 =      64         // 表项数量
   )(
     input               wire                                    i_clk                               ,
     input               wire                                    i_rst                               ,
@@ -14,8 +14,13 @@ module tcam_top #(
     input               wire    [LOOK_UP_DATA_WIDTH-1:0]        i_look_up_data                      ,
     input               wire                                    i_look_up_data_vld                  ,
     /*---------------------------------------- 匹配 ACTION 输出 --------------------------------------*/
-    output              wire    [7:0]                           o_acl_frmtype                       ,
-    output              wire    [15:0]                          o_acl_fetchinfo                     ,
+    // output              wire    [7:0]                           o_acl_frmtype                       ,
+    // output              wire    [15:0]                          o_acl_fetchinfo                     ,
+    output              wire    [2:0]                           o_acl_action                        ,
+    output              wire                                    o_acl_cb_frm                        ,
+    output              wire    [7:0]                           o_acl_cb_streamhandle               ,
+    output              wire    [2:0]                           o_acl_flow_ctrl                     ,
+    output              wire    [7:0]                           o_acl_forwardport                   ,  
     output              wire                                    o_acl_vld                           ,
 
     // test
@@ -26,7 +31,7 @@ module tcam_top #(
     output             wire                                     o_tcam_busy                         , // 输出给上层表明现在tcam正busy
 
     // 调试和状态监控接口
-    output             wire    [3:0]                            o_fsm_state                         , // CAM管理模块状态机状态
+    // output             wire    [3:0]                            o_fsm_state                         , // CAM管理模块状态机状态
     // 寄存器控制信号
     input               wire                                    i_refresh_list_pulse                , // 刷新寄存器列表（状态寄存器和控制寄存器）
     input               wire                                    i_switch_err_cnt_clr                , // 刷新错误计数器
@@ -40,7 +45,7 @@ module tcam_top #(
     input               wire                                    i_switch_reg_bus_rd                 , // 寄存器读使能
     input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // 寄存器读地址
     output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_we_dout            , // 读出寄存器数据
-    output              wire                                    o_switch_reg_bus_we_dout_v           // 读数据有效使能
+    output              wire                                    o_switch_reg_bus_we_dout_v            // 读数据有效使能
   );
   /*---------------------------------------- clog2计算函数 ---------------------------------------------*/
   function integer clog2;
@@ -77,8 +82,13 @@ module tcam_top #(
   // wire                                            w_action_wea            ;
   wire                                            w_cam_busy              ;
   wire   [3:0]                                    w_fsm_state             ;  // CAM管理模块状态机状态
+  wire   [ACTION_WIDTH-1:0]                       w_action_out            ;
 
-
+  assign o_acl_action = w_action_out[2:0] ;
+  assign o_acl_cb_frm = w_action_out[3]   ;
+  assign o_acl_cb_streamhandle = w_action_out[11:4]   ; 
+  assign o_acl_flow_ctrl = w_action_out[14:12]   ;
+  assign o_acl_forwardport = w_action_out[22:15]   ; 
   wr_ack_mng #(
                .LOOK_UP_DATA_WIDTH             ( LOOK_UP_DATA_WIDTH    ),   // 需要查询的数据总位宽
                .PORT_MNG_DATA_WIDTH            ( PORT_MNG_DATA_WIDTH   ),   // Mac_port_mng 数据位宽
@@ -165,10 +175,10 @@ module tcam_top #(
                  .o_action_wea                   ( w_action_wea          ),
 
                  // 反压控制信号
-                 .o_busy                         ( w_cam_busy            ),  // 模块忙信号，高电平表示正在处理数据
+                 .o_busy                         ( w_cam_busy            )  // 模块忙信号，高电平表示正在处理数据
 
                  // 状态机状态输出
-                 .o_fsm_state                    ( w_fsm_state           )   // 当前状态机状态
+                //  .o_fsm_state                    ( w_fsm_state           )   // 当前状态机状态
                );
 
   ram_simple2port #(
@@ -186,8 +196,9 @@ module tcam_top #(
                     .enb                ( w_acl_addr_vld    ), // cam_mng输出的查表信息有效
                     .rstb               ( i_rst             ),
                     .regceb             ( 1'b1              ),
-                    .doutb              ( {o_acl_fetchinfo, o_acl_frmtype} )
+                    .doutb              ( w_action_out      )
                   );
+ 
 
   // 输出有效信号延迟一个时钟周期以匹配BRAM读出延迟
   reg r_acl_vld;
@@ -204,6 +215,6 @@ module tcam_top #(
   end
 
   assign o_acl_vld = r_acl_vld;
-  assign o_fsm_state = w_fsm_state;
+  // assign o_fsm_state = w_fsm_state;
 
 endmodule

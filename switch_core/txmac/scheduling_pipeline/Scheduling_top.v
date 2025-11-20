@@ -1,148 +1,254 @@
 `include "synth_cmd_define.vh"
 
 module  Scheduling_top #(
-    parameter                                                   PORT_FIFO_PRI_NUM       =      8    ,  // æ”¯æŒç«¯å£ä¼˜å…ˆçº§ FIFO çš„æ•°é‡
+    parameter                                                   PORT_FIFO_PRI_NUM       =      8    ,  // Ö§³Ö¶Ë¿ÚÓÅÏÈ¼¶ FIFO µÄÊıÁ¿
     parameter                                                   REG_ADDR_BUS_WIDTH      =      8    ,
     parameter                                                   REG_DATA_BUS_WIDTH      =      16     
 )(
-    input               wire                                    i_clk                               , // 250MHz
-    input               wire                                    i_rst                               ,
-    /*----------- å¯„å­˜å™¨é…ç½®æ¥å£ ------------*/
-    // å¯„å­˜å™¨æ§åˆ¶ä¿¡å·                     
-    input               wire                                    i_refresh_list_pulse                , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    input               wire                                    i_switch_err_cnt_clr                , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    input               wire                                    i_switch_err_cnt_stat               , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    input               wire                                    i_Sch_reg_bus_we                 , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_Sch_reg_bus_we_addr            , // å¯„å­˜å™¨å†™åœ°å€
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_Sch_reg_bus_we_din             , // å¯„å­˜å™¨å†™æ•°æ®
-    input               wire                                    i_Sch_reg_bus_we_din_v           , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£     
-    input               wire                                    i_Sch_reg_bus_rd                 , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_Sch_reg_bus_rd_addr            , // å¯„å­˜å™¨è¯»åœ°å€
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_Sch_reg_bus_we_dout            , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    output              wire                                    o_Sch_reg_bus_we_dout_v          , // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
-    /*------------------------------ ä¸CROSSBARäº¤æ¢å¹³é¢äº¤äº’çš„è°ƒåº¦ä¿¡æ¯ ------------------------------*/
-    // è°ƒåº¦æµæ°´çº¿è°ƒåº¦ä¿¡æ¯äº¤äº’
-    input               wire  [PORT_FIFO_PRI_NUM:0]             i_fifoc_empty                       , // å®æ—¶æ£€æµ‹è¯¥ç«¯å£å¯¹åº” CROSSBAR äº¤æ¢å¹³é¢ä¼˜å…ˆçº§ FIFO ä¿¡æ¯ 
-    output              wire  [PORT_FIFO_PRI_NUM:0]             o_scheduing_rst                     , // è¯¥ç«¯å£è°ƒåº¦æµæ°´çº¿äº§ç”Ÿçš„è°ƒåº¦ç»“æœ
-    output              wire                                    o_scheduing_rst_vld                 , // è¯¥ç«¯å£è°ƒåº¦æµæ°´çº¿äº§ç”Ÿçš„è°ƒåº¦ç»“æœæœ‰æ•ˆä½
-    // QBU æ¨¡å—è¿”å›çš„ä¿¡å·
-    input               wire                                    i_pmac_tx_axis_valid                , // ç”¨äºç®¡ç†æ¯ä¸ªä¼˜å…ˆçº§é˜Ÿåˆ—çš„ä¿¡ç”¨å€¼
-    input               wire                                    i_pmac_tx_axis_last                   // æ•°æ®æµ last ä¿¡å·ï¼Œç”¨äºä½¿èƒ½è°ƒåº¦æµæ°´çº¿è®¡ç®—  
+    input               wire                                    i_clk                            , // 250MHz
+    input               wire                                    i_rst                            ,
+    /*----------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú ------------*/
+    // ¼Ä´æÆ÷¿ØÖÆĞÅºÅ                     
+    //input               wire                                    i_refresh_list_pulse             , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+    //input               wire                                    i_switch_err_cnt_clr             , // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+    //input               wire                                    i_switch_err_cnt_stat            , // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    //input               wire                                    i_Sch_reg_bus_we                 , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    //input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_Sch_reg_bus_we_addr            , // ¼Ä´æÆ÷Ğ´µØÖ·
+    //input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_Sch_reg_bus_we_din             , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    //input               wire                                    i_Sch_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    //input               wire                                    i_Sch_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    //input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_Sch_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
+    //output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_Sch_reg_bus_we_dout            , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    //output              wire                                    o_Sch_reg_bus_we_dout_v          , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    /*------------------------------------ Schedule¼Ä´æÆ÷ ----------------------------------------*/
+    input               wire   [7:0]                            i_idleSlope_q0             			,
+    input               wire   [7:0]                            i_idleSlope_q1             			,
+    input               wire   [7:0]                            i_idleSlope_q2             			,
+    input               wire   [7:0]                            i_idleSlope_q3             			,
+    input               wire   [7:0]                            i_idleSlope_q4             			,
+    input               wire   [7:0]                            i_idleSlope_q5             			,
+    input               wire   [7:0]                            i_idleSlope_q6             			,
+    input               wire   [7:0]                            i_idleSlope_q7             			,
+	input   			wire   [7:0]                            i_sendslope_q0             			,
+    input               wire   [7:0]                            i_sendslope_q1             			,
+    input               wire   [7:0]                            i_sendslope_q2             			,
+    input               wire   [7:0]                            i_sendslope_q3             			,
+    input               wire   [7:0]                            i_sendslope_q4             			,
+    input               wire   [7:0]                            i_sendslope_q5             			,
+    input               wire   [7:0]                            i_sendslope_q6             			,
+    input               wire   [7:0]                            i_sendslope_q7             			,
+	input   			wire                                    i_qav_en                 			,
+	input   			wire   [15:0]                           i_lothreshold_q0             	    ,
+    input               wire   [15:0]                           i_lothreshold_q1             		,
+    input               wire   [15:0]                           i_lothreshold_q2             		,
+    input               wire   [15:0]                           i_lothreshold_q3           			,
+    input               wire   [15:0]                           i_lothreshold_q4           			,
+    input               wire   [15:0]                           i_lothreshold_q5           			,
+    input               wire   [15:0]                           i_lothreshold_q6           			,
+    input               wire   [15:0]                           i_lothreshold_q7           			,
+    input               wire   [15:0]                           i_hithreshold_q0           			,
+    input               wire   [15:0]                           i_hithreshold_q1           			,
+    input               wire   [15:0]                           i_hithreshold_q2           			,
+    input               wire   [15:0]                           i_hithreshold_q3           			,
+    input               wire   [15:0]                           i_hithreshold_q4           			,
+    input               wire   [15:0]                           i_hithreshold_q5           			,
+    input               wire   [15:0]                           i_hithreshold_q6           			,
+    input               wire   [15:0]                           i_hithreshold_q7           			,
+    
+	input   			wire                                    i_config_vld             			,
+
+
+    input               wire   [79:0]                           i_current_time                      ,
+	input   			wire   [79:0]                           i_Base_time              			, 
+	input   			wire                                    i_ConfigChange           			,
+	input   			wire   [PORT_FIFO_PRI_NUM-1:0]          i_ControlList            			,     
+	input   			wire   [7:0]                            i_ControlList_len        			,    
+	input   			wire                                    i_ControlList_vld        			,     
+	input   			wire   [15:0]                           i_cycle_time             			,    
+	input   			wire   [79:0]                           i_cycle_time_extension   			, 
+	input   			wire                                    i_qbv_en                 			,       
+			  		  
+	input   			wire   [3:0]                            i_qos_sch                           ,
+	input   			wire	                                i_qos_en                            ,   
+
+    /*------------------------------ ÓëCROSSBAR½»»»Æ½Ãæ½»»¥µÄµ÷¶ÈĞÅÏ¢ ------------------------------*/
+    // µ÷¶ÈÁ÷Ë®Ïßµ÷¶ÈĞÅÏ¢½»»¥
+    input               wire  [PORT_FIFO_PRI_NUM-1:0]           i_fifoc_empty                       , // ÊµÊ±¼ì²â¸Ã¶Ë¿Ú¶ÔÓ¦ CROSSBAR ½»»»Æ½ÃæÓÅÏÈ¼¶ FIFO ĞÅÏ¢ 
+    output              wire  [PORT_FIFO_PRI_NUM-1:0]           o_scheduing_rst                     , // ¸Ã¶Ë¿Úµ÷¶ÈÁ÷Ë®Ïß²úÉúµÄµ÷¶È½á¹û
+    output              wire                                    o_scheduing_rst_vld                 , // ¸Ã¶Ë¿Úµ÷¶ÈÁ÷Ë®Ïß²úÉúµÄµ÷¶È½á¹ûÓĞĞ§Î»
+    // QBU Ä£¿é·µ»ØµÄĞÅºÅ
+    input               wire                                    i_mac_tx_axis_valid                 , // ÓÃÓÚ¹ÜÀíÃ¿¸öÓÅÏÈ¼¶¶ÓÁĞµÄĞÅÓÃÖµ
+    input               wire                                    i_mac_tx_axis_last                  ,  // Êı¾İÁ÷ last ĞÅºÅ£¬ÓÃÓÚÊ¹ÄÜµ÷¶ÈÁ÷Ë®Ïß¼ÆËã  
+    input               wire  [15:0]                            i_mac_tx_axis_user
 );
 
 /*------------ wire -----------*/
-wire   [PORT_FIFO_PRI_NUM:0]            w_queque                ;
-wire                                    w_queque_vld            ;
-
-wire   [PORT_FIFO_PRI_NUM-1:0]          w_ControlList_state     ;
-
-wire   [PORT_FIFO_PRI_NUM-1:0]          w_qos_scheduing_res     ;
-wire                                    w_qos_scheduing_rst_vld ;
-
+wire   [PORT_FIFO_PRI_NUM-1:0]          w_queque                 ;
+wire                                    w_queque_vld             ;
+ 
+wire   [PORT_FIFO_PRI_NUM-1:0]          w_ControlList_state      ;
+wire                                    w_ControlList_state_vld  ;
+ 
+wire   [PORT_FIFO_PRI_NUM-1:0]          w_qos_scheduing_res      ;
+wire                                    w_qos_scheduing_rst_vld  ;
+/*
 wire   [7:0]                            w_idleSlope              ;
 wire   [7:0]                            w_sendslope              ;
 wire                                    w_qav_en                 ;
-wire   [PORT_FIFO_PRI_NUM:0]            w_ControlList            ;
-wire   [7:0]                            w_ControlList_len        ;
-wire   [15:0]                           w_cycle_time             ;
-wire   [79:0]                           w_cycle_time_extension   ;
-wire                                    w_qbv_en                 ;  
+wire   [15:0]                           w_threshold              ;
+wire                                    w_config_vld             ;
+
+wire   [79:0]                           w_Base_time              ; 
+wire                                    w_ConfigChange           ;
+wire   [PORT_FIFO_PRI_NUM:0]            w_ControlList            ;     
+wire   [7:0]                            w_ControlList_len        ;    
+wire                                    w_ControlList_vld        ;     
+wire   [15:0]                           w_cycle_time             ;    
+wire   [79:0]                           w_cycle_time_extension   ; 
+wire                                    w_qbv_en                 ;       
+ 
 wire   [3:0]                            w_qos_sch                ;
 wire                                    w_qos_en                 ;                         
-
-
-
+*/
 tsn_qav_mng #(
-    .PORT_FIFO_PRI_NUM       (PORT_FIFO_PRI_NUM     )      // æ”¯æŒç«¯å£ä¼˜å…ˆçº§ FIFO çš„æ•°é‡
-)tsn_qav_mng_inst (
-    .i_clk                   ( i_clk                ) , // 250MHz
-    .i_rst                   ( i_rst                ) ,
-    /*------------------------------ å¯„å­˜å™¨é…ç½®æ¥å£ ----------------------------*/
-    .i_idleSlope             ( w_idleSlope          ) ,
-    .i_sendslope             ( w_sendslope          ) ,
-    .i_qav_en                ( w_qav_en             ) ,
-    /*------------------------------ è°ƒåº¦ä¿¡æ¯è¾“å…¥ ------------------------------*/
-    .i_fifoc_empty           ( i_fifoc_empty        ) , // å®æ—¶æ£€æµ‹è¯¥ç«¯å£å¯¹åº” CROSSBAR äº¤æ¢å¹³é¢ä¼˜å…ˆçº§ FIFO ä¿¡æ¯
-    .i_pmac_tx_axis_last     ( i_pmac_tx_axis_last  ) , // 
-    .i_scheduing_rst         ( ) , // è¯¥ç«¯å£è°ƒåº¦æµæ°´çº¿äº§ç”Ÿçš„è°ƒåº¦ç»“æœ
-    .i_scheduing_rst_vld     ( ) , // è¯¥ç«¯å£è°ƒåº¦æµæ°´çº¿äº§ç”Ÿçš„è°ƒåº¦ç»“æœæœ‰æ•ˆä½
-    .i_pmac_tx_axis_valid    ( i_pmac_tx_axis_valid ) , // ç”¨äºç®¡ç†æ¯ä¸ªä¼˜å…ˆçº§é˜Ÿåˆ—çš„ä¿¡ç”¨å€¼
-    /*---------------- å°†ä¿¡ç”¨å€¼æ»¡è¶³è°ƒåº¦éœ€æ±‚çš„ä¼˜å…ˆçº§é˜Ÿåˆ—ä¿¡æ¯è¾“å‡º ------------------*/
-    .o_queque                ( w_queque             ) , // è¾“å‡ºæ»¡è¶³ä¿¡ç”¨å€¼çš„é˜Ÿåˆ—ç»“æœå‘é‡
-    .o_queque_vld            ( w_queque_vld         ) 
+    .PORT_FIFO_PRI_NUM       ( PORT_FIFO_PRI_NUM       )      // Ö§³Ö¶Ë¿ÚÓÅÏÈ¼¶ FIFO µÄÊıÁ¿
+) tsn_qav_mng_inst ( 
+    .i_clk                   ( i_clk                   ) , // 250MHz
+    .i_rst                   ( i_rst                   ) ,
+    /*------------------------------ ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú ----------------------------*/
+    .i_idleSlope_q0           ( i_idleSlope_q0            ) ,
+    .i_idleSlope_q1           ( i_idleSlope_q1            ) ,
+    .i_idleSlope_q2           ( i_idleSlope_q2            ) ,
+    .i_idleSlope_q3           ( i_idleSlope_q3            ) ,
+    .i_idleSlope_q4           ( i_idleSlope_q4            ) ,
+    .i_idleSlope_q5           ( i_idleSlope_q5            ) ,
+    .i_idleSlope_q6           ( i_idleSlope_q6            ) ,
+    .i_idleSlope_q7           ( i_idleSlope_q7            ) ,
+    .i_sendslope_q0           ( i_sendslope_q0          ) ,
+    .i_sendslope_q1           ( i_sendslope_q1          ) ,
+    .i_sendslope_q2           ( i_sendslope_q2          ) ,
+    .i_sendslope_q3           ( i_sendslope_q3          ) ,
+    .i_sendslope_q4           ( i_sendslope_q4          ) ,
+    .i_sendslope_q5           ( i_sendslope_q5          ) ,
+    .i_sendslope_q6           ( i_sendslope_q6          ) ,
+    .i_sendslope_q7           ( i_sendslope_q7          ) ,
+    .i_hithreshold_q0           ( i_hithreshold_q0          ) ,
+    .i_hithreshold_q1           ( i_hithreshold_q1          ) ,
+    .i_hithreshold_q2           ( i_hithreshold_q2          ) ,
+    .i_hithreshold_q3           ( i_hithreshold_q3          ) ,
+    .i_hithreshold_q4           ( i_hithreshold_q4          ) ,
+    .i_hithreshold_q5           ( i_hithreshold_q5          ) ,
+    .i_hithreshold_q6           ( i_hithreshold_q6          ) ,
+    .i_hithreshold_q7           ( i_hithreshold_q7          ) ,
+    .i_lothreshold_q0           ( i_lothreshold_q0          ) ,
+    .i_lothreshold_q1           ( i_lothreshold_q1          ) ,
+    .i_lothreshold_q2           ( i_lothreshold_q2          ) ,
+    .i_lothreshold_q3           ( i_lothreshold_q3          ) ,
+    .i_lothreshold_q4           ( i_lothreshold_q4          ) ,
+    .i_lothreshold_q5           ( i_lothreshold_q5          ) ,
+    .i_lothreshold_q6           ( i_lothreshold_q6          ) ,
+    .i_lothreshold_q7           ( i_lothreshold_q7          ) ,
+    
+    .i_config_vld            ( i_config_vld            ) ,
+    .i_qav_en                ( i_qav_en                ) ,
+    /*------------------------------ µ÷¶ÈĞÅÏ¢ÊäÈë ------------------------------*/
+    .i_fifoc_empty           ( i_fifoc_empty           ) , // ÊµÊ±¼ì²â¸Ã¶Ë¿Ú¶ÔÓ¦ CROSSBAR ½»»»Æ½ÃæÓÅÏÈ¼¶ FIFO ĞÅÏ¢
+    .i_scheduing_rst         ( w_qos_scheduing_res     ) , // ¸Ã¶Ë¿Úµ÷¶ÈÁ÷Ë®Ïß²úÉúµÄµ÷¶È½á¹û
+    .i_scheduing_rst_vld     ( w_qos_scheduing_rst_vld ) , // ¸Ã¶Ë¿Úµ÷¶ÈÁ÷Ë®Ïß²úÉúµÄµ÷¶È½á¹ûÓĞĞ§Î»
+    .i_mac_tx_axis_valid     ( i_mac_tx_axis_valid     ) , // ÓÃÓÚ¹ÜÀíÃ¿¸öÓÅÏÈ¼¶¶ÓÁĞµÄĞÅÓÃÖµ
+    .i_mac_tx_axis_last      ( i_mac_tx_axis_last      ) , // 
+    .i_mac_tx_axis_user      ( i_mac_tx_axis_user      ) ,
+    /*---------------- ½«ĞÅÓÃÖµÂú×ãµ÷¶ÈĞèÇóµÄÓÅÏÈ¼¶¶ÓÁĞĞÅÏ¢Êä³ö ------------------*/
+    .o_queue                ( w_queque                ) , // Êä³öÂú×ãĞÅÓÃÖµµÄ¶ÓÁĞ½á¹ûÏòÁ¿
+    .o_queue_vld            ( w_queque_vld            ) 
 );
 
 tsn_qbv_mng #(
-    .PORT_FIFO_PRI_NUM       (PORT_FIFO_PRI_NUM     )      // æ”¯æŒç«¯å£ä¼˜å…ˆçº§ FIFO çš„æ•°é‡
-)tsn_qbv_mng_inst (
-    .i_clk                   ( i_clk                ) , // 250MHz
-    .i_rst                   ( i_rst                ) ,
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ --------------------------------------*/
-    .i_ControlList           ( w_ControlList          ),
-    .i_ControlList_len       ( w_ControlList_len      ),
-    .i_cycle_time            ( w_cycle_time           ),
-    .i_cycle_time_extension  ( w_cycle_time_extension ),
-    .i_qbv_en                ( w_qbv_en               ),
-    /*---------------------------------- Qav è¾“å…¥æ»¡è¶³ä¿¡ç”¨æ¡ä»¶çš„é˜Ÿåˆ—å‘é‡ç»“æœ -------------------------*/ 
-    .i_queque                ( w_queque             ) , // è¾“å‡ºæ»¡è¶³ä¿¡ç”¨å€¼çš„é˜Ÿåˆ—ç»“æœå‘é‡
-    .i_queque_vld            ( w_queque_vld         ) ,
-    /*---------------------------------- è¾“å‡ºé—¨æ§çŠ¶æ€è‡³ QOS è°ƒåº¦æ¨¡å— ------------------------------*/ 
-    .o_ControlList_state     ( w_ControlList_state  )              // é—¨æ§åˆ—è¡¨çš„çŠ¶æ€
+    .PORT_FIFO_PRI_NUM       (PORT_FIFO_PRI_NUM       )      // Ö§³Ö¶Ë¿ÚÓÅÏÈ¼¶ FIFO µÄÊıÁ¿
+) tsn_qbv_mng_inst ( 
+    .i_clk                   ( i_clk                  ) , // 250MHz
+    .i_rst                   ( i_rst                  ) ,
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú --------------------------------------*/
+    .i_current_time          ( i_current_time         ) ,
+    .i_Base_time             ( i_Base_time            ) ,
+    .i_Base_time_vld         ( 1'b0                   ),
+    .i_ConfigChange          ( i_ConfigChange         ) ,
+    .i_ControlList           ( i_ControlList          ) ,   
+    .i_ControlList_len       ( i_ControlList_len      ) , 
+    .i_ControlList_vld       ( i_ControlList_vld      ) ,   
+    .i_cycle_time            ( i_cycle_time           ) ,      
+    .i_cycle_time_extension  ( i_cycle_time_extension ) ,
+    .i_qbv_en                ( i_qbv_en               ) ,  
+    /*---------------------------------- Qav ÊäÈëÂú×ãĞÅÓÃÌõ¼şµÄ¶ÓÁĞÏòÁ¿½á¹û -------------------------*/ 
+    .i_queque                ( w_queque               ) , // Êä³öÂú×ãĞÅÓÃÖµµÄ¶ÓÁĞ½á¹ûÏòÁ¿
+    .i_queque_vld            ( w_queque_vld           ) ,
+    /*---------------------------------- Êä³öÃÅ¿Ø×´Ì¬ÖÁ QOS µ÷¶ÈÄ£¿é ------------------------------*/ 
+    .o_ControlList_state     ( w_ControlList_state    ) , // ÃÅ¿ØÁĞ±íµÄ×´Ì¬
+    .o_ControlList_state_vld ( w_ControlList_state_vld) 
 );
 
 tx_qos_mng #(
-    .PORT_FIFO_PRI_NUM       ( PORT_FIFO_PRI_NUM       )                       // æ”¯æŒç«¯å£ä¼˜å…ˆçº§ FIFO çš„æ•°é‡
-)(   
+    .PORT_FIFO_PRI_NUM       ( PORT_FIFO_PRI_NUM       )                       // Ö§³Ö¶Ë¿ÚÓÅÏÈ¼¶ FIFO µÄÊıÁ¿
+)tx_qos_mng_inst(   
     .i_clk                   ( i_clk                   ) ,   // 250MHz
     .i_rst                   ( i_rst                   ) ,
-    /*---------------------------------------- å¯„å­˜å™¨é…ç½®æ¥å£ -------------------------------------------*/
-    .i_qos_sch               ( w_qos_sch               ) ,
-    .i_qos_en                ( w_qos_en                ) ,
-    .i_ControlList_state     ( w_ControlList_state     ) ,  // é—¨æ§åˆ—è¡¨çš„çŠ¶æ€
-    /*---------------------------- æ ¹æ®è°ƒåº¦ç®—æ³•è¾“å‡ºéœ€è¦è°ƒåº¦ä¼˜å…ˆçº§é˜Ÿåˆ— --------------------------------*/ 
+    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú -------------------------------------------*/
+    .i_qos_sch               ( i_qos_sch               ) ,
+    .i_qos_en                ( i_qos_en                ) ,
+    /*---------------------------- ¸ù¾İµ÷¶ÈËã·¨Êä³öĞèÒªµ÷¶ÈÓÅÏÈ¼¶¶ÓÁĞ --------------------------------*/ 
+    .i_ControlList_state     ( w_ControlList_state     ) ,  // ÃÅ¿ØÁĞ±íµÄ×´Ì¬
+    .i_qos_req               ( w_ControlList_state_vld ) ,
     .o_qos_scheduing_res     ( w_qos_scheduing_res     ) ,
     .o_qos_scheduing_rst_vld ( w_qos_scheduing_rst_vld )                 
 );
 
+assign o_scheduing_rst     = w_qos_scheduing_res;
+assign o_scheduing_rst_vld = w_qos_scheduing_rst_vld;
+
+/*
 Schduling_regs #(
-    .PORT_FIFO_PRI_NUM       ( PORT_FIFO_PRI_NUM  )  ,  // æ”¯æŒç«¯å£ä¼˜å…ˆçº§ FIFO çš„æ•°é‡
+    .PORT_FIFO_PRI_NUM       ( PORT_FIFO_PRI_NUM  )  ,  // Ö§³Ö¶Ë¿ÚÓÅÏÈ¼¶ FIFO µÄÊıÁ¿
     .REG_ADDR_BUS_WIDTH      ( REG_ADDR_BUS_WIDTH )  ,
     .REG_DATA_BUS_WIDTH      ( REG_DATA_BUS_WIDTH )    
-)
-(
-    .i_clk                   ( i_clk )        ,
-    .i_rst                   ( i_rst )        ,
-    /*------------------- å¯„å­˜å™¨é…ç½®æ¥å£ -----------------*/
-    // å¯„å­˜å™¨æ§åˆ¶ä¿¡å·                     
-    .i_refresh_list_pulse    ( i_refresh_list_pulse   )        , // åˆ·æ–°å¯„å­˜å™¨åˆ—è¡¨ï¼ˆçŠ¶æ€å¯„å­˜å™¨å’Œæ§åˆ¶å¯„å­˜å™¨ï¼‰
-    .i_switch_err_cnt_clr    ( i_switch_err_cnt_clr   )        , // åˆ·æ–°é”™è¯¯è®¡æ•°å™¨
-    .i_switch_err_cnt_stat   ( i_switch_err_cnt_stat  )        , // åˆ·æ–°é”™è¯¯çŠ¶æ€å¯„å­˜å™¨
-    // å¯„å­˜å™¨å†™æ§åˆ¶æ¥å£     
-    .i_Sch_reg_bus_we        ( i_Sch_reg_bus_we        )        , // å¯„å­˜å™¨å†™ä½¿èƒ½
-    .i_Sch_reg_bus_we_addr   ( i_Sch_reg_bus_we_addr   )        , // å¯„å­˜å™¨å†™åœ°å€
-    .i_Sch_reg_bus_we_din    ( i_Sch_reg_bus_we_din    )        , // å¯„å­˜å™¨å†™æ•°æ®
-    .i_Sch_reg_bus_we_din_v  ( i_Sch_reg_bus_we_din_v  )        , // å¯„å­˜å™¨å†™æ•°æ®ä½¿èƒ½
-    // å¯„å­˜å™¨è¯»æ§åˆ¶æ¥å£     
-    .i_Sch_reg_bus_rd        ( i_Sch_reg_bus_rd        )         , // å¯„å­˜å™¨è¯»ä½¿èƒ½
-    .i_Sch_reg_bus_rd_addr   ( i_Sch_reg_bus_rd_addr   )         , // å¯„å­˜å™¨è¯»åœ°å€
-    .o_Sch_reg_bus_we_dout   ( o_Sch_reg_bus_we_dout   )         , // è¯»å‡ºå¯„å­˜å™¨æ•°æ®
-    .o_Sch_reg_bus_we_dout_v ( o_Sch_reg_bus_we_dout_v )         , // è¯»æ•°æ®æœ‰æ•ˆä½¿èƒ½
-    /*------------------- IPæ ¸ç›¸å…³é…ç½®ä¿¡æ¯ -----------------*/
+) Schduling_regs_inst (
+    .i_clk                   ( i_clk                   )        ,
+    .i_rst                   ( i_rst                   )        ,
+    // ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú
+    // ¼Ä´æÆ÷¿ØÖÆĞÅºÅ                     
+    .i_refresh_list_pulse    ( i_refresh_list_pulse    )        , // Ë¢ĞÂ¼Ä´æÆ÷ÁĞ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
+    .i_switch_err_cnt_clr    ( i_switch_err_cnt_clr    )        , // Ë¢ĞÂ´íÎó¼ÆÊıÆ÷
+    .i_switch_err_cnt_stat   ( i_switch_err_cnt_stat   )        , // Ë¢ĞÂ´íÎó×´Ì¬¼Ä´æÆ÷
+    // ¼Ä´æÆ÷Ğ´¿ØÖÆ½Ó¿Ú     
+    .i_Sch_reg_bus_we        ( i_Sch_reg_bus_we        )        , // ¼Ä´æÆ÷Ğ´Ê¹ÄÜ
+    .i_Sch_reg_bus_we_addr   ( i_Sch_reg_bus_we_addr   )        , // ¼Ä´æÆ÷Ğ´µØÖ·
+    .i_Sch_reg_bus_we_din    ( i_Sch_reg_bus_we_din    )        , // ¼Ä´æÆ÷Ğ´Êı¾İ
+    .i_Sch_reg_bus_we_din_v  ( i_Sch_reg_bus_we_din_v  )        , // ¼Ä´æÆ÷Ğ´Êı¾İÊ¹ÄÜ
+    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
+    .i_Sch_reg_bus_rd        ( i_Sch_reg_bus_rd        )         , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
+    .i_Sch_reg_bus_rd_addr   ( i_Sch_reg_bus_rd_addr   )         , // ¼Ä´æÆ÷¶ÁµØÖ·
+    .o_Sch_reg_bus_we_dout   ( o_Sch_reg_bus_we_dout   )         , // ¶Á³ö¼Ä´æÆ÷Êı¾İ
+    .o_Sch_reg_bus_we_dout_v ( o_Sch_reg_bus_we_dout_v )         , // ¶ÁÊı¾İÓĞĞ§Ê¹ÄÜ
+    // IPºËÏà¹ØÅäÖÃĞÅÏ¢
     // qav
     .o_idleSlope             ( w_idleSlope            )         ,
     .o_sendslope             ( w_sendslope            )         ,
     .o_qav_en                ( w_qav_en               )         ,
+    .o_threshold             ( w_threshold            )         ,  
+    .o_av_config_vld         ( w_config_vld           )         ,
     // qbv
-    .o_ControlList           ( w_ControlList          )         ,
-    .o_ControlList_len       ( w_ControlList_len      )         ,
-    .o_cycle_time            ( w_cycle_time           )         ,
+    .o_Base_time             ( w_Base_time            )         ,
+    .o_ConfigChange          ( w_ConfigChange         )         ,
+    .o_ControlList           ( w_ControlList          )         ,   
+    .o_ControlList_len       ( w_ControlList_len      )         ,  
+    .o_ControlList_vld       ( w_ControlList_vld      )         ,
+    .o_cycle_time            ( w_cycle_time           )         ,      
     .o_cycle_time_extension  ( w_cycle_time_extension )         ,
-    .o_qbv_en                ( w_qbv_en               )         ,  
+    .o_qbv_en                ( w_qbv_en               )         ,       
     // qos 
     .o_qos_sch               ( w_qos_sch              )         ,
     .o_qos_en                ( w_qos_en               )                                  
 );
-
+*/
 endmodule

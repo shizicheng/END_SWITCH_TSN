@@ -20,8 +20,21 @@ module emac_rx_ram #(
     input        wire                                          i_emac_rx_axis_ready  //准备信号                                            
 );
 
+
+  /*---------------------------------------- clog2计算函数 ---------------------------------------------*/
+  function integer clog2;
+    input integer value;
+    integer temp;
+    begin
+      temp = value - 1;
+      for (clog2 = 0; temp > 0; clog2 = clog2 + 1)
+        temp = temp >> 1;
+    end
+  endfunction
+
 //ram内部参数
-localparam           RAM_DEPTH       = 'd1024;//4096
+localparam           RAM_DEPTH       = 'd2048;//4096
+localparam           ADDR_WIDTH         = clog2(RAM_DEPTH);
 localparam           RAM_PERFORMANCE = "LOW_LATENCY";
 localparam           INIT_FILE = ""  ;   
 
@@ -47,8 +60,8 @@ reg                                    rr_emac_rx_axis_valid      ;
 reg         [15:0]                     ro_emac_rx_axis_user       ;
 
 //ram
-reg         [11:0]                     write_ram_addr             ; //13位
-reg         [11:0]                     read_ram_addr              ; //13位
+reg         [ADDR_WIDTH-1:0]           write_ram_addr             ; // RAM写地址，位宽由ADDR_WIDTH参数决定
+reg         [ADDR_WIDTH-1:0]           read_ram_addr              ; // RAM读地址，位宽由ADDR_WIDTH参数决定
 wire        [DWIDTH - 1:0]             write_ram_data             ;
 wire        [DWIDTH - 1:0]             read_ram_data              ;
 reg                                    write_ram_en               ;
@@ -113,17 +126,17 @@ sync_fifo #(
     .ALMOST_EMPTY_THRESHOLD (0                     ),
     .FLOP_DATA_OUT          (1                     ) // 1为fwft，0为standard
 ) inst_sync_fifo (
-    .CLK                    (i_clk                 ),
-    .RST                    (i_rst                 ),
-    .WR_EN                  (write_fifo_en         ),
-    .DIN                    (write_fifo_data       ),
-    .RD_EN                  (read_fifo_en          ),
-    .DOUT                   (read_fifo_data        ),
-    .FULL                   (full                  ),
-    .EMPTY                  (empty                 ),
-    .ALMOST_FULL            (                      ),
-    .ALMOST_EMPTY           (                      ),
-    .DATA_CNT               (                      )
+    .i_clk                  (i_clk                 ),
+    .i_rst                  (i_rst                 ),
+    .i_wr_en                (write_fifo_en         ),
+    .i_din                  (write_fifo_data       ),
+    .o_full                 (full                  ),
+    .i_rd_en                (read_fifo_en          ),
+    .o_dout                 (read_fifo_data        ),
+    .o_empty                (empty                 ),
+    .o_almost_full          (                      ),
+    .o_almost_empty         (                      ),
+    .o_data_cnt             (                      )
 );
 
 // async_fifo_fwft #(
@@ -240,7 +253,7 @@ end
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        write_ram_addr <= 'b0;
+        write_ram_addr <= {ADDR_WIDTH{1'b0}};
     end
     else if (write_ram_en) begin
         write_ram_addr <= write_ram_addr + 1'b1;
@@ -289,7 +302,7 @@ end
 //read_fifo_data在读使能有效的时候自加；因为会有地址回溯，所以每一个地址的数据都是有效的，读使能有效就可以直接读不用考虑起点地址。
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        read_ram_addr <= 1'b0;
+        read_ram_addr <= {ADDR_WIDTH{1'b0}};
     end
     else if (read_ram_en) begin
         read_ram_addr <= read_ram_addr + 1'b1;

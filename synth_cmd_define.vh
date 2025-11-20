@@ -1,18 +1,25 @@
-/*---------------------------------------- å®šä¹‰å¹³å°çš„æ¶æ„ -------------------------------------------*/
+/*---------------------------------------- ¶¨ÒåÆ½Ì¨µÄ¼Ü¹¹ -------------------------------------------*/
 `define END_POINTER_SWITCH_CORE
 //`define END_POINTER
 //`define SWITCH_CORE
-/*---------------------------------------- å®šä¹‰CPUä¸FPGAäº¤äº’çš„æ¥å£ -----------------------------------*/
+/*---------------------------------------- ¶¨ÒåCPUÓëFPGA½»»¥µÄ½Ó¿Ú -----------------------------------*/
 `ifdef END_POINTER_SWITCH_CORE
-`define CPU_MAC
+    `define CPU_MAC
+    `define MAC1
+    `define MAC2
+    `define MAC3
+    `define MAC4
+    `define MAC5
+    `define MAC6
+    `define MAC7
+    `define LLDP
+    `define TSN_AS
 `elsif END_POINTER
-`define CPU_MAC
+    `define CPU_MAC
+    `define MAC1
+    `define MAC2
+    `define LLDP
+    `define TSN_AS
 `endif
-/*---------------------------------------- å®šä¹‰å¹³å°æœ‰å¤šå°‘ä¸ª Mac_port_mng -----------------------------------*/
-`define MAC1
-`define MAC2
-`define MAC3
-`define MAC4
-`define MAC5
-`define MAC6
-`define MAC7
+/*---------------------------------------- ¶¨ÒåÆ½Ì¨ÓĞ¶àÉÙ¸ö Mac_port_mng ----------------------------*/
+

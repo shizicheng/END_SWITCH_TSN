@@ -3,10 +3,10 @@ module sync_fifo #(
     parameter                       WIDTH                  = 1024      ,
     parameter                       ALMOST_FULL_THRESHOLD  = 1         ,
     parameter                       ALMOST_EMPTY_THRESHOLD = 1         ,
-    parameter                       FLOP_DATA_OUT          = 0         , //æ˜¯å¦å¼€å¯fwft
-    parameter                       RAM_STYLE              = 1         , // RAMç»¼åˆç±»åž‹é€‰æ‹©ï¼š
-                                                                           // 1: Block RAM - é€‚ç”¨äºŽå¤§å®¹é‡FIFOï¼ŒèŠ‚çœLUTèµ„æº
-                                                                           // 0: Distributed RAM(LUT RAM) - é€‚ç”¨äºŽå°å®¹é‡FIFOï¼Œè®¿é—®é€Ÿåº¦å¿«
+    parameter                       FLOP_DATA_OUT          = 0         , //ÊÇ·ñ¿ªÆôfwft
+    parameter                       RAM_STYLE              = 1         , // RAM×ÛºÏÀàÐÍÑ¡Ôñ£º
+                                                                           // 1: Block RAM - ÊÊÓÃÓÚ´óÈÝÁ¿FIFO£¬½ÚÊ¡LUT×ÊÔ´
+                                                                           // 0: Distributed RAM(LUT RAM) - ÊÊÓÃÓÚÐ¡ÈÝÁ¿FIFO£¬·ÃÎÊËÙ¶È¿ì
                                                                             
     parameter                       BADDR                  = log2(DEPTH),
     parameter                       CNT_WIDTH              = log2_cnt(DEPTH) 
@@ -25,13 +25,13 @@ module sync_fifo #(
     output [CNT_WIDTH-1:0]          o_data_cnt
 );
 
-//ä¾‹åŒ–æ¨¡æ¿
+//Àý»¯Ä£°å
 // sync_fifo #(
 //     .DEPTH                   (16                    ),
 //     .WIDTH                   (32                    ),
 //     .ALMOST_FULL_THRESHOLD   (1                     ),
 //     .ALMOST_EMPTY_THRESHOLD  (1                     ),
-//     .FLOP_DATA_OUT           (0                     ) //1ä¸ºfwft ï¼Œ 0ä¸ºstander
+//     .FLOP_DATA_OUT           (0                     ) //1Îªfwft £¬ 0Îªstander
 // ) u_sync_fifo (
 //     .i_clk                   (clk                   ),
 //     .i_rst                   (rst                   ),
@@ -66,14 +66,14 @@ function integer log2_cnt;
   end
 endfunction
 
-// å†…éƒ¨ä¿¡å·å£°æ˜Ž
+// ÄÚ²¿ÐÅºÅÉùÃ÷
 reg    [BADDR-1:0]         rd_ptr, wr_ptr           ;
 reg    [CNT_WIDTH-1:0]     status_cnt               ;
-reg    [WIDTH-1:0]         data_out_d               ;
+reg    [WIDTH-1:0]         data_out_d  =  {WIDTH{1'd0}}  ;
 
 wire   [WIDTH-1:0]         data_out_c               ;
 wire empty_n,full_n;
-// assignè¯­å¥
+// assignÓï¾ä
 assign o_data_cnt      = status_cnt;
 assign o_empty         = (o_data_cnt == 0);
 assign empty_n       = ~o_empty;
@@ -82,7 +82,7 @@ assign full_n        = ~o_full;
 assign o_almost_full   = (o_data_cnt > (DEPTH - (ALMOST_FULL_THRESHOLD == 0 ? 1 : ALMOST_FULL_THRESHOLD))) ? 1'b1 : 1'b0;
 assign o_almost_empty  = (o_data_cnt <= ALMOST_EMPTY_THRESHOLD) ? 1'b1 : 1'b0;
 
-// alwayså—
+// always¿é
 always @(posedge i_clk ) begin
     if (i_rst)
         status_cnt <= 0;
@@ -100,7 +100,7 @@ always @(posedge i_clk ) begin
         wr_ptr <= 'd0;
     else if (i_wr_en && full_n) begin
         if (wr_ptr == DEPTH - 1)
-            wr_ptr <= 'd0;  // çŽ¯å½¢ç¼“å†²åŒºï¼Œå›žç»•åˆ°0
+            wr_ptr <= 'd0;  // »·ÐÎ»º³åÇø£¬»ØÈÆµ½0
         else
             wr_ptr <= wr_ptr + 1'b1;
     end
@@ -111,13 +111,13 @@ always @(posedge i_clk ) begin
         rd_ptr <= 'd0;
     else if (i_rd_en && empty_n) begin
         if (rd_ptr == DEPTH - 1)
-            rd_ptr <= 'd0;  // çŽ¯å½¢ç¼“å†²åŒºï¼Œå›žç»•åˆ°0
+            rd_ptr <= 'd0;  // »·ÐÎ»º³åÇø£¬»ØÈÆµ½0
         else
             rd_ptr <= rd_ptr + 1'b1;
     end
 end
 
-// å‚æ•°åŒ–RAMç±»åž‹é€‰æ‹©
+// ²ÎÊý»¯RAMÀàÐÍÑ¡Ôñ
 generate
     if (RAM_STYLE == 1) begin : gen_block_ram
         (* ram_style="block" *)
@@ -132,7 +132,7 @@ generate
 
         always @(posedge i_clk ) begin 
             if (i_rd_en && empty_n) begin
-                data_out_d <= #1 register[rd_ptr];
+                data_out_d <=   register[rd_ptr];
             end
         end
 
@@ -147,11 +147,11 @@ generate
 
         always @(posedge i_clk ) begin 
             if (i_rd_en && empty_n) begin
-                data_out_d <= #1 register[rd_ptr];
+                data_out_d <=   register[rd_ptr];
             end
         end
         
-        assign data_out_c = register[rd_ptr];
+        assign data_out_c =  register[rd_ptr];
     end  
 endgenerate
 assign o_dout = FLOP_DATA_OUT ? ((i_rd_en & empty_n) ? data_out_c : data_out_d) : data_out_d;

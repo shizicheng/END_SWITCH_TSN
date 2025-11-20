@@ -1176,7 +1176,8 @@ end
 
   /*---------------------------------------- 输出信号连接 ---------------------------------------------*/
   assign o_acl_addr      = ro_acl_addr;
-  assign o_acl_addr_vld  = r_final_result == {CAM_NUM{1'd0}} ? 1'd0 : ro_acl_addr_vld;
+  assign o_acl_addr_vld  = ro_acl_addr_vld;
+  // assign o_acl_addr_vld  = r_final_result == {CAM_NUM{1'd0}} ? 1'd0 : ro_acl_addr_vld;
   assign o_action_addra  = r_action_addr;
   assign o_action_din    = r_action_data;
   assign o_action_wea    = r_action_wea;
@@ -1408,7 +1409,7 @@ end
       assign w_wea = r_cam_wea[gen_i % 2] &&
              (((r_fsm_cur_state == WRITE_STATE_DELETE_ALL) && (r_delete_cnt_idx_1d == (gen_i >> 1))) ||
               ((r_fsm_cur_state == WRITE_STATE_WRITE_PAIR) && (r_write_cnt_idx == (gen_i >> 1))));
-      ram_simple2port #(
+      ram_simple2port_2rd #(
                         .RAM_WIDTH          ( CAM_NUM               ),
                         .RAM_DEPTH          ( 16                    ),  // 4bit地址，16深度
                         .RAM_PERFORMANCE    ("LOW_LATENCY"          ),

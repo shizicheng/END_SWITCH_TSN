@@ -3,7 +3,7 @@
 //  Xilinx Simple Dual Port 2 Clock RAM with Dual Read Ports
 //  This code implements a parameterizable SDP dual clock memory with two independent read channels.
 //  If a reset or enable is not necessary, it may be tied off or removed from the code.
-module ram_simple2port #(
+module ram_simple2port_2rd #(
 parameter RAM_WIDTH = 32,                  // Specify RAM data width
 parameter RAM_DEPTH = 16,                  // Specify RAM depth (number of entries)
 parameter RAM_PERFORMANCE = "LOW_LATENCY", // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
