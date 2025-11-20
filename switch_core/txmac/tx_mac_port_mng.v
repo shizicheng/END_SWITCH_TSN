@@ -107,6 +107,7 @@ module  tx_mac_port_mng #(
 	input   			wire                                    i_config_vld             			,
 						
 	input   			wire   [79:0]                           i_Base_time              			, 
+	input				wire									i_Base_time_vld						,
 	input   			wire                                    i_ConfigChange           			,
 	input   			wire   [PORT_FIFO_PRI_NUM-1:0]          i_ControlList            			,     
 	input   			wire   [7:0]                            i_ControlList_len        			,    
@@ -198,20 +199,21 @@ Scheduling_top #(
     .i_lothreshold_q5       (i_lothreshold_q5)				 			,
     .i_lothreshold_q6       (i_lothreshold_q6)				 			,
     .i_lothreshold_q7       (i_lothreshold_q7)				 			,
-    .i_qav_en               (i_qav_en)				 			,
+    .i_qav_en               (i_qav_en)				 				,
     .i_config_vld           (i_config_vld)				 			,
-    .i_current_time         (80'h00)				 	    ,       
+    .i_current_time         (80'h0F)				 	    		,       
     .i_Base_time            (i_Base_time)				 			, 
-    .i_ConfigChange         (i_ConfigChange)				 			,
+	.i_Base_time_vld		(i_Base_time_vld)						,
+    .i_ConfigChange         (i_ConfigChange)				 		,
     .i_ControlList          (i_ControlList)				 			,  
-    .i_ControlList_len      (i_ControlList_len)				 			,  
-    .i_ControlList_vld      (i_ControlList_vld)				 			,  
+    .i_ControlList_len      (i_ControlList_len)				 		,  
+    .i_ControlList_vld      (i_ControlList_vld)				 		,  
     .i_cycle_time           (i_cycle_time)				 			,  
-    .i_cycle_time_extension (i_cycle_time_extension)				 			, 
-    .i_qbv_en               (i_qbv_en)				 			,  
+    .i_cycle_time_extension (i_cycle_time_extension)				, 
+    .i_qbv_en               (i_qbv_en)				 				,  
                                             
-    .i_qos_sch              (i_qos_sch)				            ,
-    .i_qos_en               (i_qos_en)				            , 
+    .i_qos_sch              (i_qos_sch)				            	,
+    .i_qos_en               (i_qos_en)				            	, 
 
     /*------------------------------ 与CROSSBAR交换平面交互的调度信息 ------------------------------*/
     // 调度流水线调度信息交互

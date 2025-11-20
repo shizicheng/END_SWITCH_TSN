@@ -355,6 +355,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_0;
     wire                                                w_config_vld_0;
     wire [79:0]                                         w_Base_time_0;
+	wire												w_Base_time_vld_0;
     wire                                                w_ConfigChange_0;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_0;
     wire [7:0]                                          w_ControlList_len_0;
@@ -431,6 +432,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_1;
     wire                                                w_config_vld_1;
     wire [79:0]                                         w_Base_time_1;
+	wire												w_Base_time_vld_1;
     wire                                                w_ConfigChange_1;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_1;
     wire [7:0]                                          w_ControlList_len_1;
@@ -507,6 +509,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_2;
     wire                                                w_config_vld_2;
     wire [79:0]                                         w_Base_time_2;
+	wire												w_Base_time_vld_2;	
     wire                                                w_ConfigChange_2;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_2;
     wire [7:0]                                          w_ControlList_len_2;
@@ -583,6 +586,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_3;
     wire                                                w_config_vld_3;
     wire [79:0]                                         w_Base_time_3;
+	wire												w_Base_time_vld_3;
     wire                                                w_ConfigChange_3;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_3;
     wire [7:0]                                          w_ControlList_len_3;
@@ -659,6 +663,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_4;
     wire                                                w_config_vld_4;
     wire [79:0]                                         w_Base_time_4;
+	wire												w_Base_time_vld_4;
     wire                                                w_ConfigChange_4;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_4;
     wire [7:0]                                          w_ControlList_len_4;
@@ -735,6 +740,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_5;
     wire                                                w_config_vld_5;
     wire [79:0]                                         w_Base_time_5;
+	wire												w_Base_time_vld_5;
     wire                                                w_ConfigChange_5;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_5;
     wire [7:0]                                          w_ControlList_len_5;
@@ -811,6 +817,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_6;
     wire                                                w_config_vld_6;
     wire [79:0]                                         w_Base_time_6;
+	wire												w_Base_time_vld_6;
     wire                                                w_ConfigChange_6;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_6;
     wire [7:0]                                          w_ControlList_len_6;
@@ -887,6 +894,7 @@ module  tx_mac_mng #(
     wire                                                w_qav_en_7;
     wire                                                w_config_vld_7;
     wire [79:0]                                         w_Base_time_7;
+	wire												w_Base_time_vld_7;
     wire                                                w_ConfigChange_7;
     wire [PORT_FIFO_PRI_NUM:0]                          w_ControlList_7;
     wire [7:0]                                          w_ControlList_len_7;
@@ -1030,6 +1038,7 @@ module  tx_mac_mng #(
         .i_config_vld           (w_config_vld_0)            ,
                                                 
         .i_Base_time            (w_Base_time_0)             , 
+		.i_Base_time_vld		(w_Base_time_vld_0	)		,
         .i_ConfigChange         (w_ConfigChange_0)          ,
         .i_ControlList          (w_ControlList_0)           ,  
         .i_ControlList_len      (w_ControlList_len_0)       ,  
@@ -1162,6 +1171,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_1                     ),
                                                 
         .i_Base_time                        (w_Base_time_1                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_1					),
         .i_ConfigChange                     (w_ConfigChange_1                   ),
         .i_ControlList                      (w_ControlList_1                    ),  
         .i_ControlList_len                  (w_ControlList_len_1                ),  
@@ -1293,6 +1303,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_2                     ),
                                                 
         .i_Base_time                        (w_Base_time_2                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_2	)		,
         .i_ConfigChange                     (w_ConfigChange_2                   ),
         .i_ControlList                      (w_ControlList_2                    ),  
         .i_ControlList_len                  (w_ControlList_len_2                ),  
@@ -1424,6 +1435,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_3                     ),
                                                 
         .i_Base_time                        (w_Base_time_3                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_3	)		,
         .i_ConfigChange                     (w_ConfigChange_3                   ),
         .i_ControlList                      (w_ControlList_3                    ),  
         .i_ControlList_len                  (w_ControlList_len_3                ),  
@@ -1554,7 +1566,8 @@ module  tx_mac_mng #(
         .i_qav_en                           (w_qav_en_4                         ),
         .i_config_vld                       (w_config_vld_4                     ),
                                                 
-        .i_Base_time                        (w_Base_time_4                      ), 
+        .i_Base_time                        (w_Base_time_4                      ),
+		.i_Base_time_vld					(w_Base_time_vld_4	)		,		
         .i_ConfigChange                     (w_ConfigChange_4                   ),
         .i_ControlList                      (w_ControlList_4                    ),  
         .i_ControlList_len                  (w_ControlList_len_4                ),  
@@ -1686,6 +1699,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_5                     ),
                                                 
         .i_Base_time                        (w_Base_time_5                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_5	)		,
         .i_ConfigChange                     (w_ConfigChange_5                   ),
         .i_ControlList                      (w_ControlList_5                    ),  
         .i_ControlList_len                  (w_ControlList_len_5                ),  
@@ -1817,6 +1831,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_6                     ),
                                                 
         .i_Base_time                        (w_Base_time_6                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_6	)		,
         .i_ConfigChange                     (w_ConfigChange_6                   ),
         .i_ControlList                      (w_ControlList_6                    ),  
         .i_ControlList_len                  (w_ControlList_len_6                ),  
@@ -1948,6 +1963,7 @@ module  tx_mac_mng #(
         .i_config_vld                       (w_config_vld_7                     ),
                                                 
         .i_Base_time                        (w_Base_time_7                      ), 
+		.i_Base_time_vld					(w_Base_time_vld_7	)		,
         .i_ConfigChange                     (w_ConfigChange_7                   ),
         .i_ControlList                      (w_ControlList_7                    ),  
         .i_ControlList_len                  (w_ControlList_len_7                ),  
@@ -2033,6 +2049,7 @@ txmac_reg #(
         .o_qav_en_0                         (w_qav_en_0                         ),
         .o_config_vld_0                     (w_config_vld_0                     ),
         .o_Base_time_0                      (w_Base_time_0                      ),
+		.o_Base_time_vld_0					(w_Base_time_vld_0					),
         .o_ConfigChange_0                   (w_ConfigChange_0                   ),
         .o_ControlList_0                    (w_ControlList_0                    ),
         .o_ControlList_len_0                (w_ControlList_len_0                ),
@@ -2118,6 +2135,7 @@ txmac_reg #(
         .o_qav_en_1                         (w_qav_en_1                         ),
         .o_config_vld_1                     (w_config_vld_1                     ),
         .o_Base_time_1                      (w_Base_time_1                      ),
+		.o_Base_time_vld_1					(w_Base_time_vld_1					),
         .o_ConfigChange_1                   (w_ConfigChange_1                   ),
         .o_ControlList_1                    (w_ControlList_1                    ),
         .o_ControlList_len_1                (w_ControlList_len_1                ),
@@ -2202,6 +2220,7 @@ txmac_reg #(
         .o_qav_en_2                         (w_qav_en_2                         ),
         .o_config_vld_2                     (w_config_vld_2                     ),
         .o_Base_time_2                      (w_Base_time_2                      ),
+		.o_Base_time_vld_2					(w_Base_time_vld_2					),
         .o_ConfigChange_2                   (w_ConfigChange_2                   ),
         .o_ControlList_2                    (w_ControlList_2                    ),
         .o_ControlList_len_2                (w_ControlList_len_2                ),
@@ -2287,6 +2306,7 @@ txmac_reg #(
         .o_qav_en_3                         (w_qav_en_3                         ),
         .o_config_vld_3                     (w_config_vld_3                     ),
         .o_Base_time_3                      (w_Base_time_3                      ),
+		.o_Base_time_vld_3					(w_Base_time_vld_3					),
         .o_ConfigChange_3                   (w_ConfigChange_3                   ),
         .o_ControlList_3                    (w_ControlList_3                    ),
         .o_ControlList_len_3                (w_ControlList_len_3                ),
@@ -2372,6 +2392,7 @@ txmac_reg #(
         .o_qav_en_4                         (w_qav_en_4                         ),
         .o_config_vld_4                     (w_config_vld_4                     ),
         .o_Base_time_4                      (w_Base_time_4                      ),
+		.o_Base_time_vld_4					(w_Base_time_vld_4					),
         .o_ConfigChange_4                   (w_ConfigChange_4                   ),
         .o_ControlList_4                    (w_ControlList_4                    ),
         .o_ControlList_len_4                (w_ControlList_len_4                ),
@@ -2457,6 +2478,7 @@ txmac_reg #(
         .o_qav_en_5                         (w_qav_en_5                         ),
         .o_config_vld_5                     (w_config_vld_5                     ),
         .o_Base_time_5                      (w_Base_time_5                      ),
+		.o_Base_time_vld_5					(w_Base_time_vld_5					),
         .o_ConfigChange_5                   (w_ConfigChange_5                   ),
         .o_ControlList_5                    (w_ControlList_5                    ),
         .o_ControlList_len_5                (w_ControlList_len_5                ),
@@ -2541,6 +2563,7 @@ txmac_reg #(
         .o_qav_en_6                         (w_qav_en_6                         ),
         .o_config_vld_6                     (w_config_vld_6                     ),
         .o_Base_time_6                      (w_Base_time_6                      ),
+		.o_Base_time_vld_6					(w_Base_time_vld_6					),
         .o_ConfigChange_6                   (w_ConfigChange_6                   ),
         .o_ControlList_6                    (w_ControlList_6                    ),
         .o_ControlList_len_6                (w_ControlList_len_6                ),
@@ -2625,6 +2648,7 @@ txmac_reg #(
         .o_qav_en_7                         (w_qav_en_7                         ),
         .o_config_vld_7                     (w_config_vld_7                     ),
         .o_Base_time_7                      (w_Base_time_7                      ),
+		.o_Base_time_vld_7					(w_Base_time_vld_7					),
         .o_ConfigChange_7                   (w_ConfigChange_7                   ),
         .o_ControlList_7                    (w_ControlList_7                    ),
         .o_ControlList_len_7                (w_ControlList_len_7                ),
