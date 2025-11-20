@@ -61,7 +61,8 @@ module  Scheduling_top #(
 
 
     input               wire   [79:0]                           i_current_time                      ,
-	input   			wire   [79:0]                           i_Base_time              			, 
+	input   			wire   [79:0]                           i_Base_time              			,
+	input				wire									i_Base_time_vld						,
 	input   			wire                                    i_ConfigChange           			,
 	input   			wire   [PORT_FIFO_PRI_NUM-1:0]          i_ControlList            			,     
 	input   			wire   [7:0]                            i_ControlList_len        			,    
@@ -170,10 +171,12 @@ tsn_qbv_mng #(
 ) tsn_qbv_mng_inst ( 
     .i_clk                   ( i_clk                  ) , // 250MHz
     .i_rst                   ( i_rst                  ) ,
+	.i_fifoc_empty			 ( i_fifoc_empty		  ),
     /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú --------------------------------------*/
+	.i_refresh_list_pulse	 ( 1'b0					  ),
     .i_current_time          ( i_current_time         ) ,
     .i_Base_time             ( i_Base_time            ) ,
-    .i_Base_time_vld         ( 1'b0                   ),
+    .i_Base_time_vld         ( i_Base_time_vld        ),
     .i_ConfigChange          ( i_ConfigChange         ) ,
     .i_ControlList           ( i_ControlList          ) ,   
     .i_ControlList_len       ( i_ControlList_len      ) , 
