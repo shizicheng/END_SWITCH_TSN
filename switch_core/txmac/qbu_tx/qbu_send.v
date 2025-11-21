@@ -59,6 +59,8 @@ module qbu_send#(
     input           wire                                i_qbu_verify_valid          ,
     input           wire                                i_qbu_response_valid        ,
 
+	//
+	output			wire								o_send_flag					,
     //输出给接口层axi数据流
     output          wire    [AXIS_DATA_WIDTH - 1:0]     o_mac_axi_data              ,
     output          wire    [(AXIS_DATA_WIDTH/8)-1:0]   o_mac_axi_data_keep         ,
@@ -445,6 +447,8 @@ wire                                                    o_qbu_verify_smd_valid  
         .i_crc                                  (o_mac_crc                  ),
         .i_eamc_send_busy                       (o_emac_send_busy           ),
         .i_pamc_send_busy                       (o_emac_send_apply          ),
+		//
+		.o_send_flag							(o_send_flag				),
         //输出给phy接口层
         .o_mac_axi_data                         (o_mac_axi_data             ),  
         .o_mac_axi_data_keep                    (o_mac_axi_data_keep        ),  

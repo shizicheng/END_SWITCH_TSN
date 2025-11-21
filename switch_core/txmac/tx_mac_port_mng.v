@@ -138,7 +138,7 @@ wire                                    w_mac_tx_axis_last                  ;
 wire    [15:0]                          w_mac_tx_axis_user                  ;
 wire    [CROSS_DATA_WIDTH - 1:0]        w_mac_tx_axis_data                  ;
 wire    [(CROSS_DATA_WIDTH/8)-1:0]      w_mac_tx_axis_keep                  ;
-
+wire									w_send_flag							;
 
 assign o_mac_axi_data_valid                = w_mac_tx_axis_valid;
 assign o_mac_axi_data_last                 = w_mac_tx_axis_last;
@@ -201,6 +201,7 @@ Scheduling_top #(
     .i_lothreshold_q7       (i_lothreshold_q7)				 			,
     .i_qav_en               (i_qav_en)				 				,
     .i_config_vld           (i_config_vld)				 			,
+	.i_send_flag			(w_send_flag)							,
     .i_current_time         (80'h0F)				 	    		,       
     .i_Base_time            (i_Base_time)				 			, 
 	.i_Base_time_vld		(i_Base_time_vld)						,
@@ -257,7 +258,8 @@ qbu_send #(
     .i_qbu_verify_valid                             ( 1'b0              ),
     .i_qbu_response_valid                           ( 1'b1              ),
 
-
+	//
+	.o_send_flag									( w_send_flag		),
     // qbu的AXI接口输出到PHY平台接口                         
     .o_mac_axi_data                                 ( w_mac_tx_axis_data                 ),
     .o_mac_axi_data_keep                            ( w_mac_tx_axis_keep            ),

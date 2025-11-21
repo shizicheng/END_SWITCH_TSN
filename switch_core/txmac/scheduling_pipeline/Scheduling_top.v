@@ -58,7 +58,7 @@ module  Scheduling_top #(
     input               wire   [15:0]                           i_hithreshold_q7           			,
     
 	input   			wire                                    i_config_vld             			,
-
+	input				wire									i_send_flag							,
 
     input               wire   [79:0]                           i_current_time                      ,
 	input   			wire   [79:0]                           i_Base_time              			,
@@ -154,6 +154,7 @@ tsn_qav_mng #(
     
     .i_config_vld            ( i_config_vld            ) ,
     .i_qav_en                ( i_qav_en                ) ,
+	.i_send_flag			 ( i_send_flag			   ) ,
     /*------------------------------ 调度信息输入 ------------------------------*/
     .i_fifoc_empty           ( i_fifoc_empty           ) , // 实时检测该端口对应 CROSSBAR 交换平面优先级 FIFO 信息
     .i_scheduing_rst         ( w_qos_scheduing_res     ) , // 该端口调度流水线产生的调度结果

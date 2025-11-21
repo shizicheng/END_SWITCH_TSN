@@ -56,6 +56,7 @@ module MAC_tx#(
     /*--------GMII port--------*/
     // output    [7:0]                   o_mac_axi_data          , //传输到GMII数据
     // output                           o_mac_axi_data_valid    , //数据有效信号
+	output								o_send_flag				,
     output      [AXIS_DATA_WIDTH-1:0]   o_mac_axi_data          ,
     output      [(AXIS_DATA_WIDTH/8)-1:0] o_mac_axi_data_keep   ,
     output                              o_mac_axi_data_valid    ,
@@ -142,7 +143,7 @@ wire                write_fifo_len_en   ;
 reg                 r_crc               ;
 wire [15:0]         w_fifo_len          ;
 
-
+reg 				r_send_valid_pos	;
 reg                 test_flag           ;
 reg                 r_crc_en_1d         ;
 
@@ -311,10 +312,20 @@ assign read_fifo_len_en  = r_fifo_mac_rd_en & !r_fifo_mac_rd_en_1d;
 assign o_tx_frames_cnt = r_tx_frames_cnt;
 assign o_tx_fragment_cnt = r_tx_fragment_cnt;
 assign w_fifo_len = i_send_len * AXIS_DATA_WIDTH/8;
-
+assign o_send_flag = r_send_valid_pos;
 
 //assign r_crc             = i_send_last ? i_crc:r_crc;//防止数据刚从FIFO读完，下一组数据就来了，crc就更新了。
 /***************always****************/
+
+always@(posedge i_clk,posedge i_rst) begin
+    if (i_rst) begin
+        r_send_valid_pos <= 1'd0;
+    end
+    else begin
+        r_send_valid_pos <= w_send_valid_pos;
+	end
+end
+
 
         //更改点由于存在组合逻辑循环因此改成reg类型//
 
