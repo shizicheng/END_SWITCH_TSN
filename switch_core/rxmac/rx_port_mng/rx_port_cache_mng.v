@@ -270,7 +270,7 @@ assign w_frame_read_end = (o_mac_cross_axi_data_valid == 1'b1) && (o_mac_cross_a
 
 // 关键帧判断：user信号最高位或metadata[11]
 wire   w_is_critical_frame;
-assign w_is_critical_frame = (((w_current_metadata[11] == 1'b1) || (w_info_ram_rd_data[15] == 1'b1)) && (w_current_metadata[13] == 1'b1))? 1'd1 : 1'd0 ;
+assign w_is_critical_frame = ((w_current_metadata[11] == 1'b1) || (w_info_ram_rd_data[15] == 1'b1)) ? 1'd1 : 1'd0 ;
 
  
 
