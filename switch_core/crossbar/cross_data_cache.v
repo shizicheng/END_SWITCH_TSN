@@ -112,7 +112,6 @@ module cross_data_cache #(
     output          wire                                   o_pmac_tx_axis_valid     , 
     input           wire                                   i_pmac_tx_axis_ready     ,
     //emac通道数据                      
-	input			wire	[15:0]						   i_emac_tx_axis_user		,
     output          wire    [CROSS_DATA_WIDTH - 1:0]       o_emac_tx_axis_data      , 
     output          wire    [15:0]                         o_emac_tx_axis_user      , 
     output          wire    [(CROSS_DATA_WIDTH/8)-1:0]     o_emac_tx_axis_keep      , 
@@ -121,310 +120,70 @@ module cross_data_cache #(
     input           wire                                   i_emac_tx_axis_ready      
 );
 
-/*------------------------------------ fifo0 ----------------------------------------*/
-/*------------------------------------ fifo0 ----------------------------------------*/
-/*------------------------------------ fifo0 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo0_full            ;
-    wire                                   w_data_fifo0_empty           ;
-    reg                                    r_data_fifo0_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo0_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo0_empty          ;
-    wire   [15:0]                          w_info_fifo0_datalen        ;
-    wire   [15:0]                          w_info_fifo0_keep           ;
-    reg                                    r_info_fifo0_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo0_data_keep               ; // 128 / 8
-    reg   [15:0]                           ri_info_fifo0_data_cnt                ; // 在交换机设置成直通转发模式时，需要交换平面自己维护数据长度，并拉高 last 信号    
-    reg                                    r_info_fifo0_rd_pre         ;
-    reg                                    r_info_fifo0_rd_pre2        ;
-    reg                                    r_info_fifo0_rd_en          ;
+// ========================== 信号声明 - 使用数组 ==========================
+// 输入信号数组
+wire [CROSS_DATA_WIDTH-1:0]         i_data [7:0];
+wire [CROSS_DATA_WIDTH/8-1:0]       i_data_keep [7:0];
+wire [15:0]                         i_data_user [7:0];
+wire                                i_data_vld [7:0];
+wire                                i_data_last [7:0];
+wire [METADATA_WIDTH-1:0]           i_meta_data_pri [7:0];
+wire                                i_meta_data_pri_vld [7:0];
 
-    // fifoc
-    reg                                    r_c_fifo0_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo0_qos            ; 
-    reg        [15:0]                      w_c_fifo0_wr_data        ;
-    reg                                    r_c_fifo0_vld            ;
-    reg                                    r_c_fifo0_rd_en          ;
-    wire        [15:0]                      w_c_fifo0_rd_data        ;
-    wire                                   w_c_fifo0_full           ;
-    wire                                   w_c_fifo0_empty          ;
+// 输出信号数组
+wire                                o_data_ready [7:0];
+wire                                o_data_busy [7:0];
 
-    //output
-    reg         [15:0]                     r_tx_mac_fifo0_cnt   ; // 统计向 tx_mac 发送的字节数，结合输入锁存的 ri_info_fifo0_data_cnt 拉高 last 信号
-    reg                                    r_fifo0_ready        ; // 
-    reg                                    r_fifo0_busy        ; // 标识该优先级 FIFO 是否可以写数据（是否处于写数据进程并且FIFO未满）
-    reg                                    r_tx_mac_fifo0_vld   ;  //r_data_rd_en的打一拍
-    reg                                    r_tx_mac_fifo0_last  ;
-    reg         [15:0]                     r_tx_mac_fifo0_keep  ;
-    reg                                    w_info_fifo0_avaliable_flag;
-/*------------------------------------ fifo1 ----------------------------------------*/
-/*------------------------------------ fifo1 ----------------------------------------*/
-/*------------------------------------ fifo1 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo1_full            ;
-    wire                                   w_data_fifo1_empty           ;
-    reg                                    r_data_fifo1_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo1_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo1_empty          ;
-    wire   [15:0]                          w_info_fifo1_datalen        ;
-    wire   [15:0]                          w_info_fifo1_keep           ;
-    reg                                    r_info_fifo1_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo1_data_keep               ;
-    reg   [15:0]                           ri_info_fifo1_data_cnt                ;
-    reg                                    r_info_fifo1_rd_pre         ;
-    reg                                    r_info_fifo1_rd_pre2        ;
-    reg                                    r_info_fifo1_rd_en          ;
+// fifo_data 相关信号
+wire                                w_data_fifo_full [7:0];
+wire                                w_data_fifo_empty [7:0];
+reg                                 r_data_fifo_rd_en [7:0];
+wire [CROSS_DATA_WIDTH-1:0]         w_data_fifo_rd_data [7:0];
 
-    // fifoc
-    reg                                    r_c_fifo1_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo1_qos            ; 
-    reg        [15:0]                      w_c_fifo1_wr_data        ;
-    reg                                    r_c_fifo1_vld            ;
-    reg                                    r_c_fifo1_rd_en          ;
-    wire        [15:0]                      w_c_fifo1_rd_data        ;
-    wire                                   w_c_fifo1_full           ;
-    wire                                   w_c_fifo1_empty          ;
+// fifo_info 相关信号
+wire                                w_info_fifo_empty [7:0];
+wire [15:0]                         w_info_fifo_datalen [7:0];
+wire [15:0]                         w_info_fifo_keep [7:0];
+reg  [CROSS_DATA_WIDTH-1:0]         r_data [7:0];
+reg                                 r_info_fifo_data_vld [7:0];
+reg [CROSS_DATA_WIDTH/8-1:0]        ri_info_fifo_data_keep [7:0];
+reg [15:0]                          ri_info_fifo_data_cnt [7:0];
+reg                                 r_info_fifo_rd_pre [7:0];
+reg                                 r_info_fifo_rd_pre2 [7:0];
+reg                                 r_info_fifo_rd_en [7:0];
 
-    //output
-    reg         [15:0]                     r_tx_mac_fifo1_cnt   ;
-    reg                                    r_fifo1_ready        ;
-    reg                                    r_fifo1_busy         ;
-    reg                                    r_tx_mac_fifo1_vld   ;
-    reg                                    r_tx_mac_fifo1_last  ;
-    reg         [15:0]                     r_tx_mac_fifo1_keep  ;
-    reg                                    w_info_fifo1_avaliable_flag;
-/*------------------------------------ fifo2 ----------------------------------------*/
-/*------------------------------------ fifo2 ----------------------------------------*/
-/*------------------------------------ fifo2 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo2_full            ;
-    wire                                   w_data_fifo2_empty           ;
-    reg                                    r_data_fifo2_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo2_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo2_empty          ;
-    wire   [15:0]                          w_info_fifo2_datalen        ;
-    wire   [15:0]                          w_info_fifo2_keep           ;
-    reg                                    r_info_fifo2_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo2_data_keep               ;
-    reg   [15:0]                           ri_info_fifo2_data_cnt                ;
-    reg                                    r_info_fifo2_rd_pre         ;
-    reg                                    r_info_fifo2_rd_pre2        ;
-    reg                                    r_info_fifo2_rd_en          ;
+// fifoc 相关信号
+reg                                 r_c_fifo_qbu_flag [7:0];
+reg [3:0]                           r_c_fifo_qos [7:0];
+reg [15:0]                          w_c_fifo_wr_data [7:0];
+reg                                 r_c_fifo_vld [7:0];
+reg                                 r_c_fifo_rd_en [7:0];
+wire [15:0]                         w_c_fifo_rd_data [7:0];
+wire                                w_c_fifo_full [7:0];
+wire                                w_c_fifo_empty [7:0];
 
-    // fifoc
-    reg                                    r_c_fifo2_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo2_qos            ; 
-    reg        [15:0]                      w_c_fifo2_wr_data        ;
-    reg                                    r_c_fifo2_vld            ;
-    reg                                    r_c_fifo2_rd_en          ;
-    wire        [15:0]                      w_c_fifo2_rd_data        ;
-    wire                                   w_c_fifo2_full           ;
-    wire                                   w_c_fifo2_empty          ;
+// output 相关信号
+reg [15:0]                          r_tx_mac_fifo_cnt [7:0];
+reg                                 r_fifo_ready [7:0];
+reg                                 r_fifo_busy [7:0];
+reg                                 r_tx_mac_fifo_vld [7:0];
+reg                                 r_tx_mac_fifo_last [7:0];
+reg [15:0]                          r_tx_mac_fifo_keep [7:0];
+reg                                 w_info_fifo_avaliable_flag [7:0];
 
-    //output
-    reg         [15:0]                     r_tx_mac_fifo2_cnt   ;
-    reg                                    r_fifo2_ready        ;
-    reg                                    r_fifo2_busy         ;
-    reg                                    r_tx_mac_fifo2_vld   ;
-    reg                                    r_tx_mac_fifo2_last  ;
-    reg         [15:0]                     r_tx_mac_fifo2_keep  ;
-    reg                                    w_info_fifo2_avaliable_flag;
-/*------------------------------------ fifo3 ----------------------------------------*/
-/*------------------------------------ fifo3 ----------------------------------------*/
-/*------------------------------------ fifo3 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo3_full            ;
-    wire                                   w_data_fifo3_empty           ;
-    reg                                    r_data_fifo3_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo3_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo3_empty          ;
-    wire   [15:0]                          w_info_fifo3_datalen        ;
-    wire   [15:0]                          w_info_fifo3_keep           ;
-    reg                                    r_info_fifo3_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo3_data_keep               ;
-    reg   [15:0]                           ri_info_fifo3_data_cnt                ;
-    reg                                    r_info_fifo3_rd_pre         ;
-    reg                                    r_info_fifo3_rd_pre2        ;
-    reg                                    r_info_fifo3_rd_en          ;
+// 数据包丢弃相关信号
+wire [15:0]                         w_data_fifo_data_cnt [7:0];
+wire [14:0]                         w_packet_length [7:0];
+wire [15:0]                         w_fifo_remaining_space [7:0];
+reg [14:0]                          r_packet_length [7:0];
+reg                                 r_packet_valid [7:0];
+reg                                 r_discard_packet [7:0];
+reg                                 rr_discard_packet [7:0];
+reg                                 r_packet_active [7:0];
+reg [14:0]                          r_word_counter [7:0];
+reg                                 r_fifo_wr_en [7:0];
 
-    // fifoc
-    reg                                    r_c_fifo3_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo3_qos            ; 
-    reg        [15:0]                      w_c_fifo3_wr_data        ;
-    reg                                    r_c_fifo3_vld            ;
-    reg                                    r_c_fifo3_rd_en          ;
-    wire        [15:0]                      w_c_fifo3_rd_data        ;
-    wire                                   w_c_fifo3_full           ;
-    wire                                   w_c_fifo3_empty          ;
 
-    //output
-    reg         [15:0]                     r_tx_mac_fifo3_cnt   ;
-    reg                                    r_fifo3_ready        ;
-    reg                                    r_fifo3_busy         ;
-    reg                                    r_tx_mac_fifo3_vld   ;
-    reg                                    r_tx_mac_fifo3_last  ;
-    reg         [15:0]                     r_tx_mac_fifo3_keep  ;
-    reg                                    w_info_fifo3_avaliable_flag;
-/*------------------------------------ fifo4 ----------------------------------------*/
-/*------------------------------------ fifo4 ----------------------------------------*/
-/*------------------------------------ fifo4 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo4_full            ;
-    wire                                   w_data_fifo4_empty           ;
-    reg                                    r_data_fifo4_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo4_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo4_empty          ;
-    wire   [15:0]                          w_info_fifo4_datalen        ;
-    wire   [15:0]                          w_info_fifo4_keep           ;
-    reg                                    r_info_fifo4_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo4_data_keep               ;
-    reg   [15:0]                           ri_info_fifo4_data_cnt                ;
-    reg                                    r_info_fifo4_rd_pre         ;
-    reg                                    r_info_fifo4_rd_pre2        ;
-    reg                                    r_info_fifo4_rd_en          ;
-
-    // fifoc
-    reg                                    r_c_fifo4_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo4_qos            ; 
-    reg        [15:0]                      w_c_fifo4_wr_data        ;
-    reg                                    r_c_fifo4_vld            ;
-    reg                                    r_c_fifo4_rd_en          ;
-    wire        [15:0]                      w_c_fifo4_rd_data        ;
-    wire                                   w_c_fifo4_full           ;
-    wire                                   w_c_fifo4_empty          ;
-
-    //output
-    reg         [15:0]                     r_tx_mac_fifo4_cnt   ;
-    reg                                    r_fifo4_ready        ;
-    reg                                    r_fifo4_busy         ;
-    reg                                    r_tx_mac_fifo4_vld   ;
-    reg                                    r_tx_mac_fifo4_last  ;
-    reg         [15:0]                     r_tx_mac_fifo4_keep  ;
-    reg                                    w_info_fifo4_avaliable_flag;
-/*------------------------------------ fifo5 ----------------------------------------*/
-/*------------------------------------ fifo5 ----------------------------------------*/
-/*------------------------------------ fifo5 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo5_full            ;
-    wire                                   w_data_fifo5_empty           ;
-    reg                                    r_data_fifo5_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo5_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo5_empty          ;
-    wire   [15:0]                          w_info_fifo5_datalen        ;
-    wire   [15:0]                          w_info_fifo5_keep           ;
-    reg                                    r_info_fifo5_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo5_data_keep               ;
-    reg   [15:0]                           ri_info_fifo5_data_cnt                ;
-    reg                                    r_info_fifo5_rd_pre         ;
-    reg                                    r_info_fifo5_rd_pre2        ;
-    reg                                    r_info_fifo5_rd_en          ;
-
-    // fifoc
-    reg                                    r_c_fifo5_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo5_qos            ; 
-    reg        [15:0]                      w_c_fifo5_wr_data        ;
-    reg                                    r_c_fifo5_vld            ;
-    reg                                    r_c_fifo5_rd_en          ;
-    wire        [15:0]                      w_c_fifo5_rd_data        ;
-    wire                                   w_c_fifo5_full           ;
-    wire                                   w_c_fifo5_empty          ;
-
-    //output
-    reg         [15:0]                     r_tx_mac_fifo5_cnt   ;
-    reg                                    r_fifo5_ready        ;
-    reg                                    r_fifo5_busy         ;
-    reg                                    r_tx_mac_fifo5_vld   ;
-    reg                                    r_tx_mac_fifo5_last  ;
-    reg         [15:0]                     r_tx_mac_fifo5_keep  ;
-    reg                                    w_info_fifo5_avaliable_flag;
-/*------------------------------------ fifo6 ----------------------------------------*/
-/*------------------------------------ fifo6 ----------------------------------------*/
-/*------------------------------------ fifo6 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo6_full            ;
-    wire                                   w_data_fifo6_empty           ;
-    reg                                    r_data_fifo6_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo6_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo6_empty          ;
-    wire   [15:0]                          w_info_fifo6_datalen        ;
-    wire   [15:0]                          w_info_fifo6_keep           ;
-    reg                                    r_info_fifo6_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo6_data_keep               ;
-    reg   [15:0]                           ri_info_fifo6_data_cnt                ;
-    reg                                    r_info_fifo6_rd_pre         ;
-    reg                                    r_info_fifo6_rd_pre2        ;
-    reg                                    r_info_fifo6_rd_en          ;
-
-    // fifoc
-    reg                                    r_c_fifo6_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo6_qos            ; 
-    reg        [15:0]                      w_c_fifo6_wr_data        ;
-    reg                                    r_c_fifo6_vld            ;
-    reg                                    r_c_fifo6_rd_en          ;
-    wire        [15:0]                      w_c_fifo6_rd_data        ;
-    wire                                   w_c_fifo6_full           ;
-    wire                                   w_c_fifo6_empty          ;
-
-    //output
-    reg         [15:0]                     r_tx_mac_fifo6_cnt   ;
-    reg                                    r_fifo6_ready        ;
-    reg                                    r_fifo6_busy         ;
-    reg                                    r_tx_mac_fifo6_vld   ;
-    reg                                    r_tx_mac_fifo6_last  ;
-    reg         [15:0]                     r_tx_mac_fifo6_keep  ;
-    reg                                    w_info_fifo6_avaliable_flag;
-/*------------------------------------ fifo7 ----------------------------------------*/
-/*------------------------------------ fifo7 ----------------------------------------*/
-/*------------------------------------ fifo7 ----------------------------------------*/
-    //fifo_data
-    wire                                   w_data_fifo7_full            ;
-    wire                                   w_data_fifo7_empty           ;
-    reg                                    r_data_fifo7_rd_en               ;    
-    wire   [CROSS_DATA_WIDTH-1:0]          w_data_fifo7_rd_data             ;
-        
-    // fifo_info       
-    wire                                   w_info_fifo7_empty          ;
-    wire   [15:0]                          w_info_fifo7_datalen        ;
-    wire   [15:0]                          w_info_fifo7_keep           ;
-    reg                                    r_info_fifo7_data_vld       ;
-    reg   [CROSS_DATA_WIDTH/8-1:0]         ri_info_fifo7_data_keep               ;
-    reg   [15:0]                           ri_info_fifo7_data_cnt                ;
-    reg                                    r_info_fifo7_rd_pre         ;
-    reg                                    r_info_fifo7_rd_pre2        ;
-    reg                                    r_info_fifo7_rd_en          ;
-
-    // fifoc
-    reg                                    r_c_fifo7_qbu_flag       ;
-    reg         [3:0]                      r_c_fifo7_qos            ; 
-    reg        [15:0]                      w_c_fifo7_wr_data        ;
-    reg                                    r_c_fifo7_vld            ;
-    reg                                    r_c_fifo7_rd_en          ;
-    wire        [15:0]                      w_c_fifo7_rd_data        ;
-    wire                                   w_c_fifo7_full           ;
-    wire                                   w_c_fifo7_empty          ;
-
-    //output
-    reg         [15:0]                     r_tx_mac_fifo7_cnt   ;
-    reg                                    r_fifo7_ready        ;
-    reg                                    r_fifo7_busy         ;
-    reg                                    r_tx_mac_fifo7_vld   ;
-    reg                                    r_tx_mac_fifo7_last  ;
-    reg         [15:0]                     r_tx_mac_fifo7_keep  ;
-    reg                                    w_info_fifo7_avaliable_flag;
 
 
 reg     [PORT_FIFO_PRI_NUM-1:0]        ri_scheduing_rst     ;   
@@ -454,23 +213,87 @@ reg     [PORT_FIFO_PRI_NUM-1:0]        r_fifoc_empty;
 /*------------------------------------ assign ----------------------------------------*/
 /*------------------------------------ assign ----------------------------------------*/
 /*------------------------------------ assign ----------------------------------------*/
-assign      o_data0_ready       =      ~w_data_fifo0_full    ;
-assign      o_data1_ready       =      ~w_data_fifo1_full    ;
-assign      o_data2_ready       =      ~w_data_fifo2_full    ;
-assign      o_data3_ready       =      ~w_data_fifo3_full    ;
-assign      o_data4_ready       =      ~w_data_fifo4_full    ;
-assign      o_data5_ready       =      ~w_data_fifo5_full    ;
-assign      o_data6_ready       =      ~w_data_fifo6_full    ;
-assign      o_data7_ready       =      ~w_data_fifo7_full    ;
+// 将分散的输入信号连接到数组
+assign i_data[0] = i_data0;
+assign i_data_keep[0] = i_data0_keep;
+assign i_data_user[0] = i_data0_user;
+assign i_data_vld[0] = i_data0_vld;
+assign i_data_last[0] = i_data0_last;
+assign i_meta_data_pri[0] = i_meta_data0_pri;
+assign i_meta_data_pri_vld[0] = i_meta_data0_pri_vld;
+assign o_data0_ready = o_data_ready[0];
+assign o_data0_busy = o_data_busy[0];
 
-assign      o_data0_busy       =      r_fifo0_busy    ;
-assign      o_data1_busy       =      r_fifo1_busy    ;
-assign      o_data2_busy       =      r_fifo2_busy    ;
-assign      o_data3_busy       =      r_fifo3_busy    ;
-assign      o_data4_busy       =      r_fifo4_busy    ;
-assign      o_data5_busy       =      r_fifo5_busy    ;
-assign      o_data6_busy       =      r_fifo6_busy    ;
-assign      o_data7_busy       =      r_fifo7_busy    ;
+assign i_data[1] = i_data1;
+assign i_data_keep[1] = i_data1_keep;
+assign i_data_user[1] = i_data1_user;
+assign i_data_vld[1] = i_data1_vld;
+assign i_data_last[1] = i_data1_last;
+assign i_meta_data_pri[1] = i_meta_data1_pri;
+assign i_meta_data_pri_vld[1] = i_meta_data1_pri_vld;
+assign o_data1_ready = o_data_ready[1];
+assign o_data1_busy = o_data_busy[1];
+
+assign i_data[2] = i_data2;
+assign i_data_keep[2] = i_data2_keep;
+assign i_data_user[2] = i_data2_user;
+assign i_data_vld[2] = i_data2_vld;
+assign i_data_last[2] = i_data2_last;
+assign i_meta_data_pri[2] = i_meta_data2_pri;
+assign i_meta_data_pri_vld[2] = i_meta_data2_pri_vld;
+assign o_data2_ready = o_data_ready[2];
+assign o_data2_busy = o_data_busy[2];
+
+assign i_data[3] = i_data3;
+assign i_data_keep[3] = i_data3_keep;
+assign i_data_user[3] = i_data3_user;
+assign i_data_vld[3] = i_data3_vld;
+assign i_data_last[3] = i_data3_last;
+assign i_meta_data_pri[3] = i_meta_data3_pri;
+assign i_meta_data_pri_vld[3] = i_meta_data3_pri_vld;
+assign o_data3_ready = o_data_ready[3];
+assign o_data3_busy = o_data_busy[3];
+
+assign i_data[4] = i_data4;
+assign i_data_keep[4] = i_data4_keep;
+assign i_data_user[4] = i_data4_user;
+assign i_data_vld[4] = i_data4_vld;
+assign i_data_last[4] = i_data4_last;
+assign i_meta_data_pri[4] = i_meta_data4_pri;
+assign i_meta_data_pri_vld[4] = i_meta_data4_pri_vld;
+assign o_data4_ready = o_data_ready[4];
+assign o_data4_busy = o_data_busy[4];
+
+assign i_data[5] = i_data5;
+assign i_data_keep[5] = i_data5_keep;
+assign i_data_user[5] = i_data5_user;
+assign i_data_vld[5] = i_data5_vld;
+assign i_data_last[5] = i_data5_last;
+assign i_meta_data_pri[5] = i_meta_data5_pri;
+assign i_meta_data_pri_vld[5] = i_meta_data5_pri_vld;
+assign o_data5_ready = o_data_ready[5];
+assign o_data5_busy = o_data_busy[5];
+
+assign i_data[6] = i_data6;
+assign i_data_keep[6] = i_data6_keep;
+assign i_data_user[6] = i_data6_user;
+assign i_data_vld[6] = i_data6_vld;
+assign i_data_last[6] = i_data6_last;
+assign i_meta_data_pri[6] = i_meta_data6_pri;
+assign i_meta_data_pri_vld[6] = i_meta_data6_pri_vld;
+assign o_data6_ready = o_data_ready[6];
+assign o_data6_busy = o_data_busy[6];
+
+assign i_data[7] = i_data7;
+assign i_data_keep[7] = i_data7_keep;
+assign i_data_user[7] = i_data7_user;
+assign i_data_vld[7] = i_data7_vld;
+assign i_data_last[7] = i_data7_last;
+assign i_meta_data_pri[7] = i_meta_data7_pri;
+assign i_meta_data_pri_vld[7] = i_meta_data7_pri_vld;
+assign o_data7_ready = o_data_ready[7];
+assign o_data7_busy = o_data_busy[7];
+
 
 assign      o_fifoc_empty       =      r_fifoc_empty;
 
@@ -495,31 +318,14 @@ always @(posedge i_clk or posedge i_rst) begin
         r_fifoc_empty <= {PORT_FIFO_PRI_NUM{1'b1}};
     end else begin
         r_fifoc_empty <= ( i_scheduing_rst_vld == 1'b1 || scheduing_work_flag == 1'b1) ? {PORT_FIFO_PRI_NUM{1'b1}} : 
-                         (  w_c_fifo0_empty == 1'b0    
-                         || w_c_fifo1_empty == 1'b0                     //当没有在调度过程时，任何一个fifo有数据完成输入，则输出fifo状态等待调
-                         || w_c_fifo2_empty == 1'b0
-                         || w_c_fifo3_empty == 1'b0
-                         || w_c_fifo4_empty == 1'b0
-                         || w_c_fifo5_empty == 1'b0
-                         || w_c_fifo6_empty == 1'b0
-                         || w_c_fifo7_empty == 1'b0) ? {w_c_fifo7_empty,w_c_fifo6_empty,w_c_fifo5_empty,w_c_fifo4_empty,w_c_fifo3_empty,w_c_fifo2_empty,w_c_fifo1_empty,w_c_fifo0_empty} : r_fifoc_empty;
-                        // (ro_pmac_tx_axis_last_t==1'b1 || ro_emac_tx_axis_last_t==1'b1                               
-                                                    //    || i_data0_last == 1'b1
-                                                    //    || i_data1_last == 1'b1
-                                                    //    || i_data2_last == 1'b1
-                                                    //    || i_data3_last == 1'b1
-                                                    //    || i_data4_last == 1'b1
-                                                    //    || i_data5_last == 1'b1
-                                                    //    || i_data6_last == 1'b1
-                                                    //    || i_data7_last == 1'b1
-        // r_fifoc_empty[0] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[0] == 1'b1 ) ? 1'b1 : ( i_data0_last == 1'b1 ) ? w_c_fifo0_empty : r_fifoc_empty[0];
-        // r_fifoc_empty[1] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[1] == 1'b1 ) ? 1'b1 : ( i_data1_last == 1'b1 ) ? w_c_fifo1_empty : r_fifoc_empty[1];
-        // r_fifoc_empty[2] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[2] == 1'b1 ) ? 1'b1 : ( i_data2_last == 1'b1 ) ? w_c_fifo2_empty : r_fifoc_empty[2];
-        // r_fifoc_empty[3] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[3] == 1'b1 ) ? 1'b1 : ( i_data3_last == 1'b1 ) ? w_c_fifo3_empty : r_fifoc_empty[3];
-        // r_fifoc_empty[4] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[4] == 1'b1 ) ? 1'b1 : ( i_data4_last == 1'b1 ) ? w_c_fifo4_empty : r_fifoc_empty[4];
-        // r_fifoc_empty[5] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[5] == 1'b1 ) ? 1'b1 : ( i_data5_last == 1'b1 ) ? w_c_fifo5_empty : r_fifoc_empty[5];
-        // r_fifoc_empty[6] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[6] == 1'b1 ) ? 1'b1 : ( i_data6_last == 1'b1 ) ? w_c_fifo6_empty : r_fifoc_empty[6];
-        // r_fifoc_empty[7] <= ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst[7] == 1'b1 ) ? 1'b1 : ( i_data7_last == 1'b1 ) ? w_c_fifo7_empty : r_fifoc_empty[7];
+                         (  w_c_fifo_empty[0] == 1'b0    
+                         || w_c_fifo_empty[1] == 1'b0                     //当没有在调度过程时，任何一个fifo有数据完成输入，则输出fifo状态等待调
+                         || w_c_fifo_empty[2] == 1'b0
+                         || w_c_fifo_empty[3] == 1'b0
+                         || w_c_fifo_empty[4] == 1'b0
+                         || w_c_fifo_empty[5] == 1'b0
+                         || w_c_fifo_empty[6] == 1'b0
+                         || w_c_fifo_empty[7] == 1'b0) ? {w_c_fifo_empty[7],w_c_fifo_empty[6],w_c_fifo_empty[5],w_c_fifo_empty[4],w_c_fifo_empty[3],w_c_fifo_empty[2],w_c_fifo_empty[1],w_c_fifo_empty[0]} : r_fifoc_empty;
     end
 end
 
@@ -539,95 +345,50 @@ always @(posedge i_clk or posedge i_rst) begin
         ro_emac_tx_axis_last     <=  1'b0;
         ro_emac_tx_axis_valid    <=  1'b0;
     end else begin
-        ro_pmac_tx_axis_data     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_data_fifo0_rd_data : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_data_fifo1_rd_data :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_data_fifo2_rd_data : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_data_fifo3_rd_data :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_data_fifo4_rd_data : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_data_fifo5_rd_data :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_data_fifo6_rd_data : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_data_fifo7_rd_data : {CROSS_DATA_WIDTH{1'b0}}; 
+        ro_pmac_tx_axis_data     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_data_fifo_rd_data[0] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_data_fifo_rd_data[1] :  
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_data_fifo_rd_data[2] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_data_fifo_rd_data[3] :  
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_data_fifo_rd_data[4] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_data_fifo_rd_data[5] :  
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_data_fifo_rd_data[6] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_data_fifo_rd_data[7] : {CROSS_DATA_WIDTH{1'b0}}; 
 
-        ro_pmac_tx_axis_user     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_c_fifo0_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_c_fifo1_rd_data : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_c_fifo2_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_c_fifo3_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_c_fifo4_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_c_fifo5_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_c_fifo6_rd_data :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_c_fifo7_rd_data : 16'd0;
+        ro_pmac_tx_axis_user     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_c_fifo_rd_data[0] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_c_fifo_rd_data[1] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_c_fifo_rd_data[2] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_c_fifo_rd_data[3] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_c_fifo_rd_data[4] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_c_fifo_rd_data[5] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_c_fifo_rd_data[6] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_c_fifo_rd_data[7] : 16'd0;
                                                                                                
-        ro_pmac_tx_axis_keep     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_keep : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_keep : 16'd0;
+        ro_pmac_tx_axis_keep     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_keep[0] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_keep[1] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_keep[2] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_keep[3] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_keep[4] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_keep[5] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_keep[6] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_keep[7] : 16'd0;
 
-        ro_pmac_tx_axis_last     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_last :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_last : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_last : 1'b0;
+        ro_pmac_tx_axis_last     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_last[0] :
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_last[1] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_last[2] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_last[3] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_last[4] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_last[5] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_last[6] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_last[7] : 1'b0;
 
-        ro_pmac_tx_axis_valid    <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_vld : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_vld : 1'b0;  
-
-        ro_emac_tx_axis_data     <=  ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_data_fifo0_rd_data :
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_data_fifo1_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_data_fifo2_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_data_fifo3_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_data_fifo4_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_data_fifo5_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_data_fifo6_rd_data : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_data_fifo7_rd_data : {CROSS_DATA_WIDTH{1'b0}};
-
-        ro_emac_tx_axis_user     <=  ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? {11'd0,w_c_fifo0_rd_data} :
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? {11'd0,w_c_fifo1_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? {11'd0,w_c_fifo2_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? {11'd0,w_c_fifo3_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? {11'd0,w_c_fifo4_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? {11'd0,w_c_fifo5_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? {11'd0,w_c_fifo6_rd_data} : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? {11'd0,w_c_fifo7_rd_data} : 16'd0;
-
-        ro_emac_tx_axis_keep     <=  ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_keep :
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_keep : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_keep : 16'd0;
-
-        ro_emac_tx_axis_last     <=  ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_last :
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_last : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_last : 1'b0;
-
-        ro_emac_tx_axis_valid    <=  ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo0_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo0_vld :
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo1_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo1_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo2_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo2_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo3_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo3_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo4_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo4_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo5_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo5_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo6_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo6_vld : 
-                                     ( i_emac_tx_axis_ready == 1'b1 && r_c_fifo7_qbu_flag == 1'b1 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo7_vld : 1'b0; 
+        ro_pmac_tx_axis_valid    <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_vld[0] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_vld[1] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_vld[2] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_vld[3] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_vld[4] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_vld[5] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_vld[6] : 
+                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_vld[7] : 1'b0;  
     end
 end
 
@@ -648,1684 +409,316 @@ end
             ro_pmac_tx_axis_last_t <= 1'b0;
         end else begin
             ri_scheduing_rst_vld <= i_scheduing_rst_vld;//
-            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst != {PORT_FIFO_PRI_NUM{1'b0}}) ? 1'b1 : scheduing_work_flag;
+            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 ) ? 1'b1 : scheduing_work_flag;
             ro_emac_tx_axis_last_t <= ro_emac_tx_axis_last;
             ro_pmac_tx_axis_last_t <= ro_pmac_tx_axis_last;
         end
     end
 
-//----------- fifo0 ------------
-    // 记录数据末尾的 keep 信号，用于交换平面给 TXMAC 数据流时产生 keep 信号
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo0_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo0_data_keep <= ( r_info_fifo0_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data0_last == 1'b1 &&  i_data0_vld == 1'b1 ) ? i_data0_keep : ri_info_fifo0_data_keep;
-        end
-    end
-
-    // 记录数据长度，用于交换平面给 TXMAC 数据流时产生 last 信号
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo0_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo0_data_cnt <= ( r_info_fifo0_data_vld == 1'b1 ) ? 16'd0 : ( i_data0_vld == 1'b1 ) ? ri_info_fifo0_data_cnt + 16'd1 : ri_info_fifo0_data_cnt;
-        end
-    end
-
-    // 内部信息写入 FIFO 有效位
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo0_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo0_data_vld <= ( i_data0_last == 1'b1 &&  i_data0_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    // meta 信息头 qbu flag 标识
-    /*
-	always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo0_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo0_qbu_flag <= (  r_c_fifo0_vld == 1'b1 ) ? 1'b0 : ( i_meta_data0_pri_vld == 1'b1 ) ? i_meta_data0_pri[11] : r_c_fifo0_qbu_flag;
-        end
-    end
-	*/
-		always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo0_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo0_qbu_flag <= (  r_c_fifo0_vld == 1'b1 ) ? 1'b0 : ( i_meta_data0_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo0_qbu_flag;
-        end
-    end
-	
-    // meta 信息头 qos 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo0_qos <= 1'b0;
-        end else begin
-            r_c_fifo0_qos <= (  r_c_fifo0_vld == 1'b1 ) ? 1'b0 : ( i_meta_data0_pri_vld == 1'b1 ) ? i_meta_data0_pri[18:15] : r_c_fifo0_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo0_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo0_wr_data <= i_data0_user;
-        end
-    end
-
-    // meta 信息头写入 FIFO 有效位
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo0_vld <= 1'b0;
-        end else begin
-            r_c_fifo0_vld <= i_data0_last;   //i_meta_data0_pri_vld;    //写完一整个数据包后，c_fifo_empty才为0，相当于允许被TXMAC调度
-        end
-    end
-
-    // 标识该优先级 FIFO 是否可以继续写入数据(忙信号)
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo0_busy <= 1'b0;
-        end else begin
-            r_fifo0_busy <= ( i_data0_vld == 1'b0 && w_data_fifo0_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    // 调度结果返回 FIFO0 的结果时，开始拉高读数据使能
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo0_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo0_rd_en <= ( (r_tx_mac_fifo0_cnt == w_info_fifo0_datalen) && w_info_fifo0_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? 1'b1 : r_data_fifo0_rd_en;
-        end
-    end
-
-    // 调度结果返回 FIFO0 的结果时，开始拉高读 meta 使能
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo0_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo0_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-    
-    // 检测读出的数据长度
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo0_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo0_cnt <= ( (r_tx_mac_fifo0_cnt == w_info_fifo0_datalen) && w_info_fifo0_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo0_rd_en == 1'b1 ) ? (r_tx_mac_fifo0_cnt + 16'd1) : r_tx_mac_fifo0_cnt;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo0_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo0_avaliable_flag <= ( r_info_fifo0_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo0_cnt == w_info_fifo0_datalen ) ? 1'b0: w_info_fifo0_avaliable_flag;
-        end
-    end
-
-
-    // 拉高 info 数据末尾产生 last keep 信号
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo0_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo0_rd_pre <= ( w_info_fifo0_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo0_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo0_rd_pre2 <= r_info_fifo0_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo0_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo0_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? 1'b1 : 1'b0;//( r_info_fifo0_rd_pre == 1'b1 && r_info_fifo0_rd_pre2 == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo0_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo0_vld <= r_data_fifo0_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo0_last  <= 1'b0;
-            r_tx_mac_fifo0_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo0_last <= ( r_tx_mac_fifo0_vld == 1'b1 && r_tx_mac_fifo0_cnt == w_info_fifo0_datalen ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo0_keep <= ( r_tx_mac_fifo0_vld == 1'b1 && r_tx_mac_fifo0_cnt == w_info_fifo0_datalen ) ? w_info_fifo0_keep : 16'd0;
-        end
-    end
-
-
-//----------- fifo1 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo1_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo1_data_keep <= ( r_info_fifo1_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data1_last == 1'b1 &&  i_data1_vld == 1'b1 ) ? i_data1_keep : ri_info_fifo1_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo1_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo1_data_cnt <= ( r_info_fifo1_data_vld == 1'b1 ) ? 16'd0 : ( i_data1_vld == 1'b1 ) ? ri_info_fifo1_data_cnt + 16'd1 : ri_info_fifo1_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo1_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo1_data_vld <= ( i_data1_last == 1'b1 &&  i_data1_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo1_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo1_qbu_flag <= (  r_c_fifo1_vld == 1'b1 ) ? 1'b0 : ( i_meta_data1_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo1_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo1_qos <= 1'b0;
-        end else begin
-            r_c_fifo1_qos <= (  r_c_fifo1_vld == 1'b1 ) ? 1'b0 : ( i_meta_data1_pri_vld == 1'b1 ) ? i_meta_data1_pri[18:15] : r_c_fifo1_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo1_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo1_wr_data <= i_data1_user;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo1_vld <= 1'b0;
-        end else begin
-            r_c_fifo1_vld <= i_data1_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo1_busy <= 1'b0;
-        end else begin
-            r_fifo1_busy <= ( i_data1_vld == 1'b0 && w_data_fifo1_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo1_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo1_rd_en <= ( (r_tx_mac_fifo1_cnt == w_info_fifo1_datalen) && w_info_fifo1_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? 1'b1 : r_data_fifo1_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo1_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo1_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo1_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo1_cnt <= ( (r_tx_mac_fifo1_cnt == w_info_fifo1_datalen) && w_info_fifo1_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo1_rd_en == 1'b1 ) ? (r_tx_mac_fifo1_cnt + 16'd1) : r_tx_mac_fifo1_cnt;
-        end
-    end
-
-   always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo1_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo1_avaliable_flag <= ( r_info_fifo1_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo1_cnt == w_info_fifo1_datalen ) ? 1'b0: w_info_fifo1_avaliable_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo1_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo1_rd_pre <= ( w_info_fifo1_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo1_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo1_rd_pre2 <= r_info_fifo1_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo1_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo1_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo1_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo1_vld <= r_data_fifo1_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo1_last  <= 1'b0;
-            r_tx_mac_fifo1_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo1_last <= ( r_tx_mac_fifo1_vld == 1'b1 && r_tx_mac_fifo1_cnt == w_info_fifo1_datalen ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo1_keep <= ( r_tx_mac_fifo1_vld == 1'b1 && r_tx_mac_fifo1_cnt == w_info_fifo1_datalen ) ? w_info_fifo1_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo2 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo2_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo2_data_keep <= ( r_info_fifo2_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data2_last == 1'b1 &&  i_data2_vld == 1'b1 ) ? i_data2_keep : ri_info_fifo2_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo2_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo2_data_cnt <= ( r_info_fifo2_data_vld == 1'b1 ) ? 16'd0 : ( i_data2_vld == 1'b1 ) ? ri_info_fifo2_data_cnt + 16'd1 : ri_info_fifo2_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo2_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo2_data_vld <= ( i_data2_last == 1'b1 &&  i_data2_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo2_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo2_qbu_flag <= (  r_c_fifo2_vld == 1'b1 ) ? 1'b0 : ( i_meta_data2_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo2_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo2_qos <= 1'b0;
-        end else begin
-            r_c_fifo2_qos <= (  r_c_fifo2_vld == 1'b1 ) ? 1'b0 : ( i_meta_data2_pri_vld == 1'b1 ) ? i_meta_data2_pri[18:15] : r_c_fifo2_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo2_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo2_wr_data <= i_data2_user;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo2_vld <= 1'b0;
-        end else begin
-            r_c_fifo2_vld <= i_data2_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo2_busy <= 1'b0;
-        end else begin
-            r_fifo2_busy <= ( i_data2_vld == 1'b0 && w_data_fifo2_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo2_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo2_rd_en <= ( (r_tx_mac_fifo2_cnt == w_info_fifo2_datalen) && w_info_fifo2_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? 1'b1 : r_data_fifo2_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo2_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo2_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo2_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo2_cnt <= ( (r_tx_mac_fifo2_cnt == w_info_fifo2_datalen) && w_info_fifo2_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo2_rd_en == 1'b1 ) ? (r_tx_mac_fifo2_cnt + 16'd1) : r_tx_mac_fifo2_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo2_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo2_avaliable_flag <= ( r_info_fifo2_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo2_cnt == w_info_fifo2_datalen ) ? 1'b0: w_info_fifo2_avaliable_flag;
-        end
-    end
-
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo2_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo2_rd_pre <= (  w_info_fifo2_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo2_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo2_rd_pre2 <= r_info_fifo2_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo2_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo2_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo2_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo2_vld <= r_data_fifo2_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo2_last  <= 1'b0;
-            r_tx_mac_fifo2_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo2_last <= ( r_tx_mac_fifo2_vld == 1'b1 && r_tx_mac_fifo2_cnt == w_info_fifo2_datalen  ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo2_keep <= ( r_tx_mac_fifo2_vld == 1'b1 && r_tx_mac_fifo2_cnt == w_info_fifo2_datalen  ) ? w_info_fifo2_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo3 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo3_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo3_data_keep <= ( r_info_fifo3_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data3_last == 1'b1 &&  i_data3_vld == 1'b1 ) ? i_data3_keep : ri_info_fifo3_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo3_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo3_data_cnt <= ( r_info_fifo3_data_vld == 1'b1 ) ? 16'd0 : ( i_data3_vld == 1'b1 ) ? ri_info_fifo3_data_cnt + 16'd1 : ri_info_fifo3_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo3_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo3_data_vld <= ( i_data3_last == 1'b1 &&  i_data3_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo3_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo3_qbu_flag <= (  r_c_fifo3_vld == 1'b1 ) ? 1'b0 : ( i_meta_data3_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo3_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo3_qos <= 1'b0;
-        end else begin
-            r_c_fifo3_qos <= (  r_c_fifo3_vld == 1'b1 ) ? 1'b0 : ( i_meta_data3_pri_vld == 1'b1 ) ? i_meta_data3_pri[18:15] : r_c_fifo3_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo3_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo3_wr_data <= i_data3_user;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo3_vld <= 1'b0;
-        end else begin
-            r_c_fifo3_vld <= i_data3_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo3_busy <= 1'b0;
-        end else begin
-            r_fifo3_busy <= ( i_data3_vld == 1'b0 && w_data_fifo3_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo3_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo3_rd_en <= ( (r_tx_mac_fifo3_cnt == w_info_fifo3_datalen) && w_info_fifo3_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? 1'b1 : r_data_fifo3_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo3_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo3_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo3_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo3_cnt <= ( (r_tx_mac_fifo3_cnt == w_info_fifo3_datalen) && w_info_fifo3_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo3_rd_en == 1'b1 ) ? (r_tx_mac_fifo3_cnt + 16'd1) : r_tx_mac_fifo3_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo3_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo3_avaliable_flag <= ( r_info_fifo3_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo3_cnt == w_info_fifo3_datalen ) ? 1'b0: w_info_fifo3_avaliable_flag;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo3_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo3_rd_pre <= ( w_info_fifo3_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo3_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo3_rd_pre2 <= r_info_fifo3_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo3_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo3_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo3_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo3_vld <= r_data_fifo3_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo3_last  <= 1'b0;
-            r_tx_mac_fifo3_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo3_last <= ( r_tx_mac_fifo3_vld == 1'b1 && r_tx_mac_fifo3_cnt == w_info_fifo3_datalen  ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo3_keep <= ( r_tx_mac_fifo3_vld == 1'b1 && r_tx_mac_fifo3_cnt == w_info_fifo3_datalen  ) ? w_info_fifo3_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo4 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo4_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo4_data_keep <= ( r_info_fifo4_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data4_last == 1'b1 &&  i_data4_vld == 1'b1 ) ? i_data4_keep : ri_info_fifo4_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo4_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo4_data_cnt <= ( r_info_fifo4_data_vld == 1'b1 ) ? 16'd0 : ( i_data4_vld == 1'b1 ) ? ri_info_fifo4_data_cnt + 16'd1 : ri_info_fifo4_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo4_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo4_data_vld <= ( i_data4_last == 1'b1 &&  i_data4_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo4_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo4_qbu_flag <= (  r_c_fifo4_vld == 1'b1 ) ? 1'b0 : ( i_meta_data4_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo4_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo4_qos <= 1'b0;
-        end else begin
-            r_c_fifo4_qos <= (  r_c_fifo4_vld == 1'b1 ) ? 1'b0 : ( i_meta_data4_pri_vld == 1'b1 ) ? i_meta_data4_pri[18:15] : r_c_fifo4_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo4_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo4_wr_data <= i_data4_user;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo4_vld <= 1'b0;
-        end else begin
-            r_c_fifo4_vld <= i_data4_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo4_busy <= 1'b0;
-        end else begin
-            r_fifo4_busy <= ( i_data4_vld == 1'b0 && w_data_fifo4_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo4_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo4_rd_en <= ( (r_tx_mac_fifo4_cnt == w_info_fifo4_datalen) && w_info_fifo4_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? 1'b1 : r_data_fifo4_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo4_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo4_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo4_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo4_cnt <= ( (r_tx_mac_fifo4_cnt == w_info_fifo4_datalen) && w_info_fifo4_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo4_rd_en == 1'b1 ) ? (r_tx_mac_fifo4_cnt + 16'd1) : r_tx_mac_fifo4_cnt;
-        end
-    end
-    
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo4_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo4_avaliable_flag <= ( r_info_fifo4_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo4_cnt == w_info_fifo4_datalen ) ? 1'b0: w_info_fifo4_avaliable_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo4_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo4_rd_pre <= ( w_info_fifo4_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo4_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo4_rd_pre2 <= r_info_fifo4_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo4_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo4_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo4_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo4_vld <= r_data_fifo4_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo4_last  <= 1'b0;
-            r_tx_mac_fifo4_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo4_last <= ( r_tx_mac_fifo4_vld == 1'b1 && r_tx_mac_fifo4_cnt == w_info_fifo4_datalen  ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo4_keep <= ( r_tx_mac_fifo4_vld == 1'b1 && r_tx_mac_fifo4_cnt == w_info_fifo4_datalen  ) ? w_info_fifo4_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo5 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo5_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo5_data_keep <= ( r_info_fifo5_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data5_last == 1'b1 &&  i_data5_vld == 1'b1 ) ? i_data5_keep : ri_info_fifo5_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo5_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo5_data_cnt <= ( r_info_fifo5_data_vld == 1'b1 ) ? 16'd0 : ( i_data5_vld == 1'b1 ) ? ri_info_fifo5_data_cnt + 16'd1 : ri_info_fifo5_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo5_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo5_data_vld <= ( i_data5_last == 1'b1 &&  i_data5_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo5_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo5_qbu_flag <= (  r_c_fifo5_vld == 1'b1 ) ? 1'b0 : ( i_meta_data5_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo5_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo5_qos <= 1'b0;
-        end else begin
-            r_c_fifo5_qos <= (  r_c_fifo5_vld == 1'b1 ) ? 1'b0 : ( i_meta_data5_pri_vld == 1'b1 ) ? i_meta_data5_pri[18:15] : r_c_fifo5_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo5_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo5_wr_data <= i_data5_user;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo5_vld <= 1'b0;
-        end else begin
-            r_c_fifo5_vld <= i_data5_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo5_busy <= 1'b0;
-        end else begin
-            r_fifo5_busy <= ( i_data5_vld == 1'b0 && w_data_fifo5_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo5_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo5_rd_en <= ( (r_tx_mac_fifo5_cnt == w_info_fifo5_datalen) && w_info_fifo5_avaliable_flag ==1'b1) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? 1'b1 : r_data_fifo5_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo5_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo5_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo5_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo5_cnt <= ( (r_tx_mac_fifo5_cnt == w_info_fifo5_datalen) && w_info_fifo5_avaliable_flag ==1'b1) ? 16'd1 : ( r_data_fifo5_rd_en == 1'b1 ) ? (r_tx_mac_fifo5_cnt + 16'd1) : r_tx_mac_fifo5_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo5_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo5_avaliable_flag <= ( r_info_fifo5_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo5_cnt == w_info_fifo5_datalen ) ? 1'b0: w_info_fifo5_avaliable_flag;
-        end
-    end
-
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo5_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo5_rd_pre <= ( w_info_fifo5_empty == 1'b0 ) ? 1'b1 : 1'b0;//( r_data_fifo5_rd_en == 1'b1 && w_info_fifo5_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo5_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo5_rd_pre2 <= r_info_fifo5_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo5_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo5_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo5_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo5_vld <= r_data_fifo5_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo5_last  <= 1'b0;
-            r_tx_mac_fifo5_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo5_last <= ( r_tx_mac_fifo5_vld == 1'b1 && r_tx_mac_fifo5_cnt == w_info_fifo5_datalen) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo5_keep <= ( r_tx_mac_fifo5_vld == 1'b1 && r_tx_mac_fifo5_cnt == w_info_fifo5_datalen) ? w_info_fifo5_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo6 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo6_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo6_data_keep <= ( r_info_fifo6_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data6_last == 1'b1 &&  i_data6_vld == 1'b1 ) ? i_data6_keep : ri_info_fifo6_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo6_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo6_data_cnt <= ( r_info_fifo6_data_vld == 1'b1 ) ? 16'd0 : ( i_data6_vld == 1'b1 ) ? ri_info_fifo6_data_cnt + 16'd1 : ri_info_fifo6_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo6_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo6_data_vld <= ( i_data6_last == 1'b1 &&  i_data6_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo6_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo6_qbu_flag <= (  r_c_fifo6_vld == 1'b1 ) ? 1'b0 : ( i_meta_data6_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo6_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo6_qos <= 1'b0;
-        end else begin
-            r_c_fifo6_qos <= (  r_c_fifo6_vld == 1'b1 ) ? 1'b0 : ( i_meta_data6_pri_vld == 1'b1 ) ? i_meta_data6_pri[18:15] : r_c_fifo6_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo6_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo6_wr_data <= i_data6_user;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo6_vld <= 1'b0;
-        end else begin
-            r_c_fifo6_vld <= i_data6_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo6_busy <= 1'b0;
-        end else begin
-            r_fifo6_busy <= ( i_data6_vld == 1'b0 && w_data_fifo6_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo6_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo6_rd_en <= ( (r_tx_mac_fifo6_cnt == w_info_fifo6_datalen) && w_info_fifo6_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? 1'b1 : r_data_fifo6_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo6_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo6_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo6_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo6_cnt <= ( (r_tx_mac_fifo6_cnt == w_info_fifo6_datalen) && w_info_fifo6_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo6_rd_en == 1'b1 ) ? (r_tx_mac_fifo6_cnt + 16'd1) : r_tx_mac_fifo6_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo6_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo6_avaliable_flag <= ( r_info_fifo6_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo6_cnt == w_info_fifo6_datalen ) ? 1'b0: w_info_fifo6_avaliable_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo6_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo6_rd_pre <= ( w_info_fifo6_empty == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo6_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo6_rd_pre2 <= r_info_fifo6_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo6_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo6_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo6_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo6_vld <= r_data_fifo6_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo6_last  <= 1'b0;
-            r_tx_mac_fifo6_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo6_last <= ( r_tx_mac_fifo6_vld == 1'b1 && r_tx_mac_fifo6_cnt == w_info_fifo6_datalen ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo6_keep <= ( r_tx_mac_fifo6_vld == 1'b1 && r_tx_mac_fifo6_cnt == w_info_fifo6_datalen ) ? w_info_fifo6_keep : 16'd0;
-        end
-    end
-
-    //----------- fifo7 ------------
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo7_data_keep <= {(CROSS_DATA_WIDTH/8){1'b0}};
-        end else begin
-            ri_info_fifo7_data_keep <= ( r_info_fifo7_data_vld == 1'b1 ) ? {(CROSS_DATA_WIDTH/8){1'b0}} :( i_data7_last == 1'b1 &&  i_data7_vld == 1'b1 ) ? i_data7_keep : ri_info_fifo7_data_keep;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            ri_info_fifo7_data_cnt <= 16'd0;
-        end else begin
-            ri_info_fifo7_data_cnt <= ( r_info_fifo7_data_vld == 1'b1 ) ? 16'd0 : ( i_data7_vld == 1'b1 ) ? ri_info_fifo7_data_cnt + 16'd1 : ri_info_fifo7_data_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo7_data_vld <= 1'b0;
-        end else begin
-            r_info_fifo7_data_vld <= ( i_data7_last == 1'b1 &&  i_data7_vld == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo7_qbu_flag <= 1'b0;
-        end else begin
-            r_c_fifo7_qbu_flag <= (  r_c_fifo7_vld == 1'b1 ) ? 1'b0 : ( i_meta_data7_pri_vld == 1'b1 ) ? i_emac_tx_axis_user[13] : r_c_fifo7_qbu_flag;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo7_qos <= 1'b0;
-        end else begin
-            r_c_fifo7_qos <= (  r_c_fifo7_vld == 1'b1 ) ? 1'b0 : ( i_meta_data7_pri_vld == 1'b1 ) ? i_meta_data7_pri[18:15] : r_c_fifo7_qos;
-        end
-    end
-
-   // user 字段
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_c_fifo7_wr_data <= 1'b0;
-        end else begin
-            w_c_fifo7_wr_data <= i_data7_user;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo7_vld <= 1'b0;
-        end else begin
-            r_c_fifo7_vld <= i_data7_last;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_fifo7_busy <= 1'b0;
-        end else begin
-            r_fifo7_busy <= ( i_data7_vld == 1'b0 && w_data_fifo7_full == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_data_fifo7_rd_en <= 1'b0;
-        end else begin
-            r_data_fifo7_rd_en <= ( (r_tx_mac_fifo7_cnt == w_info_fifo7_datalen) && w_info_fifo7_avaliable_flag ==1'b1 ) ? 1'b0 : ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? 1'b1 : r_data_fifo7_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_c_fifo7_rd_en <= 1'b0;
-        end else begin
-            r_c_fifo7_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo7_cnt <= 16'd1;
-        end else begin
-            r_tx_mac_fifo7_cnt <= ( (r_tx_mac_fifo7_cnt == w_info_fifo7_datalen) && w_info_fifo7_avaliable_flag ==1'b1 ) ? 16'd1 : ( r_data_fifo7_rd_en == 1'b1 ) ? (r_tx_mac_fifo7_cnt + 16'd1) : r_tx_mac_fifo7_cnt;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            w_info_fifo7_avaliable_flag <= 1'b0;
-        end else begin
-            w_info_fifo7_avaliable_flag <= ( r_info_fifo7_rd_en == 1'b1) ? 1'b1 : ( r_tx_mac_fifo7_cnt == w_info_fifo7_datalen ) ? 1'b0: w_info_fifo7_avaliable_flag;
-        end
-    end
-
-   
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo7_rd_pre <= 1'b0;
-        end else begin
-            r_info_fifo7_rd_pre <= ( w_info_fifo7_empty == 1'b0) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo7_rd_pre2 <= 1'b0;
-        end else begin
-            r_info_fifo7_rd_pre2 <= r_info_fifo7_rd_pre;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_info_fifo7_rd_en <= 1'b0;
-        end else begin
-            r_info_fifo7_rd_en <= ( ri_scheduing_rst_vld == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? 1'b1 : 1'b0;//( r_info_fifo7_rd_pre == 1'b1 && r_info_fifo7_rd_pre2 == 1'b0 ) ? 1'b1 : 1'b0;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo7_vld <= 1'b0;
-        end else begin
-            r_tx_mac_fifo7_vld <= r_data_fifo7_rd_en;
-        end
-    end
-
-    always @(posedge i_clk or posedge i_rst) begin
-        if (i_rst == 1'b1) begin
-            r_tx_mac_fifo7_last  <= 1'b0;
-            r_tx_mac_fifo7_keep  <= 16'd0;
-        end else begin
-            r_tx_mac_fifo7_last <= ( r_tx_mac_fifo7_vld == 1'b1 && r_tx_mac_fifo7_cnt == w_info_fifo7_datalen ) ? 1'b1 : 1'b0;
-            r_tx_mac_fifo7_keep <= ( r_tx_mac_fifo7_vld == 1'b1 && r_tx_mac_fifo7_cnt == w_info_fifo7_datalen ) ? w_info_fifo7_keep : 16'd0;
-        end
-    end
 
+// ========================== GENERATE 逻辑 ==========================
+genvar i;
+generate
+    for (i = 0; i < 8; i = i + 1) begin : fifo_gen
+        // 记录数据末尾的 keep 信号
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                ri_info_fifo_data_keep[i] <= {(CROSS_DATA_WIDTH/8){1'b0}};
+            end else begin
+                ri_info_fifo_data_keep[i] <= (r_info_fifo_data_vld[i]) ? {(CROSS_DATA_WIDTH/8){1'b0}} : 
+                                           (i_data_last[i] && i_data_vld[i]) ? i_data_keep[i] : 
+                                           ri_info_fifo_data_keep[i];
+            end
+        end
+
+        // 记录数据长度
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                ri_info_fifo_data_cnt[i] <= 16'd0;
+            end else begin
+                ri_info_fifo_data_cnt[i] <= (r_info_fifo_data_vld[i]) ? 16'd0 : 
+                                          (i_data_vld[i]) ? ri_info_fifo_data_cnt[i] + 16'd1 : 
+                                          ri_info_fifo_data_cnt[i];
+            end
+        end
+
+        // 内部信息写入 FIFO 有效位
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_info_fifo_data_vld[i] <= 1'b0;
+            end else begin
+                r_info_fifo_data_vld[i] <= (i_data_last[i] && i_data_vld[i]) ? 1'b1 : 1'b0;
+            end
+        end
+
+        // meta 信息头 qbu flag 标识
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_c_fifo_qbu_flag[i] <= 1'b0;
+            end else begin
+                r_c_fifo_qbu_flag[i] <= (r_c_fifo_vld[i]) ? 1'b0 : 
+                                      (i_meta_data_pri_vld[i]) ? i_meta_data_pri[i][11] : 
+                                      r_c_fifo_qbu_flag[i];
+            end
+        end
+
+        // meta 信息头 qos 字段
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_c_fifo_qos[i] <= 4'b0;
+            end else begin
+                r_c_fifo_qos[i] <= (r_c_fifo_vld[i]) ? 4'b0 : 
+                                 (i_meta_data_pri_vld[i]) ? i_meta_data_pri[i][18:15] : 
+                                 r_c_fifo_qos[i];
+            end
+        end
+
+        // user 字段
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                w_c_fifo_wr_data[i] <= 16'b0;
+            end else begin
+                w_c_fifo_wr_data[i] <= i_data_user[i];
+            end
+        end
+
+        // meta 信息头写入 FIFO 有效位
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_c_fifo_vld[i] <= 1'b0;
+            end else begin
+                r_c_fifo_vld[i] <= i_data_last[i];
+            end
+        end
+
+        // 标识该优先级 FIFO 是否可以继续写入数据(忙信号)
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_fifo_busy[i] <= 1'b0;
+            end else begin
+                r_fifo_busy[i] <= (i_data_vld[i] == 1'b0 && w_data_fifo_full[i] == 1'b0) ? 1'b1 : 1'b0;
+            end
+        end
+
+        // 调度结果返回时，开始拉高读数据使能
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_data_fifo_rd_en[i] <= 1'b0;
+            end else begin
+                r_data_fifo_rd_en[i] <= ((r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) && w_info_fifo_avaliable_flag[i]) ? 1'b0 : 
+                                      (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 
+                                      r_data_fifo_rd_en[i];
+            end
+        end
+
+        // 调度结果返回时，开始拉高读 meta 使能
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_c_fifo_rd_en[i] <= 1'b0;
+            end else begin
+                r_c_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 1'b0;
+            end
+        end
+
+        // 检测读出的数据长度
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_tx_mac_fifo_cnt[i] <= 16'd1;
+            end else begin
+                r_tx_mac_fifo_cnt[i] <= ((r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) && w_info_fifo_avaliable_flag[i]) ? 16'd1 : 
+                                      (r_data_fifo_rd_en[i]) ? (r_tx_mac_fifo_cnt[i] + 16'd1) : 
+                                      r_tx_mac_fifo_cnt[i];
+            end
+        end
+
+        // 可用标志
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                w_info_fifo_avaliable_flag[i] <= 1'b0;
+            end else begin
+                w_info_fifo_avaliable_flag[i] <= (r_info_fifo_rd_en[i]) ? 1'b1 : 
+                                               (r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) ? 1'b0 : 
+                                               w_info_fifo_avaliable_flag[i];
+            end
+        end
+
+        // 读使能预处理
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_info_fifo_rd_pre[i] <= 1'b0;
+            end else begin
+                r_info_fifo_rd_pre[i] <= (w_info_fifo_empty[i] == 1'b0) ? 1'b1 : 1'b0;
+            end
+        end
+
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_info_fifo_rd_pre2[i] <= 1'b0;
+            end else begin
+                r_info_fifo_rd_pre2[i] <= r_info_fifo_rd_pre[i];
+            end
+        end
+
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_info_fifo_rd_en[i] <= 1'b0;
+            end else begin
+                r_info_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 1'b0;
+            end
+        end
+
+        // TX MAC 输出有效
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_tx_mac_fifo_vld[i] <= 1'b0;
+            end else begin
+                r_tx_mac_fifo_vld[i] <= r_data_fifo_rd_en[i];
+            end
+        end
+
+        // TX MAC 输出 last 和 keep 信号
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_tx_mac_fifo_last[i] <= 1'b0;
+                r_tx_mac_fifo_keep[i] <= 16'd0;
+            end else begin
+                r_tx_mac_fifo_last[i] <= (r_tx_mac_fifo_vld[i] && r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) ? 1'b1 : 1'b0;
+                r_tx_mac_fifo_keep[i] <= (r_tx_mac_fifo_vld[i] && r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) ? w_info_fifo_keep[i] : 16'd0;
+            end
+        end
+
+
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_data[i] <= 1'b0;
+            end else begin
+                r_data[i] <= i_data[i];
+            end
+        end
+
+        // 输出信号连接
+        assign o_data_ready[i] = ~w_data_fifo_full[i];
+        assign o_data_busy[i] = r_fifo_busy[i];
+
+    //========================== 新增数据包长度和FIFO空间计算 ==========================
+
+        // 提取数据包长度（user[14:0]）
+        assign w_packet_length[i] = i_data_user[i][14:0];
+        
+        // 计算FIFO剩余空间（假设FIFO深度为16384）
+        assign w_fifo_remaining_space[i] = 16'd16384 - w_data_fifo_data_cnt[i];
+        
+        // 数据包丢弃标志
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_discard_packet[i] <= 1'b0;
+                rr_discard_packet[i] <= 1'b0;
+            end else begin
+                r_discard_packet[i] <= (i_data_vld[i] == 1'b1 && r_packet_active[i] == 1'b0) ? 
+                                      ((w_fifo_remaining_space[i] < {1'b0, w_packet_length[i]}) ? 1'b1 : 1'b0) : 
+                                      (i_data_last[i] == 1'b1 && i_data_vld[i] == 1'b1) ? 1'b0 : 
+                                      r_discard_packet[i]; 
+
+                rr_discard_packet[i] <= r_discard_packet[i];
+            end
+        end
+
+
+         // 数据包活跃标志
+        always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_packet_active[i] <= 1'b0;
+            end else begin
+                r_packet_active[i] <= (i_data_vld[i] == 1'b1 && r_packet_active[i] == 1'b0) ? 1'b1 : 
+                                     (i_data_last[i] == 1'b1 && i_data_vld[i] == 1'b1) ? 1'b0 : 
+                                     r_packet_active[i];
+            end
+        end       
+
+        // 实际的FIFO写使能（考虑丢弃标志）
+        always @(*) begin
+            r_fifo_wr_en[i] = i_data_vld[i] && !r_discard_packet[i] && !w_data_fifo_full[i];
+        end
+
+    end
+endgenerate
+
+
+
+// ========================== FIFO 实例化 - 使用 GENERATE ==========================
+genvar fifo_idx;
+generate
+    for (fifo_idx = 0; fifo_idx < 8; fifo_idx = fifo_idx + 1) begin : fifo_inst_gen
+        
+        // ------ 数据 FIFO (大容量，Block RAM) ------
+        sync_fifo #(
+            .DEPTH                   ( 32768              ),
+            .WIDTH                   ( CROSS_DATA_WIDTH   ),
+            .ALMOST_FULL_THRESHOLD   (      ),
+            .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
+            .FLOP_DATA_OUT           ( 1'b0 ),
+            .RAM_STYLE               ( 1'b1 )
+        ) pri_data_fifo_inst (       
+            .i_clk                    ( i_clk                            ),
+            .i_rst                   ( i_rst                            ),
+            .i_wr_en                 ( r_fifo_wr_en[fifo_idx]             ),
+            .i_din                   ( r_data[fifo_idx]                 ),
+            .o_full                  ( w_data_fifo_full[fifo_idx]       ),
+            .i_rd_en                 ( r_data_fifo_rd_en[fifo_idx]      ),
+            .o_dout                  ( w_data_fifo_rd_data[fifo_idx]    ),
+            .o_empty                 ( w_data_fifo_empty[fifo_idx]      ),
+            .o_almost_full           ( ),
+            .o_almost_empty          ( ),
+            .o_data_cnt              ( w_data_fifo_data_cnt[fifo_idx] )
+        );
+
+        // ------ 信息 FIFO (小容量，Distributed RAM) ------
+        sync_fifo #(
+            .DEPTH                    ( 64       ),
+            .WIDTH                   ( 32       ),
+            .ALMOST_FULL_THRESHOLD   (          ),
+            .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
+            .FLOP_DATA_OUT           ( 1'b0 ), // fifo0 开启 FWFT
+            .RAM_STYLE               ( 1'b0     )
+        ) pri_info_fifo_inst (       
+            .i_clk                    ( i_clk                                                              ),
+            .i_rst                   ( i_rst                                                              ),
+            .i_wr_en                 ( r_info_fifo_data_vld[fifo_idx] && !rr_discard_packet[fifo_idx]        ),
+            .i_din                   ( {ri_info_fifo_data_keep[fifo_idx], ri_info_fifo_data_cnt[fifo_idx]} ),
+            .o_full                  (                                                                    ),
+            .i_rd_en                 ( r_info_fifo_rd_en[fifo_idx]                                        ),
+            .o_dout                  ( {w_info_fifo_keep[fifo_idx], w_info_fifo_datalen[fifo_idx]}         ),
+            .o_empty                 ( w_info_fifo_empty[fifo_idx]                                        ),
+            .o_almost_full           (                                                                    ),
+            .o_almost_empty          (                                                                    ),
+            .o_data_cnt              (                                                                    )
+        );
+
+        // ------ 控制 FIFO (小容量，Distributed RAM) ------
+        sync_fifo #(
+            .DEPTH                    ( 64       ),
+            .WIDTH                   ( 16       ),
+            .ALMOST_FULL_THRESHOLD   (          ),
+            .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
+            .FLOP_DATA_OUT           ( 1'b0     ),
+            .RAM_STYLE               ( 1'b0     )
+        ) pri_control_fifo_inst (       
+            .i_clk                    ( i_clk                            ),
+            .i_rst                   ( i_rst                            ),
+            .i_wr_en                 ( r_c_fifo_vld[fifo_idx] && !rr_discard_packet[fifo_idx] ),
+            .i_din                   ( w_c_fifo_wr_data[fifo_idx]       ),
+            .o_full                  ( w_c_fifo_full[fifo_idx]          ),
+            .i_rd_en                 ( r_c_fifo_rd_en[fifo_idx]         ),
+            .o_dout                  ( w_c_fifo_rd_data[fifo_idx]       ),
+            .o_empty                 ( w_c_fifo_empty[fifo_idx]         ),
+            .o_almost_full           (                                  ),
+            .o_almost_empty          (                                  ),
+            .o_data_cnt              (                                  )
+        );
+
+    end
+endgenerate
 
 
-/*--------- inst ----------*/
-
-// ------ fifo0 -------
-    sync_fifo #(
-        .DEPTH                    ( 16384              )
-        ,.WIDTH                   ( CROSS_DATA_WIDTH   )
-        ,.ALMOST_FULL_THRESHOLD   (      )
-        ,.ALMOST_EMPTY_THRESHOLD  ( 'd1 )
-        ,.FLOP_DATA_OUT           ( 1'b0 ) //是否开启fwft
-        ,.RAM_STYLE               ( 1'b1 ) // RAM综合类型选择：
-                                            // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
-                                            // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快
-    ) pri0_fifo_inst (       
-        .i_clk                    ( i_clk                ) 
-        ,.i_rst                   ( i_rst                ) 
-        ,.i_wr_en                 ( i_data0_vld          ) 
-        ,.i_din                   ( i_data0              ) 
-        ,.o_full                  ( w_data_fifo0_full     )    
-        ,.i_rd_en                 ( r_data_fifo0_rd_en        )    
-        ,.o_dout                  ( w_data_fifo0_rd_data      )    
-        ,.o_empty                 ( w_data_fifo0_empty    ) 
-        ,.o_almost_full           ( ) 
-        ,.o_almost_empty          ( ) 
-        ,.o_data_cnt              (  )
-    );
-
-    sync_fifo #(
-        .DEPTH                    ( 64       )
-        ,.WIDTH                   ( 32       )
-        ,.ALMOST_FULL_THRESHOLD   (          )
-        ,.ALMOST_EMPTY_THRESHOLD  ( 'd1      )
-        ,.FLOP_DATA_OUT           ( 1'b1     ) //是否开启fwft
-        ,.RAM_STYLE               ( 1'b0     ) // RAM综合类型选择：
-                                            // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
-                                            // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快
-    ) pri0_fifo_info_inst (       
-        .i_clk                    ( i_clk                          ) 
-        ,.i_rst                   ( i_rst                          ) 
-        ,.i_wr_en                 ( r_info_fifo0_data_vld               ) 
-        ,.i_din                   ( { ri_info_fifo0_data_keep,ri_info_fifo0_data_cnt } ) 
-        ,.o_full                  (                                )    
-        ,.i_rd_en                 ( r_info_fifo0_rd_en             )    
-        ,.o_dout                  ( { w_info_fifo0_keep,w_info_fifo0_datalen } )    
-        ,.o_empty                 ( w_info_fifo0_empty         ) 
-        ,.o_almost_full           (                                ) 
-        ,.o_almost_empty          (                                ) 
-        ,.o_data_cnt              (                                )
-    );
-
-    sync_fifo #(
-        .DEPTH                    ( 64       )
-        ,.WIDTH                   ( 16       )
-        ,.ALMOST_FULL_THRESHOLD   (          )
-        ,.ALMOST_EMPTY_THRESHOLD  ( 'd1      )
-        ,.FLOP_DATA_OUT           ( 1'b0     ) //是否开启fwft
-        ,.RAM_STYLE               ( 1'b0     ) // RAM综合类型选择：
-                                            // 1: Block RAM - 适用于大容量FIFO，节省LUT资源
-                                            // 0: Distributed RAM(LUT RAM) - 适用于小容量FIFO，访问速度快
-    ) pri0_fifoc_inst (       
-        .i_clk                    ( i_clk                            ) 
-        ,.i_rst                   ( i_rst                            ) 
-        ,.i_wr_en                 ( r_c_fifo0_vld                ) 
-        ,.i_din                   ( w_c_fifo0_wr_data                    ) //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-        ,.o_full                  ( w_c_fifo0_full                )    
-        ,.i_rd_en                 ( r_c_fifo0_rd_en                    )    
-        ,.o_dout                  ( w_c_fifo0_rd_data                  )    
-        ,.o_empty                 ( w_c_fifo0_empty               ) 
-        ,.o_almost_full           (                                  ) 
-        ,.o_almost_empty          (                                  ) 
-        ,.o_data_cnt              (                                  )
-    );
-
-// ------ fifo1 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri1_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data1_vld          ),
-    .i_din                   ( i_data1              ),
-    .o_full                  ( w_data_fifo1_full    ),
-    .i_rd_en                 ( r_data_fifo1_rd_en   ),
-    .o_dout                  ( w_data_fifo1_rd_data ),
-    .o_empty                 ( w_data_fifo1_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri1_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo1_data_vld          ),
-    .i_din                   ( { ri_info_fifo1_data_keep,ri_info_fifo1_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo1_rd_en             ),
-    .o_dout                  ( { w_info_fifo1_keep,w_info_fifo1_datalen } ),
-    .o_empty                 ( w_info_fifo1_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri1_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo1_vld                   ),
-    .i_din                   ( w_c_fifo1_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo1_full                  ),
-    .i_rd_en                 ( r_c_fifo1_rd_en                 ),
-    .o_dout                  ( w_c_fifo1_rd_data               ),
-    .o_empty                 ( w_c_fifo1_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo2 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri2_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data2_vld          ),
-    .i_din                   ( i_data2              ),
-    .o_full                  ( w_data_fifo2_full    ),
-    .i_rd_en                 ( r_data_fifo2_rd_en   ),
-    .o_dout                  ( w_data_fifo2_rd_data ),
-    .o_empty                 ( w_data_fifo2_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri2_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo2_data_vld          ),
-    .i_din                   ( { ri_info_fifo2_data_keep,ri_info_fifo2_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo2_rd_en             ),
-    .o_dout                  ( { w_info_fifo2_keep,w_info_fifo2_datalen } ),
-    .o_empty                 ( w_info_fifo2_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri2_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo2_vld                   ),
-    .i_din                  ( w_c_fifo2_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo2_full                  ),
-    .i_rd_en                 ( r_c_fifo2_rd_en                 ),
-    .o_dout                  ( w_c_fifo2_rd_data               ),
-    .o_empty                 ( w_c_fifo2_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo3 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri3_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data3_vld          ),
-    .i_din                   ( i_data3              ),
-    .o_full                  ( w_data_fifo3_full    ),
-    .i_rd_en                 ( r_data_fifo3_rd_en   ),
-    .o_dout                  ( w_data_fifo3_rd_data ),
-    .o_empty                 ( w_data_fifo3_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri3_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo3_data_vld          ),
-    .i_din                   ( { ri_info_fifo3_data_keep,ri_info_fifo3_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo3_rd_en             ),
-    .o_dout                  ( { w_info_fifo3_keep,w_info_fifo3_datalen } ),
-    .o_empty                 ( w_info_fifo3_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri3_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo3_vld                   ),
-    .i_din                  ( w_c_fifo3_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo3_full                  ),
-    .i_rd_en                 ( r_c_fifo3_rd_en                 ),
-    .o_dout                  ( w_c_fifo3_rd_data               ),
-    .o_empty                 ( w_c_fifo3_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo4 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri4_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data4_vld          ),
-    .i_din                   ( i_data4              ),
-    .o_full                  ( w_data_fifo4_full    ),
-    .i_rd_en                 ( r_data_fifo4_rd_en   ),
-    .o_dout                  ( w_data_fifo4_rd_data ),
-    .o_empty                 ( w_data_fifo4_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri4_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo4_data_vld          ),
-    .i_din                   ( { ri_info_fifo4_data_keep,ri_info_fifo4_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo4_rd_en             ),
-    .o_dout                  ( { w_info_fifo4_keep,w_info_fifo4_datalen } ),
-    .o_empty                 ( w_info_fifo4_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri4_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo4_vld                   ),
-    .i_din                  ( w_c_fifo4_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo4_full                  ),
-    .i_rd_en                 ( r_c_fifo4_rd_en                 ),
-    .o_dout                  ( w_c_fifo4_rd_data               ),
-    .o_empty                 ( w_c_fifo4_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo5 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri5_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data5_vld          ),
-    .i_din                   ( i_data5              ),
-    .o_full                  ( w_data_fifo5_full    ),
-    .i_rd_en                 ( r_data_fifo5_rd_en   ),
-    .o_dout                  ( w_data_fifo5_rd_data ),
-    .o_empty                 ( w_data_fifo5_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri5_fifo_info_inst (       
-    .i_clk                   ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo5_data_vld          ),
-    .i_din                   ( {15'd0,ri_info_fifo5_data_keep,ri_info_fifo5_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo5_rd_en             ),
-    .o_dout                  ( { w_info_fifo5_keep,w_info_fifo5_datalen } ),
-    .o_empty                 ( w_info_fifo5_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri5_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo5_vld                   ),
-    .i_din                  ( w_c_fifo5_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo5_full                  ),
-    .i_rd_en                 ( r_c_fifo5_rd_en                 ),
-    .o_dout                  ( w_c_fifo5_rd_data               ),
-    .o_empty                 ( w_c_fifo5_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo6 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri6_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data6_vld          ),
-    .i_din                   ( i_data6              ),
-    .o_full                  ( w_data_fifo6_full    ),
-    .i_rd_en                 ( r_data_fifo6_rd_en   ),
-    .o_dout                  ( w_data_fifo6_rd_data ),
-    .o_empty                 ( w_data_fifo6_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri6_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo6_data_vld          ),
-    .i_din                   ( { ri_info_fifo6_data_keep,ri_info_fifo6_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo6_rd_en             ),
-    .o_dout                  ( { w_info_fifo6_keep,w_info_fifo6_datalen } ),
-    .o_empty                 ( w_info_fifo6_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri6_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo6_vld                   ),
-    .i_din                  ( w_c_fifo6_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo6_full                  ),
-    .i_rd_en                 ( r_c_fifo6_rd_en                 ),
-    .o_dout                  ( w_c_fifo6_rd_data               ),
-    .o_empty                 ( w_c_fifo6_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
-
-// ------ fifo7 -------
-sync_fifo #(
-    .DEPTH                    ( 16384              ),
-    .WIDTH                   ( CROSS_DATA_WIDTH   ),
-    .ALMOST_FULL_THRESHOLD   (      ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
-    .FLOP_DATA_OUT           ( 1'b0 ),
-    .RAM_STYLE               ( 1'b1 )
-) pri7_fifo_inst (       
-    .i_clk                    ( i_clk                ),
-    .i_rst                   ( i_rst                ),
-    .i_wr_en                 ( i_data7_vld          ),
-    .i_din                   ( i_data7              ),
-    .o_full                  ( w_data_fifo7_full    ),
-    .i_rd_en                 ( r_data_fifo7_rd_en   ),
-    .o_dout                  ( w_data_fifo7_rd_data ),
-    .o_empty                 ( w_data_fifo7_empty   ),
-    .o_almost_full           ( ),
-    .o_almost_empty          ( ),
-    .o_data_cnt              (  )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 32       ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri7_fifo_info_inst (       
-    .i_clk                    ( i_clk                          ),
-    .i_rst                   ( i_rst                          ),
-    .i_wr_en                 ( r_info_fifo7_data_vld          ),
-    .i_din                   ( { ri_info_fifo7_data_keep,ri_info_fifo7_data_cnt } ),
-    .o_full                  (                                ),
-    .i_rd_en                 ( r_info_fifo7_rd_en             ),
-    .o_dout                  ( { w_info_fifo7_keep,w_info_fifo7_datalen } ),
-    .o_empty                 ( w_info_fifo7_empty             ),
-    .o_almost_full           (                                ),
-    .o_almost_empty          (                                ),
-    .o_data_cnt              (                                )
-);
-
-sync_fifo #(
-    .DEPTH                    ( 64       ),
-    .WIDTH                   ( 16        ),
-    .ALMOST_FULL_THRESHOLD   (          ),
-    .ALMOST_EMPTY_THRESHOLD  ( 'd1      ),
-    .FLOP_DATA_OUT           ( 1'b0     ),
-    .RAM_STYLE               ( 1'b0     )
-) pri7_fifoc_inst (       
-    .i_clk                    ( i_clk                            ),
-    .i_rst                   ( i_rst                            ),
-    .i_wr_en                 ( r_c_fifo7_vld                   ),
-    .i_din                   ( w_c_fifo7_wr_data                    ), //{ r_c_fifo0_qbu_flag,r_c_fifo0_qos }
-    .o_full                  ( w_c_fifo7_full                  ),
-    .i_rd_en                 ( r_c_fifo7_rd_en                 ),
-    .o_dout                  ( w_c_fifo7_rd_data               ),
-    .o_empty                 ( w_c_fifo7_empty                 ),
-    .o_almost_full           (                                  ),
-    .o_almost_empty          (                                  ),
-    .o_data_cnt              (                                  )
-);
 
 endmodule
