@@ -24,7 +24,6 @@ module Data_diver #(
 )(
         input          wire                                    i_clk                 ,
         input          wire                                    i_rst                 ,
-		input		   wire									   i_qbu_frm			 ,
         // SGRAM
         input         wire    [DWIDTH - 1:0]                   i_Sgram_rx_axis_data  ,//数据信号       
         input         wire    [15:0]                           i_Sgram_rx_axis_user  ,//数据信息(i_info_vld,i_smd_type,i_frag_cnt,i_crc_vld,i_qbu_frm,2'b0)      
@@ -131,7 +130,7 @@ assign o_Emac_rx_axis_valid =  ri_info_vld &&  (ri_smd_type      ==  SMD_E) && r
 
 assign o_Pmac_rx_axis_data  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_data   :   'b0;
                     
-assign o_Pmac_rx_axis_user  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  {4'b0000,i_Sgram_rx_axis_user[15:3]}   :   'b0;
+assign o_Pmac_rx_axis_user  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_user   :   'b0;
                     
 assign o_Pmac_rx_axis_keep  =  ri_info_vld &&  (ri_smd_type     ==  S0_SMD ||ri_smd_type    ==  S1_SMD ||ri_smd_type    ==  S2_SMD ||ri_smd_type    ==  S3_SMD ||ri_smd_type    ==  C0_SMD ||ri_smd_type==  C1_SMD ||ri_smd_type==  C2_SMD || ri_smd_type==  C3_SMD) && (ri_crc_vld == CRC ||ri_crc_vld == MCRC) ?  i_Sgram_rx_axis_keep   :   'b0;
                     
