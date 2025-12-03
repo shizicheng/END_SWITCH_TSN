@@ -490,6 +490,7 @@ look_up_mng #(
     .i_dmac_tx_port_rslt        (w_dmac_find_rslt             ), 
     .i_dmac_lookup_vld          (w_dmac_find_out_en           ), 
     .i_dmac_lookup_clash        (w_dmac_find_out_clash        ), 
+	.i_dmac_list_dout           (w_dmac_list_dout             ),  // DMAC±íÊä³öÊý?? //modify at 12.02
 
     .i_clash_tx_port_rslt       (w_clash_tx_port_rslt         ), 
     .i_clash_tx_port_vld        (w_clash_tx_port_vld          )  
