@@ -108,7 +108,7 @@ module rx_forward_mng#(
 /*--------- 信号声明区 --------*/
 
 // FIFO相关参数定义
-localparam FIFO_DEPTH       = 30                                                                ;
+localparam FIFO_DEPTH       = 64                                                                ;
 localparam FIFO_WIDTH       = PORT_MNG_DATA_WIDTH + (PORT_MNG_DATA_WIDTH/8) + 1                ; // data + keep + last
 localparam FIFO_CNT_WIDTH   = 5                                                                 ; // log2(30) 向上取整
 
@@ -351,29 +351,39 @@ assign w_fifo_din = {i_mac_axi_data_last, i_mac_axi_data_keep, i_mac_port_axi_da
 
 //-------------------- user信号缓存逻辑 --------------------
 // 检测帧起始：上一拍无效，当前拍有效
-always @(posedge i_clk) begin
-    if (i_rst)
-        r_frame_start <= 1'b0;
-    else
-        r_frame_start <= (!ri_mac_axi_data_valid && i_mac_axi_data_valid);
-end
-
+//always @(posedge i_clk) begin
+//    if (i_rst)
+//        r_frame_start <= 1'b0;
+//    else
+//        r_frame_start <= (!ri_mac_axi_data_valid && i_mac_axi_data_valid);
+//end
+// modify at 12.02
 // 在帧起始时缓存user信号
 always @(posedge i_clk) begin
     if (i_rst)
         r_frame_user <= 16'd0;
-    else if (r_frame_start)
+    else if (!r_fifo_rd_en && w_fifo_rd_en)
         r_frame_user <= {3'b000,ri_acl_cb_frm,i_mac_axi_data_user[11:0]};
 end
 
+reg [15:0] r_fifo_out_cnt;
 //-------------------- FIFO读取逻辑 --------------------
 // 查表完成标志：当i_swlist_vld拉高时，表示查表完成
 always @(posedge i_clk) begin
     if (i_rst)
         r_lookup_done <= 1'b0;
     else
-        r_lookup_done <= i_swlist_vld ? 1'b1 : (w_fifo_empty ? 1'b0 : r_lookup_done);
+        r_lookup_done <= i_swlist_vld ? 1'b1 : (((r_fifo_out_cnt ==  r_frame_user[11:0] - 2'd2) || w_fifo_empty) ? 1'b0 : r_lookup_done);
 end
+
+
+always @(posedge i_clk) begin
+    if (i_rst)
+        r_fifo_out_cnt <= 16'b0;
+    else
+        r_fifo_out_cnt <= i_swlist_vld ? 16'd0 : (r_fifo_rd_en ? r_fifo_out_cnt + 1'b1 : r_fifo_out_cnt);
+end
+
 
 // FIFO读取使能：查表完成 && FIFO非空 && 下游ready
 assign w_fifo_rd_en = r_lookup_done && !w_fifo_empty && 
