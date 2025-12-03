@@ -50,6 +50,7 @@ module look_up_mng #(
         input               wire   [PORT_NUM-1: 0]                  i_dmac_tx_port_rslt         ,
         input               wire                                    i_dmac_lookup_vld           ,  
         input               wire                                    i_dmac_lookup_clash         , // 表明在 DMAC 中，没有查找到合适的表项，转到哈希冲突表查找
+		input				wire   [57:0]                          	i_dmac_list_dout			,
         // clash
         input               wire   [PORT_NUM-1: 0]                  i_clash_tx_port_rslt        , 
         input               wire                                    i_clash_tx_port_vld         
@@ -146,6 +147,10 @@ assign o_clash_item_smac            = ri_smac;
 assign o_clash_item_mac_rx_port     = ri_dmac_port;
 assign o_clash_item_vlan_id         = ri_vlan_id;
 
+wire [47:0]	w_cur_dmac;
+// 输出寄存器读取的MAC表数据（只输出有效的58bit：VLAN_ID[11:0] + PORT[7:0] + MAC[47:0]??
+// 格式：{VLAN_ID[11:2], PORT[7:0], MAC[47:0]}
+assign w_cur_dmac = i_dmac_list_dout[47:0];
 
 /*======================= 输入信号打拍逻辑 =======================*/
 // 所有信号打拍处理
@@ -201,10 +206,13 @@ assign w_clash_req_en = ri_dmac_vld;
 assign w_local_mac = LOCAL_MAC;
 
 // 是否为自己MAC检查 
-
-assign w_mac_eq_0 = (ri_dmac[47:32] == w_local_mac[47:32]);
-assign w_mac_eq_1 = (ri_dmac[31:16] == w_local_mac[31:16]);
-assign w_mac_eq_2 = (ri_dmac[15:0]  == w_local_mac[15:0]) ;
+//modify at 12.02
+//assign w_mac_eq_0 = (ri_dmac[47:32] == w_local_mac[47:32]);
+//assign w_mac_eq_1 = (ri_dmac[31:16] == w_local_mac[31:16]);
+//assign w_mac_eq_2 = (ri_dmac[15:0]  == w_local_mac[15:0]) ;
+assign w_mac_eq_0 = (w_cur_dmac[47:32] == w_local_mac[47:32]);
+assign w_mac_eq_1 = (w_cur_dmac[31:16] == w_local_mac[31:16]);
+assign w_mac_eq_2 = (w_cur_dmac[15:0]  == w_local_mac[15:0]) ;
 assign w_mac_eq_all = w_mac_eq_0 == 1'd1 && w_mac_eq_1 == 1'd1 && w_mac_eq_2 == 1'd1;
 
 always @(posedge i_clk or negedge i_rst) begin
@@ -218,6 +226,7 @@ end
 
 
 // 广播地址检测标志位
+/*
 always @(posedge i_clk or negedge i_rst) begin
     if (i_rst) begin
         r_is_broadcast_flag1 <= 1'b0;
@@ -228,6 +237,19 @@ always @(posedge i_clk or negedge i_rst) begin
         r_is_broadcast_flag1 <= (ri_dmac[47:32] == 16'hFFFF) ? 1'd1 : 1'd0;
         r_is_broadcast_flag2 <= (ri_dmac[31:16] == 16'hFFFF) ? 1'd1 : 1'd0;
         r_is_broadcast_flag3 <= (ri_dmac[15:0]  == 16'hFFFF) ? 1'd1 : 1'd0;
+    end
+end
+*/
+always @(posedge i_clk or negedge i_rst) begin
+    if (i_rst) begin
+        r_is_broadcast_flag1 <= 1'b0;
+        r_is_broadcast_flag2 <= 1'b0;
+        r_is_broadcast_flag3 <= 1'b0;
+    end
+    else begin 
+        r_is_broadcast_flag1 <= (w_cur_dmac[47:32] == 16'hFFFF) ? 1'd1 : 1'd0;
+        r_is_broadcast_flag2 <= (w_cur_dmac[31:16] == 16'hFFFF) ? 1'd1 : 1'd0;
+        r_is_broadcast_flag3 <= (w_cur_dmac[15:0]  == 16'hFFFF) ? 1'd1 : 1'd0;
     end
 end
 
@@ -244,7 +266,7 @@ always @(posedge i_clk or negedge i_rst) begin
     if (i_rst)
         r_is_multicast <= 1'b0;
     else
-        r_is_multicast <= ri_dmac[40] ? 1'b1 : 1'b0;  // 第40位(最高字节最低位)
+        r_is_multicast <= w_cur_dmac[40] ? 1'b1 : 1'b0;  // 第40位(最高字节最低位)
 end
 
 // MAC地址类型编码
