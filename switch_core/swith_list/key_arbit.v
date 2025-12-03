@@ -166,8 +166,9 @@ wire                                     fifo_full                              
 wire                                     fifo_almost_full                                            ; // FIFO接近满标志
 wire                                     fifo_almost_empty                                           ; // FIFO接近空标志
 wire    [4:0]                            fifo_data_cnt                                               ; // FIFO数据计数
-
+wire									 w_tx_port_vld_p											 ;
 /*---------------------------------------- Reg类型信号 -------------------------------------------*/
+reg 									 rri_tx_port_vld											 ;
 // 输入信号打拍寄存器 - 各端口MAC地址及哈希信息
 `ifdef CPU_MAC
 reg     [11:0]                           ri_vlan_id_cpu                                              ; // CPU端口VLAN ID输入寄存器
@@ -323,7 +324,7 @@ reg     [1:0]                            ro_tx_7_port_broadcast                 
 /*---------------------------------------- FIFO控制信号连接 -------------------------------------------*/
 assign fifo_wr_en   = arbit_vld;                            // FIFO写使能：仲裁有效时写入端口号
 assign fifo_wr_data = arbit_port_sel;                       // FIFO写数据：仲裁选择的端口号
-assign fifo_rd_en   = i_tx_port_vld == 1'd1 && (fifo_empty == 1'd0);      // FIFO读使能：有转发端口且FIFO非空时读取
+assign fifo_rd_en   = w_tx_port_vld_p == 1'd1 && (fifo_empty == 1'd0);      // FIFO读使能：有转发端口且FIFO非空时读取 //modify at 12.03
 
 /*---------------------------------------- 主输出信号连接 -------------------------------------------*/
 assign o_dmac_port     = ro_dmac_port    ;                  // 仲裁端口输出
@@ -375,12 +376,21 @@ assign o_tx_6_port_broadcast = ro_tx_6_port_broadcast;      // MAC6端口转发�
 assign o_tx_7_port     = ro_tx_7_port    ;                  // MAC7端口转发端口输出
 assign o_tx_7_port_vld = ro_tx_7_port_vld;                  // MAC7端口转发有效输出
 assign o_tx_7_port_broadcast = ro_tx_7_port_broadcast;      // MAC7端口转发广播类型输出
-`endif 
+`endif
 
+//modify at 12.02 
+assign w_tx_port_vld_p = (ri_tx_port_vld == 1'b0 && i_tx_port_vld == 1'b1) || (rri_tx_port_vld == 1'b0 && ri_tx_port_vld == 1'b1);
 /*========================================================================================================*/
 /*                                           逻辑实现模块                                                  */
 /*========================================================================================================*/
-
+// 输入信号打拍处理，降低耦合
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+		rri_tx_port_vld <= 2'b00;
+	end else begin
+		rri_tx_port_vld <= ri_tx_port_vld;
+	end
+end
 /*---------------------------------------- 输入信号打拍 -------------------------------------------*/
 // 输入信号打拍处理，降低耦合
 always @(posedge i_clk or posedge i_rst) begin
@@ -467,74 +477,74 @@ always @(posedge i_clk or posedge i_rst) begin
         ri_tx_port_broadcast <= i_tx_port_broadcast;
 `ifdef CPU_MAC
         ri_vlan_id_cpu       <=  i_vlan_id_cpu;
-        ri_dmac_cpu_hash_key <=  i_dmac_cpu_hash_key;
-        ri_dmac_cpu          <=  i_dmac_cpu;
+        ri_dmac_cpu_hash_key <=  i_dmac_cpu_vld ? i_dmac_cpu_hash_key : ri_dmac_cpu_hash_key;
+        ri_dmac_cpu          <=  i_dmac_cpu_vld ? i_dmac_cpu : ri_dmac_cpu;
         ri_dmac_cpu_vld      <=  i_dmac_cpu_vld ? 1'd1 : arbit_port_sel == 3'd0 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac_cpu_vld ;
-        ri_smac_cpu_hash_key <=  i_smac_cpu_hash_key;
-        ri_smac_cpu          <=  i_smac_cpu;
-        ri_smac_cpu_vld      <=  i_dmac_cpu_vld ? 1'd1 : arbit_port_sel == 3'd0 && arbit_vld == 1'd1 ? 1'd0 : ri_smac_cpu_vld ; 
+        ri_smac_cpu_hash_key <=  i_smac_cpu_vld ? i_smac_cpu_hash_key : ri_smac_cpu_hash_key;
+        ri_smac_cpu          <=  i_smac_cpu_vld ? i_smac_cpu : ri_smac_cpu;
+        ri_smac_cpu_vld      <=  i_smac_cpu_vld ? 1'd1 : arbit_port_sel == 3'd0 && arbit_vld == 1'd1 ? 1'd0 : ri_smac_cpu_vld ; 
 `endif
 `ifdef MAC1
         ri_vlan_id1          <= i_vlan_id1;
-        ri_dmac1_hash_key    <= i_dmac1_hash_key;
-        ri_dmac1             <= i_dmac1;
+        ri_dmac1_hash_key    <= i_dmac1_vld ? i_dmac1_hash_key : ri_dmac1_hash_key;
+        ri_dmac1             <= i_dmac1_vld ? i_dmac1 : ri_dmac1;
         ri_dmac1_vld         <= i_dmac1_vld ? 1'd1 : arbit_port_sel == 3'd1 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac1_vld ;
-        ri_smac1_hash_key    <= i_smac1_hash_key;
-        ri_smac1             <= i_smac1;
+        ri_smac1_hash_key    <= i_smac1_vld ? i_smac1_hash_key : ri_smac1_hash_key;
+        ri_smac1             <= i_smac1_vld ? i_smac1 : ri_smac1;
         ri_smac1_vld         <= i_smac1_vld ? 1'd1 : arbit_port_sel == 3'd1 && arbit_vld == 1'd1 ? 1'd0 : ri_smac1_vld ;
 `endif
 `ifdef MAC2
         ri_vlan_id2          <= i_vlan_id2;
-        ri_dmac2_hash_key    <= i_dmac2_hash_key;
-        ri_dmac2             <= i_dmac2;
+        ri_dmac2_hash_key    <= i_dmac2_vld ? i_dmac2_hash_key : ri_dmac2_hash_key;
+        ri_dmac2             <= i_dmac2_vld ? i_dmac2 : ri_dmac2;
         ri_dmac2_vld         <= i_dmac2_vld ? 1'd1 : arbit_port_sel == 3'd2 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac2_vld ;
-        ri_smac2_hash_key    <= i_smac2_hash_key;
-        ri_smac2             <= i_smac2;
+        ri_smac2_hash_key    <= i_smac2_vld ? i_smac2_hash_key : ri_smac2_hash_key;
+        ri_smac2             <= i_smac2_vld ? i_smac2 : ri_smac2;
         ri_smac2_vld         <= i_smac2_vld ? 1'd1 : arbit_port_sel == 3'd2 && arbit_vld == 1'd1 ? 1'd0 : ri_smac2_vld ;
 `endif
 `ifdef MAC3
         ri_vlan_id3          <= i_vlan_id3;
-        ri_dmac3_hash_key    <= i_dmac3_hash_key;
-        ri_dmac3             <= i_dmac3;
+        ri_dmac3_hash_key    <= i_dmac3_vld ? i_dmac3_hash_key : ri_dmac3_hash_key;
+        ri_dmac3             <= i_dmac3_vld ? i_dmac3 : ri_dmac3;
         ri_dmac3_vld         <= i_dmac3_vld ? 1'd1 : arbit_port_sel == 3'd3 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac3_vld ;
-        ri_smac3_hash_key    <= i_smac3_hash_key;
-        ri_smac3             <= i_smac3;
+        ri_smac3_hash_key    <= i_smac3_vld ? i_smac3_hash_key : ri_smac3_hash_key;
+        ri_smac3             <= i_smac3_vld ? i_smac3 : ri_smac3;
         ri_smac3_vld         <= i_smac3_vld ? 1'd1 : arbit_port_sel == 3'd3 && arbit_vld == 1'd1 ? 1'd0 : ri_smac3_vld ;
 `endif
 `ifdef MAC4
         ri_vlan_id4          <= i_vlan_id4;
-        ri_dmac4_hash_key    <= i_dmac4_hash_key;
-        ri_dmac4             <= i_dmac4;
+        ri_dmac4_hash_key    <= i_dmac4_vld ? i_dmac4_hash_key : ri_dmac4_hash_key;
+        ri_dmac4             <= i_dmac4_vld ? i_dmac4 : ri_dmac4;
         ri_dmac4_vld         <= i_dmac4_vld ? 1'd1 : arbit_port_sel == 3'd4 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac4_vld ;
-        ri_smac4_hash_key    <= i_smac4_hash_key;
-        ri_smac4             <= i_smac4;
+        ri_smac4_hash_key    <= i_smac4_vld ? i_smac4_hash_key : ri_smac4_hash_key;
+        ri_smac4             <= i_smac4_vld ? i_smac4 : ri_smac4;
         ri_smac4_vld         <= i_smac4_vld ? 1'd1 : arbit_port_sel == 3'd4 && arbit_vld == 1'd1 ? 1'd0 : ri_smac4_vld ;
 `endif
 `ifdef MAC5
         ri_vlan_id5          <= i_vlan_id5;
-        ri_dmac5_hash_key    <= i_dmac5_hash_key;
-        ri_dmac5             <= i_dmac5;
+        ri_dmac5_hash_key    <= i_dmac5_vld ? i_dmac5_hash_key : ri_dmac5_hash_key;
+        ri_dmac5             <= i_dmac5_vld ? i_dmac5 : ri_dmac5;
         ri_dmac5_vld         <= i_dmac5_vld ? 1'd1 : arbit_port_sel == 3'd5 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac5_vld ;
-        ri_smac5_hash_key    <= i_smac5_hash_key;
-        ri_smac5             <= i_smac5;
+        ri_smac5_hash_key    <= i_smac5_vld ? i_smac5_hash_key : ri_smac5_hash_key;
+        ri_smac5             <= i_smac5_vld ? i_smac5 : ri_smac5;
         ri_smac5_vld         <= i_smac5_vld ? 1'd1 : arbit_port_sel == 3'd5 && arbit_vld == 1'd1 ? 1'd0 : ri_smac5_vld ;
 `endif
 `ifdef MAC6
         ri_vlan_id6          <= i_vlan_id6;
-        ri_dmac6_hash_key    <= i_dmac6_hash_key;
-        ri_dmac6             <= i_dmac6;
+        ri_dmac6_hash_key    <= i_dmac6_vld ? i_dmac6_hash_key : ri_dmac6_hash_key;
+        ri_dmac6             <= i_dmac6_vld ? i_dmac6 : ri_dmac6;
         ri_dmac6_vld         <= i_dmac6_vld ? 1'd1 : arbit_port_sel == 3'd6 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac6_vld ;
-        ri_smac6_hash_key    <= i_smac6_hash_key;
-        ri_smac6             <= i_smac6;
+        ri_smac6_hash_key    <= i_smac6_vld ? i_smac6_hash_key : ri_smac6_hash_key;
+        ri_smac6             <= i_smac6_vld ? i_smac6 : ri_smac6;
         ri_smac6_vld         <= i_smac6_vld ? 1'd1 : arbit_port_sel == 3'd6 && arbit_vld == 1'd1 ? 1'd0 : ri_smac6_vld ;
 `endif
 `ifdef MAC7
         ri_vlan_id7          <= i_vlan_id7;
-        ri_dmac7_hash_key    <= i_dmac7_hash_key;
-        ri_dmac7             <= i_dmac7;
+        ri_dmac7_hash_key    <= i_dmac7_vld ? i_dmac7_hash_key : ri_dmac7_hash_key;
+        ri_dmac7             <= i_dmac7_vld ? i_dmac7 : ri_dmac7;
         ri_dmac7_vld         <= i_dmac7_vld ? 1'd1 : arbit_port_sel == 3'd7 && arbit_vld == 1'd1 ? 1'd0 : ri_dmac7_vld ;
-        ri_smac7_hash_key    <= i_smac7_hash_key;
-        ri_smac7             <= i_smac7;
+        ri_smac7_hash_key    <= i_smac7_vld ? i_smac7_hash_key : ri_smac7_hash_key;
+        ri_smac7             <= i_smac7_vld ? i_smac7 : ri_smac7;
         ri_smac7_vld         <= i_smac7_vld ? 1'd1 : arbit_port_sel == 3'd7 && arbit_vld == 1'd1 ? 1'd0 : ri_smac7_vld ;
 `endif 
     end
