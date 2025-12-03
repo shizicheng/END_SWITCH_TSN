@@ -718,18 +718,18 @@ always @(posedge i_clk) begin
     else if (occupy_succ && r_occupy_succ==0) begin
         read_ram_en <= 1'b0;
     end
-     else if(data_len_supply==1)
-           read_ram_en <= 1'b0;       //加了这个因为被打断后send_data_cnt会清零一次，只能通过data_len_supply代表一组数据读完
-     else if (send_data_cnt==(data_len-1)) //加了这个因为一组数据读完后read_ram_en要拉低
-           read_ram_en <= 1'b0;
-     else if (send_data_cnt==0&&empty==1&&!r_occupy) begin //加了这个避免一组数据读完后，send_data_cnt=0，且empty==1且非抢占组 时再次读     
-           read_ram_en <= 1'b0;     
-     end    // send_data_cnt<(data_len-1)
-     else if ((empty == 0 || data_len_supply) && result_send_apply && i_emac_send_busy==0 && r_mux_ready && i_emac_data_noempty == 1'd0) begin    //当fifo有数据或者发送的数据量小于总长度    
-           read_ram_en <= 1'b1;
+	else if(data_len_supply==1)
+		read_ram_en <= 1'b0;       //加了这个因为被打断后send_data_cnt会清零一次，只能通过data_len_supply代表一组数据读完
+	else if (send_data_cnt==(data_len-1)) //加了这个因为一组数据读完后read_ram_en要拉低
+		read_ram_en <= 1'b0;
+	else if (send_data_cnt==0&&empty==1&&!r_occupy) begin //加了这个避免一组数据读完后，send_data_cnt=0，且empty==1且非抢占组 时再次读     
+		read_ram_en <= 1'b0;     
+	end    // send_data_cnt<(data_len-1)
+	else if ((empty == 0 || data_len_supply != 1) && result_send_apply && i_emac_send_busy==0 && r_mux_ready && (i_emac_data_noempty == 1'd0)) begin    //当fifo有数据或者发送的数据量小于总长度    
+	   read_ram_en <= 1'b1;
     end
-    else begin
-          read_ram_en<=1'b0;
+    else if(i_emac_data_noempty == 1'd1 && send_data_cnt > 'd63) begin
+       read_ram_en<=1'b0;
     end
 end
 
