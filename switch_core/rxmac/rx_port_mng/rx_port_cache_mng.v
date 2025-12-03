@@ -339,13 +339,14 @@ end
 
 /*---------------------------------------- 队列管理逻辑 -------------------------------------------*/
 // 缓存中帧计数器
+// modify at 12.03
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_ram_data_cnt <= {(QUEUE_ADDR_WIDTH+1){1'b0}};
     end else begin
         r_ram_data_cnt <= ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && !((r_process_complete == 1'b1) && (r_queue_empty == 1'b0))) ? 
                         (r_ram_data_cnt + {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
-                      ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && !((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0))) ? 
+                      ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && r_ram_data_cnt != {(QUEUE_ADDR_WIDTH+1){1'b0}} && !((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0))) ? 
                         (r_ram_data_cnt - {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
                       r_ram_data_cnt;
     end
@@ -379,12 +380,13 @@ always @(posedge i_clk) begin
     end
 end
 
+//modify at 12.03
 // 读地址管理 - 跟随优先级选择结果更新
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_rd_addr <= {QUEUE_ADDR_WIDTH{1'b0}};
     end else begin
-        r_rd_addr <= r_info_ram_we == 1'b1 ? r_next_addr : r_rd_addr;
+        r_rd_addr <= (r_info_ram_we == 1'b1 || r_process_complete_d1 == 1'b1) ? r_next_addr : r_rd_addr;
     end
 end
 
@@ -740,12 +742,14 @@ assign r_next_addr = (!valid_cmp_l4[0] && valid_cmp_l4[1]) ? addr_cmp_l4[1] :
                     (pri_cmp_l4[0] < pri_cmp_l4[1]) ? addr_cmp_l4[1] : addr_cmp_l4[0]) :
                    {QUEUE_ADDR_WIDTH{1'b0}};
 
+
+//modify at 12.03
 // 当前处理地址选择(严格基于优先级)
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_current_process_addr <= {QUEUE_ADDR_WIDTH{1'b0}};
     end else begin
-        r_current_process_addr <= ri_cross_metadata_valid_1d == 1'b1 ? r_next_addr : r_current_process_addr;
+        r_current_process_addr <= (ri_cross_metadata_valid_1d == 1'b1 || r_process_complete_d1 == 1'b1) ? r_next_addr : r_current_process_addr;
     end
 end
 
@@ -753,15 +757,17 @@ always @(posedge i_clk) begin
     r_process_complete_d1 <= r_process_complete;
 end
 
+// modify at 12.03
 // 处理完成标志
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_process_complete <= 1'b0;
     end else begin
-        r_process_complete <=   w_is_critical_frame == 1'b1 && o_emac_axi_data_last == 1'd1 ||
-                                (w_is_critical_frame == 1'b0) && (((r_timeout_flag == 1'b1) ||
+        r_process_complete <=   (w_is_critical_frame == 1'b1 && o_emac_axi_data_last == 1'd1) ||
+								(w_is_critical_frame == 1'b1 && ((r_timeout_flag == 1'b1) || ((r_rtag_flag == 1'b1) && (ri_judge_finish == 1'b1) && (ri_discard_en == 1'b1)))) ||
+                                ((w_is_critical_frame == 1'b0) && (((r_timeout_flag == 1'b1) ||
                                 ((r_rtag_flag == 1'b1) && (ri_judge_finish == 1'b1) && (ri_discard_en == 1'b1)) ||
-                                (w_frame_read_end == 1'd1  && ((r_ack_received & r_ack_expected) == r_ack_expected) && (r_ack_expected != {PORT_NUM{1'b0}}))))
+                                (w_frame_read_end == 1'd1  && ((r_ack_received & r_ack_expected) == r_ack_expected) && (r_ack_expected != {PORT_NUM{1'b0}})))))
                                ? 1'b1 : 1'b0;
     end
 end
