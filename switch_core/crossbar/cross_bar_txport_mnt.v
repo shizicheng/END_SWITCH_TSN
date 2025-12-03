@@ -809,13 +809,14 @@ module cross_bar_txport_mnt #(
                     r_tx_vlan_pri[i] <= ( ri_tx0_req[i] == 1'b1 && ri_mac_cross_metadata_valid[i] == 1'b1 && ri_mac_cross_metadata[i][27] == 1'b1 ) ? ri_mac_cross_metadata[i][62:60] : r_tx_vlan_pri[i];
                 end
             end 
-
+			
+			// modify at 12.02
             // 从锁存 tx_prot 信息中判断该帧是否是该 cross_bar_tx_port 处理
             always @(posedge i_clk or posedge i_rst) begin
                 if (i_rst == 1'b1) begin
                     r_frame_flag[i] <= 1'b0;
                 end else begin
-                    r_frame_flag[i] <= ( w_fifo_arb_valid[r_tx_vlan_pri[i]] == 1'b1 ) ? 1'b0 : ( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
+                    r_frame_flag[i] <= ( w_fifo_arb_valid[r_tx_vlan_pri[i]] == 1'b1 && r_frame_flag[i] == 1'b1) ? 1'b0 : ( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
                 end                     //( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
             end
 
@@ -1220,7 +1221,7 @@ cross_data_cache #(
     ,.o_pmac_tx_axis_valid      ( o_pmac_tx_axis_valid          )     
     ,.i_pmac_tx_axis_ready      ( i_pmac_tx_axis_ready          )   
     //emac通道数据                      
-	,.i_emac_tx_axis_user		( o_emac_tx_axis_user			)
+	//,.i_emac_tx_axis_user		( o_emac_tx_axis_user			)
     ,.o_emac_tx_axis_data       (           )    
     ,.o_emac_tx_axis_user       (           )    
     ,.o_emac_tx_axis_keep       (           )    
