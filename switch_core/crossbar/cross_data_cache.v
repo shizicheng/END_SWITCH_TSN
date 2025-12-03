@@ -190,7 +190,7 @@ reg     [PORT_FIFO_PRI_NUM-1:0]        ri_scheduing_rst     ;
 reg                                    ri_scheduing_rst_vld ;
 // reg     [PORT_FIFO_PRI_NUM-1:0]        ri_scheduing_rst_output     ;   
 reg                                    scheduing_work_flag ;
-
+reg                                    r_scheduing_work_flag ;
 
 reg     [PORT_FIFO_PRI_NUM-1:0]        r_data_flag          ;
 
@@ -400,16 +400,20 @@ end
             ri_scheduing_rst <= ( i_scheduing_rst_vld == 1'b1 ) ? i_scheduing_rst : ri_scheduing_rst;
         end
     end
-
+	
+	
+	// modify at 12.02
     always @(posedge i_clk or posedge i_rst) begin
         if (i_rst == 1'b1) begin
             ri_scheduing_rst_vld <= 1'b0;
             scheduing_work_flag <= 1'b0;
+			r_scheduing_work_flag <= 1'b0;
             ro_emac_tx_axis_last_t <= 1'b0;
             ro_pmac_tx_axis_last_t <= 1'b0;
         end else begin
             ri_scheduing_rst_vld <= i_scheduing_rst_vld;//
-            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 ) ? 1'b1 : scheduing_work_flag;
+            scheduing_work_flag <= ( ro_emac_tx_axis_last == 1'b1 || ro_pmac_tx_axis_last == 1'b1) ? 1'b0 : ( i_scheduing_rst_vld == 1'b1 && i_scheduing_rst != {PORT_FIFO_PRI_NUM{1'b0}}) ? 1'b1 : scheduing_work_flag;
+			r_scheduing_work_flag <= scheduing_work_flag;
             ro_emac_tx_axis_last_t <= ro_emac_tx_axis_last;
             ro_pmac_tx_axis_last_t <= ro_pmac_tx_axis_last;
         end
@@ -516,7 +520,7 @@ generate
             if (i_rst) begin
                 r_c_fifo_rd_en[i] <= 1'b0;
             end else begin
-                r_c_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 1'b0;
+                r_c_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0) ? 1'b1 : 1'b0;
             end
         end
 
@@ -563,7 +567,7 @@ generate
             if (i_rst) begin
                 r_info_fifo_rd_en[i] <= 1'b0;
             end else begin
-                r_info_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 1'b0;
+                r_info_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0) ? 1'b1 : 1'b0;
             end
         end
 
@@ -636,9 +640,16 @@ generate
         end       
 
         // 实际的FIFO写使能（考虑丢弃标志）
-        always @(*) begin
-            r_fifo_wr_en[i] = i_data_vld[i] && !r_discard_packet[i] && !w_data_fifo_full[i];
-        end
+        //always @(*) begin
+        //    r_fifo_wr_en[i] = i_data_vld[i] && !r_discard_packet[i] && !w_data_fifo_full[i];
+        //end
+		always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+                r_fifo_wr_en[i] <= 1'b0;
+            end else begin
+                r_fifo_wr_en[i] <= i_data_vld[i] && !r_discard_packet[i] && !w_data_fifo_full[i] ? 1'b1 : 1'b0;
+            end
+        end 
 
     end
 endgenerate
