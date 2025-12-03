@@ -281,7 +281,7 @@ assign w_all_fifo_full =  (w_fifo1_full == 1'd1) || (w_fifo2_full == 1'd1) || (w
 assign w_all_fifo_empty = (w_fifo1_empty == 1'd1) && (w_fifo2_empty == 1'd1) && (w_fifo3_empty == 1'd1) && (w_fifo4_empty == 1'd1) && (w_fifo5_empty == 1'd1);
 
 // 直连路径判断：FIFO为空且模块空闲时可以直接处理
-assign w_can_use_direct_path = w_new_packet_arrival == 1'd1 && w_all_fifo_empty == 1'd1 && i_table_clear_req == 1'd0 ? 1'd1 : 1'd0;
+assign w_can_use_direct_path = w_new_packet_arrival == 1'd1 && w_all_fifo_empty == 1'd1 && i_table_clear_req == 1'd0 && r_fsm_cur_state == IDLE ? 1'd1 : 1'd0;
 
 assign o_mac_table_addr                        = r_mac_table_addr;
 assign o_fsm_cur_state                         = r_fsm_cur_state;
@@ -341,7 +341,7 @@ assign w_fifo4_din = {i_dmac_hash_addr, i_dmac_hash_vld};            // DMAC_HAS
 assign w_fifo5_din = {i_smac_hash_addr, i_smac_hash_vld};            // SMAC_HASH_ADDR + SMAC_HASH_VLD
 
 // 5个FIFO的写使能：同时写入，只有当所有FIFO都不满时才写??
-assign w_fifo1_wr_en = (w_dmac_hash_vld_posedge == 1'd1) && (w_smac_hash_vld_posedge == 1'd1) && (w_all_fifo_full == 1'd0) && (w_can_use_direct_path == 1'd0);
+assign w_fifo1_wr_en = (w_dmac_hash_vld_posedge == 1'd1) && (w_smac_hash_vld_posedge == 1'd1) && (w_all_fifo_full == 1'd0) && (w_can_use_direct_path == 1'd0) ;
 assign w_fifo2_wr_en = w_fifo1_wr_en;
 assign w_fifo3_wr_en = w_fifo1_wr_en;
 assign w_fifo4_wr_en = w_fifo1_wr_en;
@@ -1250,7 +1250,7 @@ ram_simple2port #(
     .RAM_WIDTH      ( ENTRY_WIDTH               ),
     .RAM_DEPTH      ( MAC_TABLE_DEPTH           ),
     .RAM_PERFORMANCE( "LOW_LATENCY"             ), 
-    .INIT_FILE      (  0                      )  
+    .INIT_FILE      (  0                        )  
 ) u_mac_table_ram (
     .addra          ( r_mac_table_addr                      ),
     .addrb          ( r_mac_table_addr                      ),
