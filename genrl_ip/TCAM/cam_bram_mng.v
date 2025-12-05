@@ -20,6 +20,7 @@ module cam_bram_mng #(
     input               wire                                            i_look_up_data_vld                  ,
     output              wire    [CAM_NUM_BITCNT-1:0]                    o_acl_addr                          ,
     output              wire                                            o_acl_addr_vld                      ,
+    output              wire                                            o_acl_no                            ,
     // 写表 - config
     input               wire   [(PORT_MNG_DATA_WIDTH-1):0]              i_config_data                       ,
     input               wire   [(PORT_MNG_DATA_WIDTH-1):0]              i_config_data_mask                  ,
@@ -44,10 +45,14 @@ module cam_bram_mng #(
     output              wire                                            o_action_wea                        ,
 
     // 反压控制信号
-    output              wire                                            o_busy                              ,   // 模块忙信号，高电平表示正在处理数据
+    output              wire                                            o_busy                              ,  // 模块忙信号，高电平表示正在处理数据
 
+    //寄存器模块
+    // ACL列表清除控制
+    input               wire                                            i_cfg_acl_clr_list_regs             ,   // 端口ACL参数-条目全部清除使能 
+    output              wire                                            o_cfg_acl_clr_busy_regs                 // 端口ACL参数-当前正在清除全部的cam表项
     // 状态机状态输出（用于调试和同步）
-    output              wire   [3:0]                                    o_fsm_state                             // 当前状态机状态
+    // output              wire   [3:0]                                    o_fsm_state                             // 当前状态机状态
   );
 
   /*---------------------------------------- clog2计算函数 ---------------------------------------------*/
@@ -75,6 +80,8 @@ module cam_bram_mng #(
   localparam                      WRITE_STATE_WRITE_PAIR  =       4'b0110                     ;   // 写表状态：同时写入高低4bit CAM块对
   localparam                      WRITE_STATE_NEXT_CNT    =       4'b0111                     ;   // 写表状态：下一个CAM块对
   localparam                      WRITE_STATE_DONE        =       4'b1000                     ;   // 写表状态：完成
+  localparam                      WRITE_STATE_CLEAR_ALL   =       4'b1001                     ;   // 清除所有表项
+  localparam                      WRITE_STATE_CLEAR_NEXT  =       4'b1010                     ;   // 清除下一个块
   localparam                      OP_CONFIG               =       2'b00                       ;   // 操作类型：写表
   localparam                      OP_CHANGE               =       2'b01                       ;   // 操作类型：改表
   localparam                      OP_DELETE               =       2'b10                       ;   // 操作类型：删除表
@@ -162,7 +169,7 @@ module cam_bram_mng #(
   reg     [CAM_NUM-1:0]                           r_base_data_high                        ;   // 基础数据缓存(高4bit)
 
   // 循环变量声明
-  integer                                         wea_i                                   ;   // 写使能循环变量
+  // integer                                         wea_i                                   ;   // 写使能循环变量
 
   // 读-修改-写支持信号
   reg                                             r_read_valid                            ;   // 读取数据有效信号
@@ -181,6 +188,7 @@ module cam_bram_mng #(
   /*---------------------------------------- 输出寄存器信号 -------------------------------------------*/
   reg     [CAM_NUM_BITCNT-1:0]                    ro_acl_addr                             ;   // 输出查表结果
   reg                                             ro_acl_addr_vld                         ;   // 查表结果有效
+  reg                                             ro_acl_no                               ;   // 表示未查到
   wire                                             ro_busy                                 ;   // 输出忙信号
   reg     [1:0]                                   r_current_op_type                       ;   // 当前操作类型
   /*---------------------------------------- CAM块输出信号 --------------------------------------------*/
@@ -560,6 +568,16 @@ end
   assign r_final_result = w_final_and_array[LOOKUP_PIPELINE_DEPTH-1];
 
   /*---------------------------------------- 写表状态机逻辑 -------------------------------------------*/
+  // 清除请求锁存
+  reg r_clear_req_latched;
+  always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_clear_req_latched <= 1'b0;
+    end else begin
+      r_clear_req_latched <= i_cfg_acl_clr_list_regs ? 1'b1 : (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL ? 1'b0 : r_clear_req_latched);
+    end
+  end
+
   // 模块忙信号
   always @(posedge i_clk or posedge i_rst)
   begin
@@ -576,8 +594,8 @@ end
       end
       else
       begin
-        r_module_busy <= (w_input_write_req == 1'd1 && r_module_busy == 1'd0 || r_fsm_nxt_state != WRITE_STATE_IDLE ) ? 1'd1 :
-                      (r_fsm_nxt_state == WRITE_STATE_IDLE) ? 1'd0 :  // 只有真正回到IDLE状态才清除busy
+        r_module_busy <= (w_input_write_req == 1'd1 && r_module_busy == 1'd0 || r_fsm_nxt_state != WRITE_STATE_IDLE || r_clear_req_latched || r_clear_req_latched) ? 1'd1 :
+                      (r_fsm_nxt_state == WRITE_STATE_IDLE && !r_clear_req_latched && !r_clear_req_latched) ? 1'd0 :  // 只有真正回到IDLE状态且无挂起请求才清除busy
                       r_module_busy;
       end
     end
@@ -615,9 +633,10 @@ end
     r_fsm_nxt_state = r_fsm_cur_state;
     case (r_fsm_cur_state)
       WRITE_STATE_IDLE:
-        r_fsm_nxt_state = w_any_write_req ?
-        (r_write_op_type == OP_CONFIG) ? WRITE_STATE_ADDR_GEN : WRITE_STATE_COLLECT :
-            WRITE_STATE_IDLE;
+        r_fsm_nxt_state = r_clear_req_latched ? WRITE_STATE_CLEAR_ALL :
+                          w_any_write_req ?
+                          (r_write_op_type == OP_CONFIG) ? WRITE_STATE_ADDR_GEN : WRITE_STATE_COLLECT :
+                          WRITE_STATE_IDLE;
 
       WRITE_STATE_COLLECT:
         r_fsm_nxt_state = r_collect_complete ? WRITE_STATE_LOOKUP :
@@ -647,6 +666,14 @@ end
         r_fsm_nxt_state = r_write_data_cnt == ((CAM_BLOCK_NUM>>1) - {{DATA_CNT_WIDTH-1{1'd0}}, 1'd1 }) ?
         WRITE_STATE_DONE :
           WRITE_STATE_IDLE;
+
+      WRITE_STATE_CLEAR_ALL:
+        r_fsm_nxt_state = (r_state_cnt >= 16'd15) ?
+                          (r_write_cnt_idx >= ((CAM_BLOCK_NUM>>1) - 1)) ? WRITE_STATE_IDLE : WRITE_STATE_CLEAR_NEXT :
+                          WRITE_STATE_CLEAR_ALL;
+
+      WRITE_STATE_CLEAR_NEXT:
+        r_fsm_nxt_state = WRITE_STATE_CLEAR_ALL;
 
       WRITE_STATE_DONE:
         r_fsm_nxt_state =  r_current_op_type == OP_CONFIG ?
@@ -893,10 +920,12 @@ end
     end
     else
     begin
-      r_write_cnt_idx <= (r_fsm_cur_state == WRITE_STATE_DONE && r_fsm_nxt_state == WRITE_STATE_IDLE) ? {CAM_BLOCKNUM_BITCNT{1'd0}} :  // DONE状态完成后复位
-                      (r_fsm_cur_state == WRITE_STATE_IDLE && w_any_write_req) ? w_current_cnt[CAM_BLOCKNUM_BITCNT-1:0] :
+      r_write_cnt_idx <= ((r_fsm_cur_state == WRITE_STATE_NEXT_CNT || r_fsm_cur_state == WRITE_STATE_DONE) && r_fsm_nxt_state == WRITE_STATE_IDLE) ? {CAM_BLOCKNUM_BITCNT{1'd0}} :  // DONE状态完成后复位
+                      (r_fsm_cur_state == WRITE_STATE_IDLE && w_any_write_req == 1'd1) ? w_current_cnt[CAM_BLOCKNUM_BITCNT-1:0] :
+                      (r_fsm_cur_state == WRITE_STATE_IDLE && r_clear_req_latched == 1'd1) ? {CAM_BLOCKNUM_BITCNT{1'd0}} :
                       (r_fsm_cur_state == WRITE_STATE_DELETE_ALL && r_write_op_type != OP_CONFIG) ? r_delete_cnt_idx :  // 删除/修改表阶段使用删除计数
                       (r_fsm_cur_state == WRITE_STATE_NEXT_CNT && r_write_cnt_idx < (CAM_BLOCK_NUM>>1 - {{CAM_BLOCKNUM_BITCNT-1{1'd0}}, 1'd1 })) ? r_write_cnt_idx + {{CAM_BLOCKNUM_BITCNT-1{1'd0}}, 1'd1 } :
+                      (r_fsm_cur_state == WRITE_STATE_CLEAR_NEXT) ? r_write_cnt_idx + {{CAM_BLOCKNUM_BITCNT-1{1'd0}}, 1'd1 } :
                       r_write_cnt_idx;
     end
   end
@@ -1147,11 +1176,13 @@ end
     begin
       ro_acl_addr <= {CAM_NUM_BITCNT{1'd0}};
       ro_acl_addr_vld <= 1'd0;
+      ro_acl_no   <= 1'd0;
     end
     else
     begin
       ro_acl_addr <= r_lookup_vld_pipe[0] ? result_decimal : {CAM_NUM_BITCNT{1'd0}};
-      ro_acl_addr_vld <= r_lookup_vld_pipe[0];
+      ro_acl_addr_vld <= r_lookup_vld_pipe[0] ? 1'd1 : 1'd0;
+      ro_acl_no   <= r_lookup_vld_pipe[0] == 1'd1 && r_final_result ==  {CAM_NUM{1'd0}} ? 1'd1 : 1'd0;
     end
   end
 
@@ -1177,6 +1208,7 @@ end
   /*---------------------------------------- 输出信号连接 ---------------------------------------------*/
   assign o_acl_addr      = ro_acl_addr;
   assign o_acl_addr_vld  = ro_acl_addr_vld;
+  assign o_acl_no        = ro_acl_no; 
   // assign o_acl_addr_vld  = r_final_result == {CAM_NUM{1'd0}} ? 1'd0 : ro_acl_addr_vld;
   assign o_action_addra  = r_action_addr;
   assign o_action_din    = r_action_data;
@@ -1296,8 +1328,8 @@ begin
     else
     begin
         // 写使能控制 - 简化为基础使能
-        r_cam_wea[0] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1;
-        r_cam_wea[1] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1;
+        r_cam_wea[0] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1 || (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL);
+        r_cam_wea[1] <= w_delete_write_enable == 1'd1 || w_pair_write_enable == 1'd1 || (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL);
     end
 end
 
@@ -1313,9 +1345,11 @@ begin
     begin
         r_cam_addra_low4  <= w_delete_state_active ? r_delete_addr_idx_1d :
                              (w_read_orig_state_active | w_write_pair_state_active) ? r_addr_list_l[r_write_addr_l_idx] :
+                             (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL) ? r_state_cnt[3:0] :
                              4'd0;
         r_cam_addra_high4 <= w_delete_state_active ? r_delete_addr_idx_1d :
                              (w_read_orig_state_active | w_write_pair_state_active) ? r_addr_list_h[r_write_addr_h_idx] :
+                             (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL) ? r_state_cnt[3:0] :
                              4'd0;
     end
 end
@@ -1372,7 +1406,11 @@ end
       r_cam_dina_high4 <= r_base_data_high;
 
       // 基于操作类型的简化逻辑
-      if (w_delete_state_active == 1'd1 && r_delete_phase_cnt == 2'd2)
+      if (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL) begin
+          r_cam_dina_low4 <= {CAM_NUM{1'd0}};
+          r_cam_dina_high4 <= {CAM_NUM{1'd0}};
+      end
+      else if (w_delete_state_active == 1'd1 && r_delete_phase_cnt == 2'd2)
       begin
         case (r_write_op_type)
           OP_DELETE:
@@ -1408,7 +1446,8 @@ end
       wire w_wea ;
       assign w_wea = r_cam_wea[gen_i % 2] &&
              (((r_fsm_cur_state == WRITE_STATE_DELETE_ALL) && (r_delete_cnt_idx_1d == (gen_i >> 1))) ||
-              ((r_fsm_cur_state == WRITE_STATE_WRITE_PAIR) && (r_write_cnt_idx == (gen_i >> 1))));
+              ((r_fsm_cur_state == WRITE_STATE_WRITE_PAIR) && (r_write_cnt_idx == (gen_i >> 1))) ||
+              ((r_fsm_cur_state == WRITE_STATE_CLEAR_ALL) && (r_write_cnt_idx == (gen_i >> 1))));
       ram_simple2port_2rd #(
                         .RAM_WIDTH          ( CAM_NUM               ),
                         .RAM_DEPTH          ( 16                    ),  // 4bit地址，16深度
@@ -1434,5 +1473,7 @@ end
                       );
     end
   endgenerate
+
+  assign o_cfg_acl_clr_busy_regs = (r_fsm_cur_state == WRITE_STATE_CLEAR_ALL) || (r_fsm_cur_state == WRITE_STATE_CLEAR_NEXT);
 
 endmodule
