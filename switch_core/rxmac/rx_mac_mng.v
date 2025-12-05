@@ -787,18 +787,64 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_0          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_0  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_0                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_0                    ; // 选择要配置的端口
+	wire								    w_acl_port_sel_0_valid				;
     wire                                    w_acl_clr_list_regs_0               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_0               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_0               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_0              ;
-    wire   [95:0]                           w_acl_item_smac_code_0              ;
-    wire   [63:0]                           w_acl_item_vlan_code_0              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_0           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_0      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_0 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_0        ;
-    wire   [15:0]                           w_acl_item_action_txport_0          ;
+//    wire   [95:0]                           w_acl_item_dmac_code_0              ;
+//    wire   [95:0]                           w_acl_item_smac_code_0              ;
+//    wire   [63:0]                           w_acl_item_vlan_code_0              ;
+//    wire   [31:0]                           w_acl_item_ethtype_code_0           ;
+//    wire   [5:0]                            w_acl_item_action_pass_state_0      ;
+//    wire   [15:0]                           w_acl_item_action_cb_streamhandle_0 ;
+//    wire   [5:0]                            w_acl_item_action_flowctrl_0        ;
+//    wire   [15:0]                           w_acl_item_action_txport_0          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_a1_valid      			; // 写入有效信号															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_a2_valid      			; // 写入有效信号															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_a3_valid      			; // 写入有效信号															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_a4_valid      			; // 写入有效信号															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_a5_valid      			; // 写入有效信号															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_a6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_a1_valid      			; // 写入有效信号															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_a2_valid      			; // 写入有效信号																                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_a3_valid      			; // 写入有效信号															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_a4_valid      			; // 写入有效信号															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_a5_valid      			; // 写入有效信号															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_a6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_a1_valid      			; // 写入有效信号											
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_a2_valid      			; // 写入有效信号												
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_a3_valid      			; // 写入有效信号											
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_a4_valid      			; // 写入有效信号							           		
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_a1_valid 			; // 写入有效信号																                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_a2_valid 			; // 写入有效信号													                                                                 		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_a     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_a_valid		; // 写入有效信号																	                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_a 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_a_valid	; // 写入有效信号																
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_a        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_a_valid  		; // 写入有效信号																
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_a          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_a_valid      		; // 写入有效信号
+
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_0                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -934,18 +980,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_1          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_1  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_1                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_1                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_1_valid				;
     wire                                    w_acl_clr_list_regs_1               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_1               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_1               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_1              ;
-    wire   [95:0]                           w_acl_item_smac_code_1              ;
-    wire   [63:0]                           w_acl_item_vlan_code_1              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_1           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_1      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_1 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_1        ;
-    wire   [15:0]                           w_acl_item_action_txport_1          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_b1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_b2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_b3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_b4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_b5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_b6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_b1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_b2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_b3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_b4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_b5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_b6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_b1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_b2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_b3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_b4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_b1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_b2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_b     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_b_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_b 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_b_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_b        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_b_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_b          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_b_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_1                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1081,18 +1164,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_2          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_2  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_2                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_2                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_2_valid				;
     wire                                    w_acl_clr_list_regs_2               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_2               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_2               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_2              ;
-    wire   [95:0]                           w_acl_item_smac_code_2              ;
-    wire   [63:0]                           w_acl_item_vlan_code_2              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_2           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_2      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_2 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_2        ;
-    wire   [15:0]                           w_acl_item_action_txport_2          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_c1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_c2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_c3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_c4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_c5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_c6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_c1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_c2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_c3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_c4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_c5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_c6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_c1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_c2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_c3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_c4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_c1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_c2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_c     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_c_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_c 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_c_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_c        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_c_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_c          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_c_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_2                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1228,18 +1348,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_3          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_3  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_3                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_3                    ; // 选择要配置的端口
+	wire 									w_acl_port_sel_3_valid				;
     wire                                    w_acl_clr_list_regs_3               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_3               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_3               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_3              ;
-    wire   [95:0]                           w_acl_item_smac_code_3              ;
-    wire   [63:0]                           w_acl_item_vlan_code_3              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_3           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_3      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_3 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_3        ;
-    wire   [15:0]                           w_acl_item_action_txport_3          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_d1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_d2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_d3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_d4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_d5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_d6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_d1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_d2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_d3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_d4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_d5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_d6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_d1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_d2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_d3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_d4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_d1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_d2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_d     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_d_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_d 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_d_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_d        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_d_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_d          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_d_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_3                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1374,18 +1531,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_4          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_4  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_4                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_4                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_4_valid				;
     wire                                    w_acl_clr_list_regs_4               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_4               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_4               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_4              ;
-    wire   [95:0]                           w_acl_item_smac_code_4              ;
-    wire   [63:0]                           w_acl_item_vlan_code_4              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_4           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_4      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_4 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_4        ;
-    wire   [15:0]                           w_acl_item_action_txport_4          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_e1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_e2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_e3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_e4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_e5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_e6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_e1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_e2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_e3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_e4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_e5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_e6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_e1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_e2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_e3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_e4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_e1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_e2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_e     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_e_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_e 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_e_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_e        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_e_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_e          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_e_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_4                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1522,18 +1716,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_5          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_5  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_5                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_5                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_5_valid				;
     wire                                    w_acl_clr_list_regs_5               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_5               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_5               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_5              ;
-    wire   [95:0]                           w_acl_item_smac_code_5              ;
-    wire   [63:0]                           w_acl_item_vlan_code_5              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_5           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_5      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_5 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_5        ;
-    wire   [15:0]                           w_acl_item_action_txport_5          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_f1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_f2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_f3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_f4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_f5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_f6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_f1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_f2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_f3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_f4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_f5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_f6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_f1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_f2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_f3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_f4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_f1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_f2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_f     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_f_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_f 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_f_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_f        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_f_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_f          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_f_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_5                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1669,18 +1900,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_6          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_6  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_6                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_6                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_6_valid				;
     wire                                    w_acl_clr_list_regs_6               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_6               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_6               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_6              ;
-    wire   [95:0]                           w_acl_item_smac_code_6              ;
-    wire   [63:0]                           w_acl_item_vlan_code_6              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_6           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_6      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_6 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_6        ;
-    wire   [15:0]                           w_acl_item_action_txport_6          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_g1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_g2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_g3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_g4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_g5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_g6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_g1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_g2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_g3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_g4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_g5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_g6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_g1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_g2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_g3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_g4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_g1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_g2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_g     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_g_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_g 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_g_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_g        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_g_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_g          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_g_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_6                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -1813,18 +2081,55 @@ module rx_mac_mng#(
     wire   [15:0]                           w_port_flowctrl_cfg_regs_7          ; // 限流管理配置
     wire   [4:0]                            w_port_rx_ultrashortinterval_num_7  ; // 帧间隔
     // ACL 寄存器
-    wire   [PORT_NUM-1:0]                   w_acl_port_sel_7                    ; // 选择要配置的端口
+    wire   [6-1:0]                   		w_acl_port_sel_7                    ; // 选择要配置的端口
+	wire									w_acl_port_sel_7_valid				;
     wire                                    w_acl_clr_list_regs_7               ; // 清空寄存器列表
     wire                                    w_acl_list_rdy_regs_7               ; // 配置寄存器操作空闲
     wire   [4:0]                            w_acl_item_sel_regs_7               ; // 配置条目选择
-    wire   [95:0]                           w_acl_item_dmac_code_7              ;
-    wire   [95:0]                           w_acl_item_smac_code_7              ;
-    wire   [63:0]                           w_acl_item_vlan_code_7              ;
-    wire   [31:0]                           w_acl_item_ethtype_code_7           ;
-    wire   [5:0]                            w_acl_item_action_pass_state_7      ;
-    wire   [15:0]                           w_acl_item_action_cb_streamhandle_7 ;
-    wire   [5:0]                            w_acl_item_action_flowctrl_7        ;
-    wire   [15:0]                           w_acl_item_action_txport_7          ;
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h1            			; // 端口ACL表项-写入dmac值[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_h1_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h2            			; // 端口ACL表项-写入dmac值[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_h2_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h3            			; // 端口ACL表项-写入dmac值[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_h3_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h4            			; // 端口ACL表项-写入dmac值[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_h4_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h5            			; // 端口ACL表项-写入dmac值[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_h5_valid      			; // 写入有效信号						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h6            			; // 端口ACL表项-写入dmac值[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_h6_valid      			; // 写入有效信号	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h1            			; // 端口ACL表项-写入smac值[15:0]
+	wire                               		w_cfg_acl_item_smac_code_h1_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h2            			; // 端口ACL表项-写入smac值[31:16]
+	wire                               		w_cfg_acl_item_smac_code_h2_valid      			; // 写入有效信号						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h3            			; // 端口ACL表项-写入smac值[47:32]
+	wire                               		w_cfg_acl_item_smac_code_h3_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h4            			; // 端口ACL表项-写入smac值[63:48]
+	wire                               		w_cfg_acl_item_smac_code_h4_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h5            			; // 端口ACL表项-写入smac值[79:64]
+	wire                               		w_cfg_acl_item_smac_code_h5_valid      			; // 写入有效信号						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h6            			; // 端口ACL表项-写入smac值[95:80]
+	wire                               		w_cfg_acl_item_smac_code_h6_valid      			; // 写入有效信号	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h1            			; // 端口ACL表项-写入vlan值[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_h1_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h2            			; // 端口ACL表项-写入vlan值[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_h2_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h3            			; // 端口ACL表项-写入vlan值[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_h3_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h4            			; // 端口ACL表项-写入vlan值[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_h4_valid      			; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h1       			; // 端口ACL表项-写入ethertype值[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_h1_valid 			; // 写入有效信号						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h2       			; // 端口ACL表项-写入ethertype值[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_h2_valid 			; // 写入有效信号						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_h     			; // 端口ACL动作-报文状态
+	wire                                	w_cfg_acl_item_action_pass_state_h_valid		; // 写入有效信号							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_h 		; // 端口ACL动作-stream_handle值
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_h_valid	; // 写入有效信号						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_h        		; // 端口ACL动作-报文流控选择
+	wire                                	w_cfg_acl_item_action_flowctrl_h_valid  		; // 写入有效信号						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_h          		; // 端口ACL动作-报文发送端口映射
+	wire                                	w_cfg_acl_item_action_txport_h_valid      		; // 写入有效信号
     // 状态寄存器
     wire   [15:0]                           w_port_diag_state_7                 ; // 端口状态寄存器,详情见寄存器表说明定义
     // 诊断寄存器
@@ -2208,22 +2513,65 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_0), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_0), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_0_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_0), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_0), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_0), // 配置条目选择
-        //.i_acl_item_waddr_regs              (w_acl_item_waddr_regs_0), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (w_acl_item_din_regs_0), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (w_acl_item_we_regs_0), // 配置使能信号
-        //.i_acl_item_rslt_regs               (w_acl_item_rslt_regs_0), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (w_acl_item_complete_regs_0), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_0),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_0),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_0),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_0),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_0),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_0),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_0),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_0),
+
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     	(w_cfg_acl_item_dmac_code_a1	  ),  
+		.i_cfg_acl_item_dmac_code_1_valid	(w_cfg_acl_item_dmac_code_a1_valid),
+		.i_cfg_acl_item_dmac_code_2     	(w_cfg_acl_item_dmac_code_a2      ),  
+		.i_cfg_acl_item_dmac_code_2_valid	(w_cfg_acl_item_dmac_code_a2_valid),
+		.i_cfg_acl_item_dmac_code_3     	(w_cfg_acl_item_dmac_code_a3      ),  
+		.i_cfg_acl_item_dmac_code_3_valid	(w_cfg_acl_item_dmac_code_a3_valid),
+		.i_cfg_acl_item_dmac_code_4     	(w_cfg_acl_item_dmac_code_a4      ),  
+		.i_cfg_acl_item_dmac_code_4_valid	(w_cfg_acl_item_dmac_code_a4_valid),
+		.i_cfg_acl_item_dmac_code_5     	(w_cfg_acl_item_dmac_code_a5      ),  
+		.i_cfg_acl_item_dmac_code_5_valid	(w_cfg_acl_item_dmac_code_a5_valid),
+		.i_cfg_acl_item_dmac_code_6     	(w_cfg_acl_item_dmac_code_a6      ),  
+		.i_cfg_acl_item_dmac_code_6_valid	(w_cfg_acl_item_dmac_code_a6_valid),
+																			
+		// SMAC                                       
+		.i_cfg_acl_item_smac_code_1     	(w_cfg_acl_item_smac_code_a1	  ),       
+		.i_cfg_acl_item_smac_code_1_valid	(w_cfg_acl_item_smac_code_a1_valid),
+		.i_cfg_acl_item_smac_code_2     	(w_cfg_acl_item_smac_code_a2      ),       
+		.i_cfg_acl_item_smac_code_2_valid	(w_cfg_acl_item_smac_code_a2_valid),
+		.i_cfg_acl_item_smac_code_3     	(w_cfg_acl_item_smac_code_a3      ),
+		.i_cfg_acl_item_smac_code_3_valid	(w_cfg_acl_item_smac_code_a3_valid),
+		.i_cfg_acl_item_smac_code_4     	(w_cfg_acl_item_smac_code_a4      ),
+		.i_cfg_acl_item_smac_code_4_valid	(w_cfg_acl_item_smac_code_a4_valid),
+		.i_cfg_acl_item_smac_code_5     	(w_cfg_acl_item_smac_code_a5      ),
+		.i_cfg_acl_item_smac_code_5_valid	(w_cfg_acl_item_smac_code_a5_valid),
+		.i_cfg_acl_item_smac_code_6     	(w_cfg_acl_item_smac_code_a6      ),
+		.i_cfg_acl_item_smac_code_6_valid	(w_cfg_acl_item_smac_code_a6_valid),
+	
+		// VLAN
+		.i_cfg_acl_item_vlan_code_1     	(w_cfg_acl_item_vlan_code_a1	  ),
+		.i_cfg_acl_item_vlan_code_1_valid	(w_cfg_acl_item_vlan_code_a1_valid),
+		.i_cfg_acl_item_vlan_code_2     	(w_cfg_acl_item_vlan_code_a2      ),
+		.i_cfg_acl_item_vlan_code_2_valid	(w_cfg_acl_item_vlan_code_a2_valid),
+		.i_cfg_acl_item_vlan_code_3     	(w_cfg_acl_item_vlan_code_a3      ),
+		.i_cfg_acl_item_vlan_code_3_valid	(w_cfg_acl_item_vlan_code_a3_valid),
+		.i_cfg_acl_item_vlan_code_4     	(w_cfg_acl_item_vlan_code_a4      ),
+		.i_cfg_acl_item_vlan_code_4_valid	(w_cfg_acl_item_vlan_code_a4_valid),
+	
+		// Ethertype
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_a1	  ),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_a1_valid),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_a2      ),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_a2_valid),
+															
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_a),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_a_valid),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_a),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_a_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_a),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_a_valid),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_a),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_a_valid),
+
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_0), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -2353,22 +2701,63 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_1), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_1), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_1_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_1), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_1), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_1), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_1),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_1),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_1),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_1),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_1),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_1),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_1),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_1),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     	(w_cfg_acl_item_dmac_code_b1	  ),  
+		.i_cfg_acl_item_dmac_code_1_valid	(w_cfg_acl_item_dmac_code_b1_valid),
+		.i_cfg_acl_item_dmac_code_2     	(w_cfg_acl_item_dmac_code_b2      ),  
+		.i_cfg_acl_item_dmac_code_2_valid	(w_cfg_acl_item_dmac_code_b2_valid),
+		.i_cfg_acl_item_dmac_code_3     	(w_cfg_acl_item_dmac_code_b3      ),  
+		.i_cfg_acl_item_dmac_code_3_valid	(w_cfg_acl_item_dmac_code_b3_valid),
+		.i_cfg_acl_item_dmac_code_4     	(w_cfg_acl_item_dmac_code_b4      ),  
+		.i_cfg_acl_item_dmac_code_4_valid	(w_cfg_acl_item_dmac_code_b4_valid),
+		.i_cfg_acl_item_dmac_code_5     	(w_cfg_acl_item_dmac_code_b5      ),  
+		.i_cfg_acl_item_dmac_code_5_valid	(w_cfg_acl_item_dmac_code_b5_valid),
+		.i_cfg_acl_item_dmac_code_6     	(w_cfg_acl_item_dmac_code_b6      ),  
+		.i_cfg_acl_item_dmac_code_6_valid	(w_cfg_acl_item_dmac_code_b6_valid),
+																			
+		// SMAC                                       
+		.i_cfg_acl_item_smac_code_1     	(w_cfg_acl_item_smac_code_b1	  ),       
+		.i_cfg_acl_item_smac_code_1_valid	(w_cfg_acl_item_smac_code_b1_valid),
+		.i_cfg_acl_item_smac_code_2     	(w_cfg_acl_item_smac_code_b2      ),       
+		.i_cfg_acl_item_smac_code_2_valid	(w_cfg_acl_item_smac_code_b2_valid),
+		.i_cfg_acl_item_smac_code_3     	(w_cfg_acl_item_smac_code_b3      ),
+		.i_cfg_acl_item_smac_code_3_valid	(w_cfg_acl_item_smac_code_b3_valid),
+		.i_cfg_acl_item_smac_code_4     	(w_cfg_acl_item_smac_code_b4      ),
+		.i_cfg_acl_item_smac_code_4_valid	(w_cfg_acl_item_smac_code_b4_valid),
+		.i_cfg_acl_item_smac_code_5     	(w_cfg_acl_item_smac_code_b5      ),
+		.i_cfg_acl_item_smac_code_5_valid	(w_cfg_acl_item_smac_code_b5_valid),
+		.i_cfg_acl_item_smac_code_6     	(w_cfg_acl_item_smac_code_b6      ),
+		.i_cfg_acl_item_smac_code_6_valid	(w_cfg_acl_item_smac_code_b6_valid),
+	
+		// VLAN
+		.i_cfg_acl_item_vlan_code_1     	(w_cfg_acl_item_vlan_code_b1	  ),
+		.i_cfg_acl_item_vlan_code_1_valid	(w_cfg_acl_item_vlan_code_b1_valid),
+		.i_cfg_acl_item_vlan_code_2     	(w_cfg_acl_item_vlan_code_b2      ),
+		.i_cfg_acl_item_vlan_code_2_valid	(w_cfg_acl_item_vlan_code_b2_valid),
+		.i_cfg_acl_item_vlan_code_3     	(w_cfg_acl_item_vlan_code_b3      ),
+		.i_cfg_acl_item_vlan_code_3_valid	(w_cfg_acl_item_vlan_code_b3_valid),
+		.i_cfg_acl_item_vlan_code_4     	(w_cfg_acl_item_vlan_code_b4      ),
+		.i_cfg_acl_item_vlan_code_4_valid	(w_cfg_acl_item_vlan_code_b4_valid),
+	
+		// Ethertype
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_b1	  ),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_b1_valid),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_b2      ),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_b2_valid),
+															
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_b			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_b_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_b		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_b_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_b 			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_b_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_b   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_b_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_1), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -2497,22 +2886,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_2), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_2), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_2_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_2), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_2), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_2), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_2),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_2),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_2),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_2),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_2),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_2),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_2),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_2),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_c1			),  
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_c1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_c2			),  
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_c2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_c3			),  
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_c3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_c4			),  
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_c4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_c5			),  
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_c5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_c6			),  
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_c6_valid		),																
+		// SMAC                             				          	
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_c1			),       
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_c1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_c2			),       
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_c2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_c3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_c3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_c4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_c4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_c5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_c5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_c6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_c6_valid		),
+		// VLAN					
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_c1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_c1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_c2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_c2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_c3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_c3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_c4			),
+		.i_cfg_acl_item_vlan_code_4_valid					(w_cfg_acl_item_vlan_code_c4_valid		),
+		// Ethertype
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_c1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_c1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_c2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_c2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_c),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_c_valid),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_c		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_c_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_c 			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_c_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_c   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_c_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_2), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -2642,22 +3068,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_3), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_3), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_3_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_3), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_3), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_3), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_3),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_3),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_3),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_3),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_3),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_3),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_3),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_3),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_d1			),
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_d1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_d2			),
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_d2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_d3			),
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_d3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_d4			),
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_d4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_d5			),
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_d5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_d6			),
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_d6_valid		),														
+		// SMAC                             				          	              
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_d1			),
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_d1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_d2			),
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_d2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_d3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_d3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_d4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_d4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_d5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_d5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_d6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_d6_valid		),	
+		// VLAN				                                                          
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_d1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_d1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_d2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_d2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_d3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_d3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_d4			),
+		.i_cfg_acl_item_vlan_code_4_valid				    (w_cfg_acl_item_vlan_code_d4_valid		),
+		// Ethertype                                        
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_d1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_d1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_d2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_d2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_d			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_d_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_d		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_d_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_d 			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_d_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_d   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_d_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_3                 ), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -2787,22 +3250,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_4), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_4), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_4_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_4), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_4), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_4), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_4),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_4),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_4),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_4),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_4),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_4),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_4),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_4),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_e1			),
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_e1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_e2			),
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_e2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_e3			),
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_e3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_e4			),
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_e4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_e5			),
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_e5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_e6			),
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_e6_valid		),														
+		// SMAC                             				          	              
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_e1			),
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_e1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_e2			),
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_e2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_e3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_e3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_e4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_e4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_e5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_e5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_e6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_e6_valid		),	
+		// VLAN				                                                          
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_e1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_e1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_e2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_e2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_e3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_e3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_e4			),
+		.i_cfg_acl_item_vlan_code_4_valid				    (w_cfg_acl_item_vlan_code_e4_valid		),
+		// Ethertype                                        
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_e1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_e1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_e2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_e2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_e			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_e_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_e		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_e_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_e 			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_e_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_e   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_e_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_4), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -2932,22 +3432,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_5), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_5), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_5_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_5), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_5), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_5), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_5),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_5),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_5),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_5),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_5),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_5),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_5),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_5),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_f1			),
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_f1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_f2			),
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_f2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_f3			),
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_f3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_f4			),
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_f4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_f5			),
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_f5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_f6			),
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_f6_valid		),														
+		// SMAC                             				          	              
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_f1			),
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_f1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_f2			),
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_f2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_f3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_f3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_f4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_f4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_f5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_f5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_f6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_f6_valid		),	
+		// VLAN				                                                          
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_f1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_f1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_f2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_f2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_f3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_f3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_f4			),
+		.i_cfg_acl_item_vlan_code_4_valid				    (w_cfg_acl_item_vlan_code_f4_valid		),
+		// Ethertype                                        
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_f1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_f1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_f2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_f2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_f			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_f_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_f		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_f_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_f			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_f_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_f   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_f_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_5), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -3077,22 +3614,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_6), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_6), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_6_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_6), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_6), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_6), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_6),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_6),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_6),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_6),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_6),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_6),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_6),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_6),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_g1			),
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_g1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_g2			),
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_g2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_g3			),
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_g3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_g4			),
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_g4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_g5			),
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_g5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_g6			),
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_g6_valid		),														
+		// SMAC                             				          	              
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_g1			),
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_g1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_g2			),
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_g2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_g3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_g3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_g4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_g4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_g5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_g5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_g6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_g6_valid		),	
+		// VLAN				                                                          
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_g1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_g1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_g2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_g2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_g3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_g3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_g4			),
+		.i_cfg_acl_item_vlan_code_4_valid				    (w_cfg_acl_item_vlan_code_g4_valid		),
+		// Ethertype                                        
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_g1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_g1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_g2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_g2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_g			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_g_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_g		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_g_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_g			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_g_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_g   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_g_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_6), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -3223,22 +3797,59 @@ module rx_mac_mng#(
         .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_7), // 帧间隔
         // ACL 寄存器
         .i_acl_port_sel                     (w_acl_port_sel_7), // 选择要配置的端口
+		.i_acl_port_sel_valid				(w_acl_port_sel_7_valid),
         .i_acl_clr_list_regs                (w_acl_clr_list_regs_7), // 清空寄存器列表
         .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_7), // 配置寄存器操作空闲
         .i_acl_item_sel_regs                (w_acl_item_sel_regs_7), // 配置条目选择
-        //.i_acl_item_waddr_regs              (), // 每个条目最大支持比对 64 字节
-        //.i_acl_item_din_regs                (), // 需要比较的字节数据
-        //.i_acl_item_we_regs                 (), // 配置使能信号
-        //.i_acl_item_rslt_regs               (), // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-        //.i_acl_item_complete_regs           (), // 端口 ACL 参数配置完成使能信号
-        .i_acl_item_dmac_code                (w_acl_item_dmac_code_7),
-        .i_acl_item_smac_code                (w_acl_item_smac_code_7),
-        .i_acl_item_vlan_code                (w_acl_item_vlan_code_7),
-        .i_acl_item_ethtype_code             (w_acl_item_ethtype_code_7),
-        .i_acl_item_action_pass_state        (w_acl_item_action_pass_state_7),
-        .i_acl_item_action_cb_streamhandle   (w_acl_item_action_cb_streamhandle_7),
-        .i_acl_item_action_flowctrl          (w_acl_item_action_flowctrl_7),
-        .i_acl_item_action_txport            (w_acl_item_action_txport_7),
+		// DMAC
+		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_h1			),
+		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_h1_valid		),
+		.i_cfg_acl_item_dmac_code_2     					(w_cfg_acl_item_dmac_code_h2			),
+		.i_cfg_acl_item_dmac_code_2_valid					(w_cfg_acl_item_dmac_code_h2_valid		),
+		.i_cfg_acl_item_dmac_code_3     					(w_cfg_acl_item_dmac_code_h3			),
+		.i_cfg_acl_item_dmac_code_3_valid					(w_cfg_acl_item_dmac_code_h3_valid		),
+		.i_cfg_acl_item_dmac_code_4     					(w_cfg_acl_item_dmac_code_h4			),
+		.i_cfg_acl_item_dmac_code_4_valid					(w_cfg_acl_item_dmac_code_h4_valid		),
+		.i_cfg_acl_item_dmac_code_5     					(w_cfg_acl_item_dmac_code_h5			),
+		.i_cfg_acl_item_dmac_code_5_valid					(w_cfg_acl_item_dmac_code_h5_valid		),
+		.i_cfg_acl_item_dmac_code_6     					(w_cfg_acl_item_dmac_code_h6			),
+		.i_cfg_acl_item_dmac_code_6_valid					(w_cfg_acl_item_dmac_code_h6_valid		),														
+		// SMAC                             				          	              
+		.i_cfg_acl_item_smac_code_1     					(w_cfg_acl_item_smac_code_h1			),
+		.i_cfg_acl_item_smac_code_1_valid					(w_cfg_acl_item_smac_code_h1_valid		),
+		.i_cfg_acl_item_smac_code_2     					(w_cfg_acl_item_smac_code_h2			),
+		.i_cfg_acl_item_smac_code_2_valid					(w_cfg_acl_item_smac_code_h2_valid		),
+		.i_cfg_acl_item_smac_code_3     					(w_cfg_acl_item_smac_code_h3			),
+		.i_cfg_acl_item_smac_code_3_valid					(w_cfg_acl_item_smac_code_h3_valid		),
+		.i_cfg_acl_item_smac_code_4     					(w_cfg_acl_item_smac_code_h4			),
+		.i_cfg_acl_item_smac_code_4_valid					(w_cfg_acl_item_smac_code_h4_valid		),
+		.i_cfg_acl_item_smac_code_5     					(w_cfg_acl_item_smac_code_h5			),
+		.i_cfg_acl_item_smac_code_5_valid					(w_cfg_acl_item_smac_code_h5_valid		),
+		.i_cfg_acl_item_smac_code_6     					(w_cfg_acl_item_smac_code_h6			),
+		.i_cfg_acl_item_smac_code_6_valid					(w_cfg_acl_item_smac_code_h6_valid		),	
+		// VLAN				                                                          
+		.i_cfg_acl_item_vlan_code_1     					(w_cfg_acl_item_vlan_code_h1			),
+		.i_cfg_acl_item_vlan_code_1_valid					(w_cfg_acl_item_vlan_code_h1_valid		),
+		.i_cfg_acl_item_vlan_code_2     					(w_cfg_acl_item_vlan_code_h2			),
+		.i_cfg_acl_item_vlan_code_2_valid					(w_cfg_acl_item_vlan_code_h2_valid		),
+		.i_cfg_acl_item_vlan_code_3     					(w_cfg_acl_item_vlan_code_h3			),
+		.i_cfg_acl_item_vlan_code_3_valid					(w_cfg_acl_item_vlan_code_h3_valid		),
+		.i_cfg_acl_item_vlan_code_4     					(w_cfg_acl_item_vlan_code_h4			),
+		.i_cfg_acl_item_vlan_code_4_valid				    (w_cfg_acl_item_vlan_code_h4_valid		),
+		// Ethertype                                        
+		.i_cfg_acl_item_ethertype_code_1					(w_cfg_acl_item_ethertype_code_h1		),
+		.i_cfg_acl_item_ethertype_code_1_valid				(w_cfg_acl_item_ethertype_code_h1_valid	),
+		.i_cfg_acl_item_ethertype_code_2					(w_cfg_acl_item_ethertype_code_h2		),
+		.i_cfg_acl_item_ethertype_code_2_valid				(w_cfg_acl_item_ethertype_code_h2_valid	),												
+		// Action                                           
+		.i_cfg_acl_item_action_pass_state					(w_cfg_acl_item_action_pass_state_h			),
+		.i_cfg_acl_item_action_pass_state_valid				(w_cfg_acl_item_action_pass_state_h_valid		),
+		.i_cfg_acl_item_action_cb_streamhandle				(w_cfg_acl_item_action_cb_streamhandle_h		),
+		.i_cfg_acl_item_action_cb_streamhandle_valid		(w_cfg_acl_item_action_cb_streamhandle_h_valid),
+		.i_cfg_acl_item_action_flowctrl 					(w_cfg_acl_item_action_flowctrl_h			),
+		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_h_valid		),
+		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_h   			),
+		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_h_valid			),
         // 状态寄存器
         .o_port_diag_state                  (w_port_diag_state_7), // 端口状态寄存器,详情见寄存器表说明定义 
         // 诊断寄存器
@@ -3279,17 +3890,54 @@ rx_mac_reg #(
         .o_port_rx_ultrashortinterval_num_0             (w_port_rx_ultrashortinterval_num_0             ),  // 帧间隔
         // ACL 寄存器
         .o_acl_port_sel_0                               (w_acl_port_sel_0                               ),  // 选择要配置的端口
+		.o_acl_port_sel_0_valid							(w_acl_port_sel_0_valid							),
         .o_acl_clr_list_regs_0                          (w_acl_clr_list_regs_0                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_0                          (w_acl_list_rdy_regs_0                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_0                          (w_acl_item_sel_regs_0                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_0                         (w_acl_item_dmac_code_0                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_0                         (w_acl_item_smac_code_0                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_0                         (w_acl_item_vlan_code_0                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_0                      (w_acl_item_ethtype_code_0                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_0                 (w_acl_item_action_pass_state_0                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_0            (w_acl_item_action_cb_streamhandle_0            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_0                   (w_acl_item_action_flowctrl_0                   ),  // ACL动作流控
-        .o_acl_item_action_txport_0                     (w_acl_item_action_txport_0                     ),  // ACL动作发送端口
+		.o_cfg_acl_item_dmac_code_a1            		(w_cfg_acl_item_dmac_code_a1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_a1_valid      		(w_cfg_acl_item_dmac_code_a1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_a2            		(w_cfg_acl_item_dmac_code_a2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_a2_valid      		(w_cfg_acl_item_dmac_code_a2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_a3            		(w_cfg_acl_item_dmac_code_a3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_a3_valid      		(w_cfg_acl_item_dmac_code_a3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_a4            		(w_cfg_acl_item_dmac_code_a4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_a4_valid      		(w_cfg_acl_item_dmac_code_a4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_a5            		(w_cfg_acl_item_dmac_code_a5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_a5_valid      		(w_cfg_acl_item_dmac_code_a5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_a6            		(w_cfg_acl_item_dmac_code_a6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_a6_valid      		(w_cfg_acl_item_dmac_code_a6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_a1            		(w_cfg_acl_item_smac_code_a1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_a1_valid      		(w_cfg_acl_item_smac_code_a1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_a2            		(w_cfg_acl_item_smac_code_a2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_a2_valid      		(w_cfg_acl_item_smac_code_a2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_a3            		(w_cfg_acl_item_smac_code_a3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_a3_valid      		(w_cfg_acl_item_smac_code_a3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_a4            		(w_cfg_acl_item_smac_code_a4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_a4_valid      		(w_cfg_acl_item_smac_code_a4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_a5            		(w_cfg_acl_item_smac_code_a5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_a5_valid      		(w_cfg_acl_item_smac_code_a5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_a6            		(w_cfg_acl_item_smac_code_a6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_a6_valid      		(w_cfg_acl_item_smac_code_a6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_a1            		(w_cfg_acl_item_vlan_code_a1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_a1_valid      		(w_cfg_acl_item_vlan_code_a1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_a2            		(w_cfg_acl_item_vlan_code_a2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_a2_valid      		(w_cfg_acl_item_vlan_code_a2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_a3            		(w_cfg_acl_item_vlan_code_a3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_a3_valid      		(w_cfg_acl_item_vlan_code_a3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_a4            		(w_cfg_acl_item_vlan_code_a4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_a4_valid      		(w_cfg_acl_item_vlan_code_a4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_a1       		(w_cfg_acl_item_ethertype_code_a1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_a1_valid 		(w_cfg_acl_item_ethertype_code_a1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_a2       		(w_cfg_acl_item_ethertype_code_a2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_a2_valid 		(w_cfg_acl_item_ethertype_code_a2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_a     		(w_cfg_acl_item_action_pass_state_a     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_a_valid		(w_cfg_acl_item_action_pass_state_a_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_a 		(w_cfg_acl_item_action_cb_streamhandle_a 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_a_valid	(w_cfg_acl_item_action_cb_streamhandle_a_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_a        		(w_cfg_acl_item_action_flowctrl_a        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_a_valid  		(w_cfg_acl_item_action_flowctrl_a_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_a          		(w_cfg_acl_item_action_txport_a          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_a_valid    		(w_cfg_acl_item_action_txport_a_valid    		),  // 写入有效信号
         //  状态寄存器
         .i_port_diag_state_0                            (w_port_diag_state_0                            ),  // 端口状态寄存器
         //  诊断寄存器
@@ -3329,16 +3977,54 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_1                     (w_port_flowctrl_cfg_regs_1                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_1             (w_port_rx_ultrashortinterval_num_1             ),  // 帧间隔
         .o_acl_port_sel_1                               (w_acl_port_sel_1                               ),  // 选择要配置的端口
+		.o_acl_port_sel_1_valid							(w_acl_port_sel_1_valid							),
         .o_acl_clr_list_regs_1                          (w_acl_clr_list_regs_1                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_1                          (w_acl_list_rdy_regs_1                          ),  // 配置寄存器操作空闲
-        .o_acl_item_dmac_code_1                         (w_acl_item_dmac_code_1                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_1                         (w_acl_item_smac_code_1                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_1                         (w_acl_item_vlan_code_1                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_1                      (w_acl_item_ethtype_code_1                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_1                 (w_acl_item_action_pass_state_1                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_1            (w_acl_item_action_cb_streamhandle_1            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_1                   (w_acl_item_action_flowctrl_1                   ),  // ACL动作流控
-        .o_acl_item_action_txport_1                     (w_acl_item_action_txport_1                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_b1            		(w_cfg_acl_item_dmac_code_b1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_b1_valid      		(w_cfg_acl_item_dmac_code_b1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_b2            		(w_cfg_acl_item_dmac_code_b2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_b2_valid      		(w_cfg_acl_item_dmac_code_b2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_b3            		(w_cfg_acl_item_dmac_code_b3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_b3_valid      		(w_cfg_acl_item_dmac_code_b3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_b4            		(w_cfg_acl_item_dmac_code_b4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_b4_valid      		(w_cfg_acl_item_dmac_code_b4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_b5            		(w_cfg_acl_item_dmac_code_b5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_b5_valid      		(w_cfg_acl_item_dmac_code_b5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_b6            		(w_cfg_acl_item_dmac_code_b6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_b6_valid      		(w_cfg_acl_item_dmac_code_b6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_b1            		(w_cfg_acl_item_smac_code_b1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_b1_valid      		(w_cfg_acl_item_smac_code_b1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_b2            		(w_cfg_acl_item_smac_code_b2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_b2_valid      		(w_cfg_acl_item_smac_code_b2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_b3            		(w_cfg_acl_item_smac_code_b3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_b3_valid      		(w_cfg_acl_item_smac_code_b3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_b4            		(w_cfg_acl_item_smac_code_b4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_b4_valid      		(w_cfg_acl_item_smac_code_b4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_b5            		(w_cfg_acl_item_smac_code_b5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_b5_valid      		(w_cfg_acl_item_smac_code_b5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_b6            		(w_cfg_acl_item_smac_code_b6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_b6_valid      		(w_cfg_acl_item_smac_code_b6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_b1            		(w_cfg_acl_item_vlan_code_b1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_b1_valid      		(w_cfg_acl_item_vlan_code_b1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_b2            		(w_cfg_acl_item_vlan_code_b2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_b2_valid      		(w_cfg_acl_item_vlan_code_b2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_b3            		(w_cfg_acl_item_vlan_code_b3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_b3_valid      		(w_cfg_acl_item_vlan_code_b3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_b4            		(w_cfg_acl_item_vlan_code_b4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_b4_valid      		(w_cfg_acl_item_vlan_code_b4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_b1       		(w_cfg_acl_item_ethertype_code_b1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_b1_valid 		(w_cfg_acl_item_ethertype_code_b1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_b2       		(w_cfg_acl_item_ethertype_code_b2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_b2_valid 		(w_cfg_acl_item_ethertype_code_b2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_b     		(w_cfg_acl_item_action_pass_state_b     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_b_valid		(w_cfg_acl_item_action_pass_state_b_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_b 		(w_cfg_acl_item_action_cb_streamhandle_b 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_b_valid	(w_cfg_acl_item_action_cb_streamhandle_b_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_b        		(w_cfg_acl_item_action_flowctrl_b        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_b_valid  		(w_cfg_acl_item_action_flowctrl_b_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_b          		(w_cfg_acl_item_action_txport_b          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_b_valid    		(w_cfg_acl_item_action_txport_b_valid    		),  // 写入有效信号
+		//  状态寄存器
         .i_port_diag_state_1                            (w_port_diag_state_1                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_1                     (w_port_rx_ultrashort_frm_1                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_1                     (w_port_rx_overlength_frm_1                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3374,17 +4060,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_2                     (w_port_flowctrl_cfg_regs_2                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_2             (w_port_rx_ultrashortinterval_num_2             ),  // 帧间隔
         .o_acl_port_sel_2                               (w_acl_port_sel_2                               ),  // 选择要配置的端口
+		.o_acl_port_sel_2_valid							(w_acl_port_sel_2_valid							),
         .o_acl_clr_list_regs_2                          (w_acl_clr_list_regs_2                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_2                          (w_acl_list_rdy_regs_2                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_2                          (w_acl_item_sel_regs_2                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_2                         (w_acl_item_dmac_code_2                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_2                         (w_acl_item_smac_code_2                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_2                         (w_acl_item_vlan_code_2                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_2                      (w_acl_item_ethtype_code_2                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_2                 (w_acl_item_action_pass_state_2                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_2            (w_acl_item_action_cb_streamhandle_2            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_2                   (w_acl_item_action_flowctrl_2                   ),  // ACL动作流控
-        .o_acl_item_action_txport_2                     (w_acl_item_action_txport_2                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_c1            		(w_cfg_acl_item_dmac_code_c1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_c1_valid      		(w_cfg_acl_item_dmac_code_c1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_c2            		(w_cfg_acl_item_dmac_code_c2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_c2_valid      		(w_cfg_acl_item_dmac_code_c2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_c3            		(w_cfg_acl_item_dmac_code_c3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_c3_valid      		(w_cfg_acl_item_dmac_code_c3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_c4            		(w_cfg_acl_item_dmac_code_c4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_c4_valid      		(w_cfg_acl_item_dmac_code_c4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_c5            		(w_cfg_acl_item_dmac_code_c5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_c5_valid      		(w_cfg_acl_item_dmac_code_c5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_c6            		(w_cfg_acl_item_dmac_code_c6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_c6_valid      		(w_cfg_acl_item_dmac_code_c6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_c1            		(w_cfg_acl_item_smac_code_c1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_c1_valid      		(w_cfg_acl_item_smac_code_c1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_c2            		(w_cfg_acl_item_smac_code_c2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_c2_valid      		(w_cfg_acl_item_smac_code_c2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_c3            		(w_cfg_acl_item_smac_code_c3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_c3_valid      		(w_cfg_acl_item_smac_code_c3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_c4            		(w_cfg_acl_item_smac_code_c4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_c4_valid      		(w_cfg_acl_item_smac_code_c4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_c5            		(w_cfg_acl_item_smac_code_c5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_c5_valid      		(w_cfg_acl_item_smac_code_c5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_c6            		(w_cfg_acl_item_smac_code_c6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_c6_valid      		(w_cfg_acl_item_smac_code_c6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_c1            		(w_cfg_acl_item_vlan_code_c1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_c1_valid      		(w_cfg_acl_item_vlan_code_c1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_c2            		(w_cfg_acl_item_vlan_code_c2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_c2_valid      		(w_cfg_acl_item_vlan_code_c2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_c3            		(w_cfg_acl_item_vlan_code_c3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_c3_valid      		(w_cfg_acl_item_vlan_code_c3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_c4            		(w_cfg_acl_item_vlan_code_c4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_c4_valid      		(w_cfg_acl_item_vlan_code_c4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_c1       		(w_cfg_acl_item_ethertype_code_c1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_c1_valid 		(w_cfg_acl_item_ethertype_code_c1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_c2       		(w_cfg_acl_item_ethertype_code_c2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_c2_valid 		(w_cfg_acl_item_ethertype_code_c2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_c     		(w_cfg_acl_item_action_pass_state_c     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_c_valid		(w_cfg_acl_item_action_pass_state_c_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_c 		(w_cfg_acl_item_action_cb_streamhandle_c 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_c_valid	(w_cfg_acl_item_action_cb_streamhandle_c_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_c        		(w_cfg_acl_item_action_flowctrl_c        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_c_valid  		(w_cfg_acl_item_action_flowctrl_c_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_c          		(w_cfg_acl_item_action_txport_c          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_c_valid    		(w_cfg_acl_item_action_txport_c_valid    		), // 写入有效信号
+		//  状态寄存器        
         .i_port_diag_state_2                            (w_port_diag_state_2                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_2                     (w_port_rx_ultrashort_frm_2                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_2                     (w_port_rx_overlength_frm_2                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3406,10 +4130,10 @@ rx_mac_reg #(
         .o_reset_2                                      (w_reset_2                              ),  // 端口2复位信号
     `endif
     `ifdef MAC3
-        .o_hash_ploy_regs_3                             (w_hash_ploy_regs_3                       ),  // 哈希多项式
-        .o_hash_init_val_regs_3                         (w_hash_init_val_regs_3                       ),  // 哈希多项式初始值
-        .o_hash_regs_vld_3                              (w_hash_regs_vld_3                          ),  // 哈希寄存器有效信号
-        .o_port_rxmac_down_regs_3                       (w_port_rxmac_down_regs_3                   ),  // 端口接收方向MAC关闭使能
+        .o_hash_ploy_regs_3                             (w_hash_ploy_regs_3                       		),  // 哈希多项式
+        .o_hash_init_val_regs_3                         (w_hash_init_val_regs_3                       	),  // 哈希多项式初始值
+        .o_hash_regs_vld_3                              (w_hash_regs_vld_3                          	),  // 哈希寄存器有效信号
+        .o_port_rxmac_down_regs_3                       (w_port_rxmac_down_regs_3                   	),  // 端口接收方向MAC关闭使能
         .o_port_broadcast_drop_regs_3                   (w_port_broadcast_drop_regs_3                   ),  // 端口广播帧丢弃使能
         .o_port_multicast_drop_regs_3                   (w_port_multicast_drop_regs_3                   ),  // 端口组播帧丢弃使能
         .o_port_loopback_drop_regs_3                    (w_port_loopback_drop_regs_3                    ),  // 端口环回帧丢弃使能
@@ -3420,17 +4144,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_3                     (w_port_flowctrl_cfg_regs_3                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_3             (w_port_rx_ultrashortinterval_num_3             ),  // 帧间隔
         .o_acl_port_sel_3                               (w_acl_port_sel_3                               ),  // 选择要配置的端口
+		.o_acl_port_sel_3_valid                         (w_acl_port_sel_3_valid                         ),  // 选择要配置的端口
         .o_acl_clr_list_regs_3                          (w_acl_clr_list_regs_3                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_3                          (w_acl_list_rdy_regs_3                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_3                          (w_acl_item_sel_regs_3                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_3                         (w_acl_item_dmac_code_3                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_3                         (w_acl_item_smac_code_3                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_3                         (w_acl_item_vlan_code_3                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_3                      (w_acl_item_ethtype_code_3                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_3                 (w_acl_item_action_pass_state_3                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_3            (w_acl_item_action_cb_streamhandle_3            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_3                   (w_acl_item_action_flowctrl_3                   ),  // ACL动作流控
-        .o_acl_item_action_txport_3                     (w_acl_item_action_txport_3                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_d1            		(w_cfg_acl_item_dmac_code_d1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_d1_valid      		(w_cfg_acl_item_dmac_code_d1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_d2            		(w_cfg_acl_item_dmac_code_d2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_d2_valid      		(w_cfg_acl_item_dmac_code_d2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_d3            		(w_cfg_acl_item_dmac_code_d3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_d3_valid      		(w_cfg_acl_item_dmac_code_d3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_d4            		(w_cfg_acl_item_dmac_code_d4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_d4_valid      		(w_cfg_acl_item_dmac_code_d4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_d5            		(w_cfg_acl_item_dmac_code_d5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_d5_valid      		(w_cfg_acl_item_dmac_code_d5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_d6            		(w_cfg_acl_item_dmac_code_d6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_d6_valid      		(w_cfg_acl_item_dmac_code_d6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_d1            		(w_cfg_acl_item_smac_code_d1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_d1_valid      		(w_cfg_acl_item_smac_code_d1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_d2            		(w_cfg_acl_item_smac_code_d2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_d2_valid      		(w_cfg_acl_item_smac_code_d2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_d3            		(w_cfg_acl_item_smac_code_d3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_d3_valid      		(w_cfg_acl_item_smac_code_d3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_d4            		(w_cfg_acl_item_smac_code_d4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_d4_valid      		(w_cfg_acl_item_smac_code_d4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_d5            		(w_cfg_acl_item_smac_code_d5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_d5_valid      		(w_cfg_acl_item_smac_code_d5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_d6            		(w_cfg_acl_item_smac_code_d6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_d6_valid      		(w_cfg_acl_item_smac_code_d6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_d1            		(w_cfg_acl_item_vlan_code_d1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_d1_valid      		(w_cfg_acl_item_vlan_code_d1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_d2            		(w_cfg_acl_item_vlan_code_d2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_d2_valid      		(w_cfg_acl_item_vlan_code_d2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_d3            		(w_cfg_acl_item_vlan_code_d3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_d3_valid      		(w_cfg_acl_item_vlan_code_d3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_d4            		(w_cfg_acl_item_vlan_code_d4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_d4_valid      		(w_cfg_acl_item_vlan_code_d4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_d1       		(w_cfg_acl_item_ethertype_code_d1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_d1_valid 		(w_cfg_acl_item_ethertype_code_d1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_d2       		(w_cfg_acl_item_ethertype_code_d2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_d2_valid 		(w_cfg_acl_item_ethertype_code_d2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_d     		(w_cfg_acl_item_action_pass_state_d     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_d_valid		(w_cfg_acl_item_action_pass_state_d_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_d 		(w_cfg_acl_item_action_cb_streamhandle_d 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_d_valid	(w_cfg_acl_item_action_cb_streamhandle_d_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_d        		(w_cfg_acl_item_action_flowctrl_d        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_d_valid  		(w_cfg_acl_item_action_flowctrl_d_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_d          		(w_cfg_acl_item_action_txport_d          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_d_valid    		(w_cfg_acl_item_action_txport_d_valid    		), // 写入有效信号
+		//  状态寄存器        
         .i_port_diag_state_3                            (w_port_diag_state_3                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_3                     (w_port_rx_ultrashort_frm_3                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_3                     (w_port_rx_overlength_frm_3                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3452,10 +4214,10 @@ rx_mac_reg #(
         .o_reset_3                                      (w_reset_3                              ),  // 端口3复位信号
     `endif
     `ifdef MAC4
-        .o_hash_ploy_regs_4                             (w_hash_ploy_regs_4                       ),  // 哈希多项式
-        .o_hash_init_val_regs_4                         (w_hash_init_val_regs_4                       ),  // 哈希多项式初始值
-        .o_hash_regs_vld_4                              (w_hash_regs_vld_4                          ),  // 哈希寄存器有效信号
-        .o_port_rxmac_down_regs_4                       (w_port_rxmac_down_regs_4                   ),  // 端口接收方向MAC关闭使能
+        .o_hash_ploy_regs_4                             (w_hash_ploy_regs_4                       		),  // 哈希多项式
+        .o_hash_init_val_regs_4                         (w_hash_init_val_regs_4                       	),  // 哈希多项式初始值
+        .o_hash_regs_vld_4                              (w_hash_regs_vld_4                          	),  // 哈希寄存器有效信号
+        .o_port_rxmac_down_regs_4                       (w_port_rxmac_down_regs_4                   	),  // 端口接收方向MAC关闭使能
         .o_port_broadcast_drop_regs_4                   (w_port_broadcast_drop_regs_4                   ),  // 端口广播帧丢弃使能
         .o_port_multicast_drop_regs_4                   (w_port_multicast_drop_regs_4                   ),  // 端口组播帧丢弃使能
         .o_port_loopback_drop_regs_4                    (w_port_loopback_drop_regs_4                    ),  // 端口环回帧丢弃使能
@@ -3466,17 +4228,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_4                     (w_port_flowctrl_cfg_regs_4                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_4             (w_port_rx_ultrashortinterval_num_4             ),  // 帧间隔
         .o_acl_port_sel_4                               (w_acl_port_sel_4                               ),  // 选择要配置的端口
+		.o_acl_port_sel_4_valid							(w_acl_port_sel_4_valid							),
         .o_acl_clr_list_regs_4                          (w_acl_clr_list_regs_4                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_4                          (w_acl_list_rdy_regs_4                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_4                          (w_acl_item_sel_regs_4                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_4                         (w_acl_item_dmac_code_4                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_4                         (w_acl_item_smac_code_4                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_4                         (w_acl_item_vlan_code_4                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_4                      (w_acl_item_ethtype_code_4                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_4                 (w_acl_item_action_pass_state_4                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_4            (w_acl_item_action_cb_streamhandle_4            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_4                   (w_acl_item_action_flowctrl_4                   ),  // ACL动作流控
-        .o_acl_item_action_txport_4                     (w_acl_item_action_txport_4                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_e1            		(w_cfg_acl_item_dmac_code_e1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_e1_valid      		(w_cfg_acl_item_dmac_code_e1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_e2            		(w_cfg_acl_item_dmac_code_e2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_e2_valid      		(w_cfg_acl_item_dmac_code_e2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_e3            		(w_cfg_acl_item_dmac_code_e3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_e3_valid      		(w_cfg_acl_item_dmac_code_e3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_e4            		(w_cfg_acl_item_dmac_code_e4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_e4_valid      		(w_cfg_acl_item_dmac_code_e4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_e5            		(w_cfg_acl_item_dmac_code_e5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_e5_valid      		(w_cfg_acl_item_dmac_code_e5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_e6            		(w_cfg_acl_item_dmac_code_e6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_e6_valid      		(w_cfg_acl_item_dmac_code_e6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_e1            		(w_cfg_acl_item_smac_code_e1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_e1_valid      		(w_cfg_acl_item_smac_code_e1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_e2            		(w_cfg_acl_item_smac_code_e2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_e2_valid      		(w_cfg_acl_item_smac_code_e2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_e3            		(w_cfg_acl_item_smac_code_e3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_e3_valid      		(w_cfg_acl_item_smac_code_e3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_e4            		(w_cfg_acl_item_smac_code_e4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_e4_valid      		(w_cfg_acl_item_smac_code_e4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_e5            		(w_cfg_acl_item_smac_code_e5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_e5_valid      		(w_cfg_acl_item_smac_code_e5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_e6            		(w_cfg_acl_item_smac_code_e6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_e6_valid      		(w_cfg_acl_item_smac_code_e6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_e1            		(w_cfg_acl_item_vlan_code_e1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_e1_valid      		(w_cfg_acl_item_vlan_code_e1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_e2            		(w_cfg_acl_item_vlan_code_e2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_e2_valid      		(w_cfg_acl_item_vlan_code_e2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_e3            		(w_cfg_acl_item_vlan_code_e3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_e3_valid      		(w_cfg_acl_item_vlan_code_e3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_e4            		(w_cfg_acl_item_vlan_code_e4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_e4_valid      		(w_cfg_acl_item_vlan_code_e4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_e1       		(w_cfg_acl_item_ethertype_code_e1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_e1_valid 		(w_cfg_acl_item_ethertype_code_e1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_e2       		(w_cfg_acl_item_ethertype_code_e2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_e2_valid 		(w_cfg_acl_item_ethertype_code_e2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_e     		(w_cfg_acl_item_action_pass_state_e     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_e_valid		(w_cfg_acl_item_action_pass_state_e_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_e 		(w_cfg_acl_item_action_cb_streamhandle_e 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_e_valid	(w_cfg_acl_item_action_cb_streamhandle_e_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_e        		(w_cfg_acl_item_action_flowctrl_e        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_e_valid  		(w_cfg_acl_item_action_flowctrl_e_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_e          		(w_cfg_acl_item_action_txport_e          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_e_valid    		(w_cfg_acl_item_action_txport_e_valid    		), // 写入有效信号
+		//  状态寄存器
         .i_port_diag_state_4                            (w_port_diag_state_4                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_4                     (w_port_rx_ultrashort_frm_4                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_4                     (w_port_rx_overlength_frm_4                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3498,10 +4298,10 @@ rx_mac_reg #(
         .o_reset_4                                      (w_reset_4                              ),  // 端口4复位信号
     `endif
     `ifdef MAC5
-        .o_hash_ploy_regs_5                             (w_hash_ploy_regs_5                       ),  // 哈希多项式
-        .o_hash_init_val_regs_5                         (w_hash_init_val_regs_5                       ),  // 哈希多项式初始值
-        .o_hash_regs_vld_5                              (w_hash_regs_vld_5                          ),  // 哈希寄存器有效信号
-        .o_port_rxmac_down_regs_5                       (w_port_rxmac_down_regs_5                   ),  // 端口接收方向MAC关闭使能
+        .o_hash_ploy_regs_5                             (w_hash_ploy_regs_5                       		),  // 哈希多项式
+        .o_hash_init_val_regs_5                         (w_hash_init_val_regs_5                       	),  // 哈希多项式初始值
+        .o_hash_regs_vld_5                              (w_hash_regs_vld_5                          	),  // 哈希寄存器有效信号
+        .o_port_rxmac_down_regs_5                       (w_port_rxmac_down_regs_5                   	),  // 端口接收方向MAC关闭使能
         .o_port_broadcast_drop_regs_5                   (w_port_broadcast_drop_regs_5                   ),  // 端口广播帧丢弃使能
         .o_port_multicast_drop_regs_5                   (w_port_multicast_drop_regs_5                   ),  // 端口组播帧丢弃使能
         .o_port_loopback_drop_regs_5                    (w_port_loopback_drop_regs_5                    ),  // 端口环回帧丢弃使能
@@ -3512,17 +4312,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_5                     (w_port_flowctrl_cfg_regs_5                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_5             (w_port_rx_ultrashortinterval_num_5             ),  // 帧间隔
         .o_acl_port_sel_5                               (w_acl_port_sel_5                               ),  // 选择要配置的端口
+		.o_acl_port_sel_5_valid							(w_acl_port_sel_5_valid							),
         .o_acl_clr_list_regs_5                          (w_acl_clr_list_regs_5                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_5                          (w_acl_list_rdy_regs_5                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_5                          (w_acl_item_sel_regs_5                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_5                         (w_acl_item_dmac_code_5                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_5                         (w_acl_item_smac_code_5                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_5                         (w_acl_item_vlan_code_5                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_5                      (w_acl_item_ethtype_code_5                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_5                 (w_acl_item_action_pass_state_5                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_5            (w_acl_item_action_cb_streamhandle_5            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_5                   (w_acl_item_action_flowctrl_5                   ),  // ACL动作流控
-        .o_acl_item_action_txport_5                     (w_acl_item_action_txport_5                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_f1            		(w_cfg_acl_item_dmac_code_f1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_f1_valid      		(w_cfg_acl_item_dmac_code_f1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_f2            		(w_cfg_acl_item_dmac_code_f2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_f2_valid      		(w_cfg_acl_item_dmac_code_f2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_f3            		(w_cfg_acl_item_dmac_code_f3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_f3_valid      		(w_cfg_acl_item_dmac_code_f3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_f4            		(w_cfg_acl_item_dmac_code_f4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_f4_valid      		(w_cfg_acl_item_dmac_code_f4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_f5            		(w_cfg_acl_item_dmac_code_f5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_f5_valid      		(w_cfg_acl_item_dmac_code_f5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_f6            		(w_cfg_acl_item_dmac_code_f6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_f6_valid      		(w_cfg_acl_item_dmac_code_f6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_f1            		(w_cfg_acl_item_smac_code_f1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_f1_valid      		(w_cfg_acl_item_smac_code_f1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_f2            		(w_cfg_acl_item_smac_code_f2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_f2_valid      		(w_cfg_acl_item_smac_code_f2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_f3            		(w_cfg_acl_item_smac_code_f3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_f3_valid      		(w_cfg_acl_item_smac_code_f3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_f4            		(w_cfg_acl_item_smac_code_f4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_f4_valid      		(w_cfg_acl_item_smac_code_f4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_f5            		(w_cfg_acl_item_smac_code_f5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_f5_valid      		(w_cfg_acl_item_smac_code_f5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_f6            		(w_cfg_acl_item_smac_code_f6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_f6_valid      		(w_cfg_acl_item_smac_code_f6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_f1            		(w_cfg_acl_item_vlan_code_f1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_f1_valid      		(w_cfg_acl_item_vlan_code_f1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_f2            		(w_cfg_acl_item_vlan_code_f2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_f2_valid      		(w_cfg_acl_item_vlan_code_f2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_f3            		(w_cfg_acl_item_vlan_code_f3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_f3_valid      		(w_cfg_acl_item_vlan_code_f3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_f4            		(w_cfg_acl_item_vlan_code_f4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_f4_valid      		(w_cfg_acl_item_vlan_code_f4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_f1       		(w_cfg_acl_item_ethertype_code_f1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_f1_valid 		(w_cfg_acl_item_ethertype_code_f1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_f2       		(w_cfg_acl_item_ethertype_code_f2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_f2_valid 		(w_cfg_acl_item_ethertype_code_f2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_f     		(w_cfg_acl_item_action_pass_state_f     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_f_valid		(w_cfg_acl_item_action_pass_state_f_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_f 		(w_cfg_acl_item_action_cb_streamhandle_f 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_f_valid	(w_cfg_acl_item_action_cb_streamhandle_f_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_f        		(w_cfg_acl_item_action_flowctrl_f        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_f_valid  		(w_cfg_acl_item_action_flowctrl_f_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_f          		(w_cfg_acl_item_action_txport_f          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_f_valid    		(w_cfg_acl_item_action_txport_f_valid    		), // 写入有效信号
+		//  状态寄存器
         .i_port_diag_state_5                            (w_port_diag_state_5                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_5                     (w_port_rx_ultrashort_frm_5                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_5                     (w_port_rx_overlength_frm_5                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3544,10 +4382,10 @@ rx_mac_reg #(
         .o_reset_5                                      (w_reset_5                              ),  // 端口5复位信号
     `endif
     `ifdef MAC6
-        .o_hash_ploy_regs_6                             (w_hash_ploy_regs_6                       ),  // 哈希多项式
-        .o_hash_init_val_regs_6                         (w_hash_init_val_regs_6                       ),  // 哈希多项式初始值
-        .o_hash_regs_vld_6                              (w_hash_regs_vld_6                          ),  // 哈希寄存器有效信号
-        .o_port_rxmac_down_regs_6                       (w_port_rxmac_down_regs_6                   ),  // 端口接收方向MAC关闭使能
+        .o_hash_ploy_regs_6                             (w_hash_ploy_regs_6                       		),  // 哈希多项式
+        .o_hash_init_val_regs_6                         (w_hash_init_val_regs_6                       	),  // 哈希多项式初始值
+        .o_hash_regs_vld_6                              (w_hash_regs_vld_6                          	),  // 哈希寄存器有效信号
+        .o_port_rxmac_down_regs_6                       (w_port_rxmac_down_regs_6                   	),  // 端口接收方向MAC关闭使能
         .o_port_broadcast_drop_regs_6                   (w_port_broadcast_drop_regs_6                   ),  // 端口广播帧丢弃使能
         .o_port_multicast_drop_regs_6                   (w_port_multicast_drop_regs_6                   ),  // 端口组播帧丢弃使能
         .o_port_loopback_drop_regs_6                    (w_port_loopback_drop_regs_6                    ),  // 端口环回帧丢弃使能
@@ -3558,17 +4396,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_6                     (w_port_flowctrl_cfg_regs_6                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_6             (w_port_rx_ultrashortinterval_num_6             ),  // 帧间隔
         .o_acl_port_sel_6                               (w_acl_port_sel_6                               ),  // 选择要配置的端口
+		.o_acl_port_sel_6_valid							(w_acl_port_sel_6_valid                         ),  // 选择要配置的端口
         .o_acl_clr_list_regs_6                          (w_acl_clr_list_regs_6                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_6                          (w_acl_list_rdy_regs_6                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_6                          (w_acl_item_sel_regs_6                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_6                         (w_acl_item_dmac_code_6                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_6                         (w_acl_item_smac_code_6                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_6                         (w_acl_item_vlan_code_6                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_6                      (w_acl_item_ethtype_code_6                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_6                 (w_acl_item_action_pass_state_6                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_6            (w_acl_item_action_cb_streamhandle_6            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_6                   (w_acl_item_action_flowctrl_6                   ),  // ACL动作流控
-        .o_acl_item_action_txport_6                     (w_acl_item_action_txport_6                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_g1            		(w_cfg_acl_item_dmac_code_g1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_g1_valid      		(w_cfg_acl_item_dmac_code_g1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_g2            		(w_cfg_acl_item_dmac_code_g2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_g2_valid      		(w_cfg_acl_item_dmac_code_g2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_g3            		(w_cfg_acl_item_dmac_code_g3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_g3_valid      		(w_cfg_acl_item_dmac_code_g3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_g4            		(w_cfg_acl_item_dmac_code_g4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_g4_valid      		(w_cfg_acl_item_dmac_code_g4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_g5            		(w_cfg_acl_item_dmac_code_g5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_g5_valid      		(w_cfg_acl_item_dmac_code_g5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_g6            		(w_cfg_acl_item_dmac_code_g6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_g6_valid      		(w_cfg_acl_item_dmac_code_g6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_g1            		(w_cfg_acl_item_smac_code_g1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_g1_valid      		(w_cfg_acl_item_smac_code_g1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_g2            		(w_cfg_acl_item_smac_code_g2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_g2_valid      		(w_cfg_acl_item_smac_code_g2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_g3            		(w_cfg_acl_item_smac_code_g3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_g3_valid      		(w_cfg_acl_item_smac_code_g3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_g4            		(w_cfg_acl_item_smac_code_g4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_g4_valid      		(w_cfg_acl_item_smac_code_g4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_g5            		(w_cfg_acl_item_smac_code_g5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_g5_valid      		(w_cfg_acl_item_smac_code_g5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_g6            		(w_cfg_acl_item_smac_code_g6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_g6_valid      		(w_cfg_acl_item_smac_code_g6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_g1            		(w_cfg_acl_item_vlan_code_g1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_g1_valid      		(w_cfg_acl_item_vlan_code_g1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_g2            		(w_cfg_acl_item_vlan_code_g2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_g2_valid      		(w_cfg_acl_item_vlan_code_g2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_g3            		(w_cfg_acl_item_vlan_code_g3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_g3_valid      		(w_cfg_acl_item_vlan_code_g3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_g4            		(w_cfg_acl_item_vlan_code_g4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_g4_valid      		(w_cfg_acl_item_vlan_code_g4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_g1       		(w_cfg_acl_item_ethertype_code_g1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_g1_valid 		(w_cfg_acl_item_ethertype_code_g1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_g2       		(w_cfg_acl_item_ethertype_code_g2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_g2_valid 		(w_cfg_acl_item_ethertype_code_g2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_g     		(w_cfg_acl_item_action_pass_state_g     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_g_valid		(w_cfg_acl_item_action_pass_state_g_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_g 		(w_cfg_acl_item_action_cb_streamhandle_g 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_g_valid	(w_cfg_acl_item_action_cb_streamhandle_g_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_g        		(w_cfg_acl_item_action_flowctrl_g        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_g_valid  		(w_cfg_acl_item_action_flowctrl_g_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_g          		(w_cfg_acl_item_action_txport_g          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_g_valid    		(w_cfg_acl_item_action_txport_g_valid    		), // 写入有效信号
+		//  状态寄存器
         .i_port_diag_state_6                            (w_port_diag_state_6                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_6                     (w_port_rx_ultrashort_frm_6                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_6                     (w_port_rx_overlength_frm_6                     ),  // 端口接收超长帧(大于MTU字节)
@@ -3590,9 +4466,9 @@ rx_mac_reg #(
         .o_reset_6                                      (w_reset_6                              ),  // 端口6复位信号
     `endif
     `ifdef MAC7
-        .o_hash_ploy_regs_7                             (w_hash_ploy_regs_7                       ),  // 哈希多项式
-        .o_hash_init_val_regs_7                         (w_hash_init_val_regs_7                       ),  // 哈希多项式初始值
-        .o_hash_regs_vld_7                              (w_hash_regs_vld_7                          ),  // 哈希寄存器有效信号
+        .o_hash_ploy_regs_7                             (w_hash_ploy_regs_7                       		),  // 哈希多项式
+        .o_hash_init_val_regs_7                         (w_hash_init_val_regs_7                       	),  // 哈希多项式初始值
+        .o_hash_regs_vld_7                              (w_hash_regs_vld_7                          	),  // 哈希寄存器有效信号
         .o_port_rxmac_down_regs_7                       (w_port_rxmac_down_regs_7                       ),  // 端口接收方向MAC关闭使能
         .o_port_broadcast_drop_regs_7                   (w_port_broadcast_drop_regs_7                   ),  // 端口广播帧丢弃使能
         .o_port_multicast_drop_regs_7                   (w_port_multicast_drop_regs_7                   ),  // 端口组播帧丢弃使能
@@ -3604,17 +4480,55 @@ rx_mac_reg #(
         .o_port_flowctrl_cfg_regs_7                     (w_port_flowctrl_cfg_regs_7                     ),  // 限流管理配置
         .o_port_rx_ultrashortinterval_num_7             (w_port_rx_ultrashortinterval_num_7             ),  // 帧间隔
         .o_acl_port_sel_7                               (w_acl_port_sel_7                               ),  // 选择要配置的端口
+		.o_acl_port_sel_7_valid                         (w_acl_port_sel_7_valid                         ),  // 选择要配置的端口
         .o_acl_clr_list_regs_7                          (w_acl_clr_list_regs_7                          ),  // 清空寄存器列表
         .i_acl_list_rdy_regs_7                          (w_acl_list_rdy_regs_7                          ),  // 配置寄存器操作空闲
         .o_acl_item_sel_regs_7                          (w_acl_item_sel_regs_7                          ),  // 配置条目选择
-        .o_acl_item_dmac_code_7                         (w_acl_item_dmac_code_7                         ),  // ACL目的MAC地址码
-        .o_acl_item_smac_code_7                         (w_acl_item_smac_code_7                         ),  // ACL源MAC地址码
-        .o_acl_item_vlan_code_7                         (w_acl_item_vlan_code_7                         ),  // ACL VLAN码
-        .o_acl_item_ethtype_code_7                      (w_acl_item_ethtype_code_7                      ),  // ACL以太网类型码
-        .o_acl_item_action_pass_state_7                 (w_acl_item_action_pass_state_7                 ),  // ACL动作通过状态
-        .o_acl_item_action_cb_streamhandle_7            (w_acl_item_action_cb_streamhandle_7            ),  // ACL动作CB流句柄
-        .o_acl_item_action_flowctrl_7                   (w_acl_item_action_flowctrl_7                   ),  // ACL动作流控
-        .o_acl_item_action_txport_7                     (w_acl_item_action_txport_7                     ),  // ACL动作发送端口
+        .o_cfg_acl_item_dmac_code_h1            		(w_cfg_acl_item_dmac_code_h1            		), // 端口ACL表项-写入dmac值[15:0]
+		.o_cfg_acl_item_dmac_code_h1_valid      		(w_cfg_acl_item_dmac_code_h1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_h2            		(w_cfg_acl_item_dmac_code_h2            		), // 端口ACL表项-写入dmac值[31:16]
+		.o_cfg_acl_item_dmac_code_h2_valid      		(w_cfg_acl_item_dmac_code_h2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_h3            		(w_cfg_acl_item_dmac_code_h3            		), // 端口ACL表项-写入dmac值[47:32]
+		.o_cfg_acl_item_dmac_code_h3_valid      		(w_cfg_acl_item_dmac_code_h3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_h4            		(w_cfg_acl_item_dmac_code_h4            		), // 端口ACL表项-写入dmac值[63:48]
+		.o_cfg_acl_item_dmac_code_h4_valid      		(w_cfg_acl_item_dmac_code_h4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_h5            		(w_cfg_acl_item_dmac_code_h5            		), // 端口ACL表项-写入dmac值[79:64]
+		.o_cfg_acl_item_dmac_code_h5_valid      		(w_cfg_acl_item_dmac_code_h5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_dmac_code_h6            		(w_cfg_acl_item_dmac_code_h6            		), // 端口ACL表项-写入dmac值[95:80]
+		.o_cfg_acl_item_dmac_code_h6_valid      		(w_cfg_acl_item_dmac_code_h6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_h1            		(w_cfg_acl_item_smac_code_h1            		), // 端口ACL表项-写入smac值[15:0]
+		.o_cfg_acl_item_smac_code_h1_valid      		(w_cfg_acl_item_smac_code_h1_valid      		), // 写入有效信号                   
+		.o_cfg_acl_item_smac_code_h2            		(w_cfg_acl_item_smac_code_h2            		), // 端口ACL表项-写入smac值[31:16]
+		.o_cfg_acl_item_smac_code_h2_valid      		(w_cfg_acl_item_smac_code_h2_valid      		), // 写入有效信号	                     
+		.o_cfg_acl_item_smac_code_h3            		(w_cfg_acl_item_smac_code_h3            		), // 端口ACL表项-写入smac值[47:32]
+		.o_cfg_acl_item_smac_code_h3_valid      		(w_cfg_acl_item_smac_code_h3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_h4            		(w_cfg_acl_item_smac_code_h4            		), // 端口ACL表项-写入smac值[63:48]
+		.o_cfg_acl_item_smac_code_h4_valid      		(w_cfg_acl_item_smac_code_h4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_h5            		(w_cfg_acl_item_smac_code_h5            		), // 端口ACL表项-写入smac值[79:64]
+		.o_cfg_acl_item_smac_code_h5_valid      		(w_cfg_acl_item_smac_code_h5_valid      		), // 写入有效信号
+		.o_cfg_acl_item_smac_code_h6            		(w_cfg_acl_item_smac_code_h6            		), // 端口ACL表项-写入smac值[95:80]
+		.o_cfg_acl_item_smac_code_h6_valid      		(w_cfg_acl_item_smac_code_h6_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_h1            		(w_cfg_acl_item_vlan_code_h1            		), // 端口ACL表项-写入vlan值[15:0]
+		.o_cfg_acl_item_vlan_code_h1_valid      		(w_cfg_acl_item_vlan_code_h1_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_h2            		(w_cfg_acl_item_vlan_code_h2            		), // 端口ACL表项-写入vlan值[31:16]
+		.o_cfg_acl_item_vlan_code_h2_valid      		(w_cfg_acl_item_vlan_code_h2_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_h3            		(w_cfg_acl_item_vlan_code_h3            		), // 端口ACL表项-写入vlan值[47:32]
+		.o_cfg_acl_item_vlan_code_h3_valid      		(w_cfg_acl_item_vlan_code_h3_valid      		), // 写入有效信号
+		.o_cfg_acl_item_vlan_code_h4            		(w_cfg_acl_item_vlan_code_h4            		), // 端口ACL表项-写入vlan值[63:48]
+		.o_cfg_acl_item_vlan_code_h4_valid      		(w_cfg_acl_item_vlan_code_h4_valid      		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_h1       		(w_cfg_acl_item_ethertype_code_h1       		), // 端口ACL表项-写入ethertype值[15:0]
+		.o_cfg_acl_item_ethertype_code_h1_valid 		(w_cfg_acl_item_ethertype_code_h1_valid 		), // 写入有效信号
+		.o_cfg_acl_item_ethertype_code_h2       		(w_cfg_acl_item_ethertype_code_h2       		), // 端口ACL表项-写入ethertype值[31:16]
+		.o_cfg_acl_item_ethertype_code_h2_valid 		(w_cfg_acl_item_ethertype_code_h2_valid 		), // 写入有效信号
+		.o_cfg_acl_item_action_pass_state_h     		(w_cfg_acl_item_action_pass_state_h     		), // 端口ACL动作-报文状态
+		.o_cfg_acl_item_action_pass_state_h_valid		(w_cfg_acl_item_action_pass_state_h_valid		), // 写入有效信号
+		.o_cfg_acl_item_action_cb_streamhandle_h 		(w_cfg_acl_item_action_cb_streamhandle_h 		), // 端口ACL动作-stream_handle值
+		.o_cfg_acl_item_action_cb_streamhandle_h_valid	(w_cfg_acl_item_action_cb_streamhandle_h_valid	), // 写入有效信号
+		.o_cfg_acl_item_action_flowctrl_h        		(w_cfg_acl_item_action_flowctrl_h        		), // 端口ACL动作-报文流控选择
+		.o_cfg_acl_item_action_flowctrl_h_valid  		(w_cfg_acl_item_action_flowctrl_h_valid  		), // 写入有效信号
+		.o_cfg_acl_item_action_txport_h          		(w_cfg_acl_item_action_txport_h          		), // 端口ACL动作-报文发送端口映射
+		.o_cfg_acl_item_action_txport_h_valid    		(w_cfg_acl_item_action_txport_h_valid    		), // 写入有效信号
+		//  状态寄存器
         .i_port_diag_state_7                            (w_port_diag_state_7                            ),  // 端口状态寄存器
         .i_port_rx_ultrashort_frm_7                     (w_port_rx_ultrashort_frm_7                     ),  // 端口接收超短帧(小于64字节)
         .i_port_rx_overlength_frm_7                     (w_port_rx_overlength_frm_7                     ),  // 端口接收超长帧(大于MTU字节)

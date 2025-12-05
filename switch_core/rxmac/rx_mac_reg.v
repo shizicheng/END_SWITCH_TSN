@@ -29,23 +29,83 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_0          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_0  , // Ö¡¼ä¸ô
     // ACL ¼Ä´æÆ÷
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_0                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_0                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_0_valid				 ,
     output              wire                                    o_acl_clr_list_regs_0                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_0                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_0                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_0              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_0                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_0                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_0               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_0           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_0                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_0                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_0                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_0             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_0        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_0   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_0          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_0            ,
+
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_a6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_a6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_a1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_a2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_a3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_a4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_a5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_a6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_a6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_a1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_a1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_a2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_a2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_a3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_a3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_a4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_a4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_a1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_a1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_a2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_a2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_a      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_a_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_a , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_a_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_a        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_a_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_a          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_a_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_0                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -86,23 +146,86 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_1          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_1  , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_1                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_1                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_1_valid				 ,
     output              wire                                    o_acl_clr_list_regs_1                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_1                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_1                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_1              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_1                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_1                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_1               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_1           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_1                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_1                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_1                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_1             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_1        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_1   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_1          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_1            ,
+
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_b6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_b6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_b1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_b2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_b3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_b4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_b5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_b6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_b6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_b1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_b1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_b2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_b2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_b3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_b3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_b4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_b4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_b1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_b1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_b2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_b2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_b      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_b_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_b , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_b_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_b        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_b_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_b          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_b_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
+
+
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_1                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -143,23 +266,82 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_2          , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_2  , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_2                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_2                     , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_2_valid				 ,
     output              wire                                    o_acl_clr_list_regs_2                , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_2                , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_2                , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_2              , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_2                , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_2                 , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_2               , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_2           , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_2                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_2                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_2                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_2             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_2        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_2   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_2          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_2            ,
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_c6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_c6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_c1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_c2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_c3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_c4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_c5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_c6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_c6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_c1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_c1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_c2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_c2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_c3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_c3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_c4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_c4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_c1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_c1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_c2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_c2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_c      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_c_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_c , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_c_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_c        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_c_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_c          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_c_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_2                  , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -200,23 +382,82 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_3         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_3 , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_3                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_3                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_3_valid				 ,
     output              wire                                    o_acl_clr_list_regs_3               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_3               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_3               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_3             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_3               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_3                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_3              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_3          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_3                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_3                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_3                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_3             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_3        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_3   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_3          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_3            ,
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_d6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_d6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_d1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_d2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_d3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_d4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_d5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_d6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_d6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_d1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_d1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_d2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_d2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_d3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_d3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_d4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_d4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_d1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_d1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_d2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_d2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_d      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_d_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_d , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_d_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_d        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_d_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_d          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_d_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_3                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -257,23 +498,84 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_4         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_4 , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_4                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_4                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_4_valid				 ,
     output              wire                                    o_acl_clr_list_regs_4               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_4               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_4               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_4             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_4               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_4                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_4              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_4          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_4                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_4                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_4                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_4             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_4        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_4   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_4          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_4            ,
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_e6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_e6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_e1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_e2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_e3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_e4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_e5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_e6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_e6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_e1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_e1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_e2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_e2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_e3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_e3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_e4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_e4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_e1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_e1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_e2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_e2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_e      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_e_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_e , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_e_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_e        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_e_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_e          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_e_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
+
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_4                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -314,23 +616,84 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_5         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_5 , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_5                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_5                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_5_valid				 ,
     output              wire                                    o_acl_clr_list_regs_5               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_5               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_5               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_5             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_5               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_5                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_5              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_5          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_5                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_5                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_5                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_5             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_5        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_5   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_5          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_5            ,
+    
+	// DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_f6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_f6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_f1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_f2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_f3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_f4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_f5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_f6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_f6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_f1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_f1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_f2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_f2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_f3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_f3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_f4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_f4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_f1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_f1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_f2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_f2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_f      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_f_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_f , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_f_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_f        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_f_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_f          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_f_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_5                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -371,23 +734,84 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_6         , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_6 , // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_6                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_6                    , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_6_valid			    ,
     output              wire                                    o_acl_clr_list_regs_6               , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_6               , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_6               , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_6             , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_6               , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_6                , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_6              , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_6          , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_6                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_6                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_6                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_6             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_6        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_6   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_6          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_6            ,
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_g6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_g6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_g1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_g2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_g3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_g4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_g5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_g6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_g6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_g1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_g1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_g2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_g2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_g3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_g3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_g4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_g4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_g1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_g1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_g2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_g2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_g      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_g_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_g , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_g_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_g        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_g_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_g          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_g_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
+
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_6                 , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -428,23 +852,84 @@ module rx_mac_reg#(
     output              wire   [15:0]                           o_port_flowctrl_cfg_regs_7        , // ÏŞÁ÷¹ÜÀíÅäÖÃ
     output              wire   [4:0]                            o_port_rx_ultrashortinterval_num_7, // Ö¡¼ä¸ô
     // ACL ¼Ä´æ
-    output              wire   [PORT_NUM-1:0]                   o_acl_port_sel_7                   , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    output              wire   [5:0]                   			o_acl_port_sel_7                   , // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+	output				wire									o_acl_port_sel_7_valid			   ,
     output              wire                                    o_acl_clr_list_regs_7              , // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
     input               wire                                    i_acl_list_rdy_regs_7              , // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏĞ
     output              wire   [4:0]                            o_acl_item_sel_regs_7              , // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-    //output              wire   [5:0]                            o_acl_item_waddr_regs_7            , // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-    //output              wire   [7:0]                            o_acl_item_din_regs_7              , // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-    //output              wire                                    o_acl_item_we_regs_7               , // ÅäÖÃÊ¹ÄÜĞÅºÅ
-    //output              wire   [15:0]                           o_acl_item_rslt_regs_7             , // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-    //output              wire                                    o_acl_item_complete_regs_7         , // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
-    output              wire   [95:0]                           o_acl_item_dmac_code_7                ,
-    output              wire   [95:0]                           o_acl_item_smac_code_7                ,
-    output              wire   [63:0]                           o_acl_item_vlan_code_7                ,
-    output              wire   [31:0]                           o_acl_item_ethtype_code_7             ,
-    output              wire   [5:0]                            o_acl_item_action_pass_state_7        ,
-    output              wire   [15:0]                           o_acl_item_action_cb_streamhandle_7   ,
-    output              wire   [5:0]                            o_acl_item_action_flowctrl_7          ,
-    output              wire   [15:0]                           o_acl_item_action_txport_7            ,
+    // DMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[15:0]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[31:16]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[47:32]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[63:48]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[79:64]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																						 
+    output    			wire [15:0]                      		o_cfg_acl_item_dmac_code_h6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëdmacÖµ[95:80]
+    output    			wire                             		o_cfg_acl_item_dmac_code_h6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // SMAC±àÂëÖµÅäÖÃ£¨6¸ö16Î»×Ö¶Î£©	
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[15:0]
+    output     			wire                             		o_cfg_acl_item_smac_code_h1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[31:16]
+    output     			wire                             		o_cfg_acl_item_smac_code_h2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[47:32]
+    output     			wire                             		o_cfg_acl_item_smac_code_h3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[63:48]
+    output     			wire                             		o_cfg_acl_item_smac_code_h4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h5            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[79:64]
+    output     			wire                             		o_cfg_acl_item_smac_code_h5_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output     			wire [15:0]                      		o_cfg_acl_item_smac_code_h6            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈësmacÖµ[95:80]
+    output     			wire                             		o_cfg_acl_item_smac_code_h6_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+	
+    // VLAN±àÂëÖµÅäÖÃ£¨4¸ö16Î»×Ö¶Î£©	
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_h1            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_vlan_code_h1_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_h2            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_vlan_code_h2_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_h3            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[47:32]
+    output    			wire                              		o_cfg_acl_item_vlan_code_h3_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                     
+    output    			wire [15:0]                       		o_cfg_acl_item_vlan_code_h4            , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëvlanÖµ[63:48]
+    output    			wire                              		o_cfg_acl_item_vlan_code_h4_valid      , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														
+    // Ethertype±àÂëÖµÅäÖÃ£¨2¸ö16Î»×Ö¶Î£©           		
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_h1       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[15:0]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_h1_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_ethertype_code_h2       , // ¶Ë¿ÚACL±íÏî-Ğ´ÈëethertypeÖµ[31:16]
+    output    			wire                              		o_cfg_acl_item_ethertype_code_h2_valid , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+														                                      
+    // ACL¶¯×÷ÅäÖÃ                               		                                          
+    output    			wire [7:0]                        		o_cfg_acl_item_action_pass_state_h      , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
+    output    			wire                              		o_cfg_acl_item_action_pass_state_h_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	                          
+    output    			wire [15:0]                       		o_cfg_acl_item_action_cb_streamhandle_h , // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
+    output    			wire                              		o_cfg_acl_item_action_cb_streamhandle_h_valid, // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [5:0]                        		o_cfg_acl_item_action_flowctrl_h        , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
+    output    			wire                              		o_cfg_acl_item_action_flowctrl_h_valid  , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+																	
+    output    			wire [15:0]                       		o_cfg_acl_item_action_txport_h          , // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
+    output    			wire                              		o_cfg_acl_item_action_txport_h_valid    , // Ğ´ÈëÓĞĞ§ĞÅºÅ
+
+
+
     // ×´Ì¬¼Ä´æÆ÷
     input              wire   [15:0]                            i_port_diag_state_7                , // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷£¬ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
     // Õï¶Ï¼Ä´æÆ÷
@@ -789,24 +1274,61 @@ reg   [4:0]                            r_port_rx_ultrashortinterval_num_6;// Ö¡¼
 reg   [4:0]                            r_port_rx_ultrashortinterval_num_7;// Ö¡¼ä¸ô
 /*========================================  ACL¼Ä´æÆ÷ĞÅºÅ¶¨Òå ========================================*/
 
-reg   [2:0]                            r_acl_port_sel                      ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+reg   [5:0]                            r_acl_port_sel                      ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+reg									   r_acl_port_sel_valid				   ;
 reg                                    r_acl_clr_list_regs                 ; // Çå¿Õ¼Ä´æÆ÷ÁĞ±í
 reg   [4:0]                            r_acl_item_sel_regs                 ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-reg   [5:0]                            r_acl_item_waddr_regs               ; // Ã¿¸öÌõÄ¿×î´óÖ§³Ö±È¶Ô 64 ×Ö½Ú
-reg   [7:0]                            r_acl_item_din_regs                 ; // ĞèÒª±È½ÏµÄ×Ö½ÚÊı¾İ
-reg                                    r_acl_item_we_regs                  ; // ÅäÖÃÊ¹ÄÜĞÅºÅ
-reg   [15:0]                           r_acl_item_rslt_regs                ; // Æ¥ÅäµÄ½á¹ûÖµ - [7:0] Êä³öÖ¡ÀàĞÍ, [15:8] ACL×ª·¢Ö¸¶¨¶Ë¿Ú
-reg                                    r_acl_item_complete_regs            ; // ¶Ë¿Ú ACL ²ÎÊıÅäÖÃÍê³ÉÊ¹ÄÜĞÅºÅ
 wire  [7:0]                            w_acl_list_rdy_regs                 ;
 
-reg   [95:0]                           r_acl_item_dmac_code                ;
-reg   [95:0]                           r_acl_item_smac_code                ;
-reg   [63:0]                           r_acl_item_vlan_code                ;
-reg   [31:0]                           r_acl_item_ethtype_code             ;
-reg   [5:0]                            r_acl_item_action_pass_state        ;
+reg   [15:0]                           r_acl_item_dmac_code_1              ;
+reg	  								   r_acl_item_dmac_code_1_valid 	   ;
+reg   [15:0]                           r_acl_item_dmac_code_2              ;
+reg	  								   r_acl_item_dmac_code_2_valid 	   ;
+reg   [15:0]                           r_acl_item_dmac_code_3              ;
+reg	  								   r_acl_item_dmac_code_3_valid 	   ;
+reg   [15:0]                           r_acl_item_dmac_code_4              ;
+reg	  								   r_acl_item_dmac_code_4_valid 	   ;
+reg   [15:0]                           r_acl_item_dmac_code_5              ;
+reg	  								   r_acl_item_dmac_code_5_valid 	   ;
+reg   [15:0]                           r_acl_item_dmac_code_6              ;
+reg	  								   r_acl_item_dmac_code_6_valid 	   ;
+
+reg   [15:0]                           r_acl_item_smac_code_1              ;
+reg	  								   r_acl_item_smac_code_1_valid 	   ;
+reg   [15:0]                           r_acl_item_smac_code_2              ;
+reg	  								   r_acl_item_smac_code_2_valid 	   ;
+reg   [15:0]                           r_acl_item_smac_code_3              ;
+reg	  								   r_acl_item_smac_code_3_valid 	   ;
+reg   [15:0]                           r_acl_item_smac_code_4              ;
+reg	  								   r_acl_item_smac_code_4_valid 	   ;
+reg   [15:0]                           r_acl_item_smac_code_5              ;
+reg	  								   r_acl_item_smac_code_5_valid 	   ;
+reg   [15:0]                           r_acl_item_smac_code_6              ;
+reg	  								   r_acl_item_smac_code_6_valid 	   ;
+
+reg   [15:0]                           r_acl_item_vlan_code_1              ;
+reg	  								   r_acl_item_vlan_code_1_valid 	   ;
+reg   [15:0]                           r_acl_item_vlan_code_2              ;
+reg	  								   r_acl_item_vlan_code_2_valid 	   ;
+reg   [15:0]                           r_acl_item_vlan_code_3              ;
+reg	  								   r_acl_item_vlan_code_3_valid 	   ;
+reg   [15:0]                           r_acl_item_vlan_code_4              ;
+reg	  								   r_acl_item_vlan_code_4_valid 	   ;
+
+
+reg   [15:0]                           r_acl_item_ethtype_code_1           ;
+reg	  								   r_acl_item_ethtype_code_1_valid 	   ;
+reg   [15:0]                           r_acl_item_ethtype_code_2           ;
+reg	  								   r_acl_item_ethtype_code_2_valid 	   ;
+
+reg   [7:0]                            r_acl_item_action_pass_state        ;
+reg									   r_acl_item_action_pass_state_valid  ;
 reg   [15:0]                           r_acl_item_action_cb_streamhandle   ;
+reg                                    r_acl_item_action_cb_streamhandle_valid;
 reg   [5:0]                            r_acl_item_action_flowctrl          ;
+reg   	                               r_acl_item_action_flowctrl_valid    ;
 reg   [15:0]                           r_acl_item_action_txport            ;
+reg   		                           r_acl_item_action_txport_valid      ;
 /*--------------------------------------- Qbu_rx¼Ä´æÆ÷ĞÅºÅ¶¨Òå ----------------------------------------*/
 // ¶Ë¿Ú0
 reg                                    r_reset_0                           ;
@@ -1047,12 +1569,14 @@ assign o_port_rx_ultrashortinterval_num_7 = r_port_rx_ultrashortinterval_num_7;
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        r_acl_port_sel <= 3'b0;
+        r_acl_port_sel <= 6'b0;
+		r_acl_port_sel_valid <= 1'b0;
         r_acl_clr_list_regs <= 1'b0;
         r_acl_item_sel_regs <= 5'b0;
     end else begin
-        r_acl_port_sel <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_PORT_SEL ? r_reg_bus_data[2:0] : r_acl_port_sel;
-        r_acl_clr_list_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_CLR_LIST ? r_reg_bus_data[0] : r_acl_clr_list_regs;
+        r_acl_port_sel <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_PORT_SEL ? r_reg_bus_data[5:0] : r_acl_port_sel;
+        r_acl_port_sel_valid <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_PORT_SEL ? 1'b1 : 1'b0;
+		r_acl_clr_list_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_CLR_LIST ? r_reg_bus_data[0] : r_acl_clr_list_regs;
         r_acl_item_sel_regs <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SEL ? r_reg_bus_data[4:0] : r_acl_item_sel_regs;
     end
 end
@@ -1060,69 +1584,541 @@ end
 // ACLÌõÄ¿Êı¾İĞ´¿ØÖÆ
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        r_acl_item_dmac_code <= 96'b0;
-        r_acl_item_smac_code <= 96'b0;
-        r_acl_item_vlan_code <= 64'b0;
-        r_acl_item_ethtype_code <= 32'b0;
-        r_acl_item_action_pass_state <= 6'b0;
-        r_acl_item_action_cb_streamhandle <= 16'b0;
-        r_acl_item_action_flowctrl <= 6'b0;
-        r_acl_item_action_txport <= 16'b0;
+        r_acl_item_dmac_code_1 			<= 16'b0;
+		r_acl_item_dmac_code_1_valid 	<= 1'b0;
+		r_acl_item_dmac_code_2      	<= 16'b0;
+		r_acl_item_dmac_code_2_valid    <= 1'b0;
+		r_acl_item_dmac_code_3      	<= 16'b0;
+		r_acl_item_dmac_code_3_valid    <= 1'b0;
+		r_acl_item_dmac_code_4      	<= 16'b0;
+		r_acl_item_dmac_code_4_valid    <= 1'b0;
+		r_acl_item_dmac_code_5      	<= 16'b0;
+		r_acl_item_dmac_code_5_valid    <= 1'b0;
+		r_acl_item_dmac_code_6      	<= 16'b0;
+		r_acl_item_dmac_code_6_valid    <= 1'b0;
+		
+		r_acl_item_smac_code_1         <= 16'b0;
+		r_acl_item_smac_code_1_valid   <= 1'b0;
+		r_acl_item_smac_code_2         <= 16'b0;
+		r_acl_item_smac_code_2_valid   <= 1'b0;
+		r_acl_item_smac_code_3         <= 16'b0;
+		r_acl_item_smac_code_3_valid   <= 1'b0;
+		r_acl_item_smac_code_4         <= 16'b0;
+		r_acl_item_smac_code_4_valid   <= 1'b0;
+		r_acl_item_smac_code_5         <= 16'b0;
+		r_acl_item_smac_code_5_valid   <= 1'b0;
+		r_acl_item_smac_code_6         <= 16'b0;
+		r_acl_item_smac_code_6_valid   <= 1'b0;
+		
+		r_acl_item_vlan_code_1         <= 16'b0;
+		r_acl_item_vlan_code_1_valid   <= 1'b0;
+		r_acl_item_vlan_code_2         <= 16'b0;
+		r_acl_item_vlan_code_2_valid   <= 1'b0;
+		r_acl_item_vlan_code_3         <= 16'b0;
+		r_acl_item_vlan_code_3_valid   <= 1'b0;
+		r_acl_item_vlan_code_4         <= 16'b0;
+		r_acl_item_vlan_code_4_valid   <= 1'b0;
+		                               
+		                               
+		r_acl_item_ethtype_code_1      <= 16'b0;
+		r_acl_item_ethtype_code_1_valid<= 1'b0;
+		r_acl_item_ethtype_code_2      <= 16'b0;
+		r_acl_item_ethtype_code_2_valid<= 1'b0;
+		
+        r_acl_item_action_pass_state 			<= 8'b0;
+		r_acl_item_action_pass_state_valid 		<= 1'b0;
+		
+        r_acl_item_action_cb_streamhandle 		<= 16'b0;
+		r_acl_item_action_cb_streamhandle_valid <= 1'b0;
+		
+        r_acl_item_action_flowctrl 				<= 6'b0;
+		r_acl_item_action_flowctrl_valid		<= 1'b0;
+		
+        r_acl_item_action_txport 				<= 16'b0;
+		r_acl_item_action_txport_valid 			<= 1'b0;
     end else begin
-        if (r_reg_bus_we && r_reg_bus_data_vld) begin
-            case (r_reg_bus_addr)
-                REG_CFG_ACL_ITEM_DMAC_CODE_1: r_acl_item_dmac_code[15:0]  <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_DMAC_CODE_2: r_acl_item_dmac_code[31:16] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_DMAC_CODE_3: r_acl_item_dmac_code[47:32] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_DMAC_CODE_4: r_acl_item_dmac_code[63:48] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_DMAC_CODE_5: r_acl_item_dmac_code[79:64] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_DMAC_CODE_6: r_acl_item_dmac_code[95:80] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_1: r_acl_item_smac_code[15:0]  <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_2: r_acl_item_smac_code[31:16] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_3: r_acl_item_smac_code[47:32] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_4: r_acl_item_smac_code[63:48] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_5: r_acl_item_smac_code[79:64] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_SMAC_CODE_6: r_acl_item_smac_code[95:80] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_VLAN_CODE_1: r_acl_item_vlan_code[15:0]  <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_VLAN_CODE_2: r_acl_item_vlan_code[31:16] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_VLAN_CODE_3: r_acl_item_vlan_code[47:32] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_VLAN_CODE_4: r_acl_item_vlan_code[63:48] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_acl_item_ethtype_code[15:0] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_acl_item_ethtype_code[31:16] <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_ACTION_PASS_STATE: r_acl_item_action_pass_state <= r_reg_bus_data[5:0];
-                REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE: r_acl_item_action_cb_streamhandle <= r_reg_bus_data[15:0];
-                REG_CFG_ACL_ITEM_ACTION_FLOWCTRL: r_acl_item_action_flowctrl <= r_reg_bus_data[5:0];
-                REG_CFG_ACL_ITEM_ACTION_TXPORT: r_acl_item_action_txport <= r_reg_bus_data[15:0];
-            endcase
-        end
+        //if (r_reg_bus_we && r_reg_bus_data_vld) begin
+        //    case (r_reg_bus_addr)
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_1: r_acl_item_dmac_code_1  <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_2: r_acl_item_dmac_code[31:16] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_3: r_acl_item_dmac_code[47:32] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_4: r_acl_item_dmac_code[63:48] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_5: r_acl_item_dmac_code[79:64] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_DMAC_CODE_6: r_acl_item_dmac_code[95:80] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_1: r_acl_item_smac_code[15:0]  <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_2: r_acl_item_smac_code[31:16] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_3: r_acl_item_smac_code[47:32] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_4: r_acl_item_smac_code[63:48] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_5: r_acl_item_smac_code[79:64] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_SMAC_CODE_6: r_acl_item_smac_code[95:80] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_VLAN_CODE_1: r_acl_item_vlan_code[15:0]  <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_VLAN_CODE_2: r_acl_item_vlan_code[31:16] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_VLAN_CODE_3: r_acl_item_vlan_code[47:32] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_VLAN_CODE_4: r_acl_item_vlan_code[63:48] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_acl_item_ethtype_code[15:0] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_acl_item_ethtype_code[31:16] <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_ACTION_PASS_STATE: r_acl_item_action_pass_state <= r_reg_bus_data[5:0];
+        //        REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE: r_acl_item_action_cb_streamhandle <= r_reg_bus_data[15:0];
+        //        REG_CFG_ACL_ITEM_ACTION_FLOWCTRL: r_acl_item_action_flowctrl <= r_reg_bus_data[5:0];
+        //        REG_CFG_ACL_ITEM_ACTION_TXPORT: r_acl_item_action_txport <= r_reg_bus_data[15:0];
+        //    endcase
+        //end
+		r_acl_item_dmac_code_1 			<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_1 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_1;
+		r_acl_item_dmac_code_1_valid 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_1 ? 1'b1 : 1'b0;
+		r_acl_item_dmac_code_2      	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_2 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_2;
+		r_acl_item_dmac_code_2_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_2 ? 1'b1 : 1'b0;
+		r_acl_item_dmac_code_3      	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_3 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_3;
+		r_acl_item_dmac_code_3_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_3 ? 1'b1 : 1'b0;
+		r_acl_item_dmac_code_4      	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_4 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_4;
+		r_acl_item_dmac_code_4_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_4 ? 1'b1 : 1'b0;
+		r_acl_item_dmac_code_5      	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_5 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_5;
+		r_acl_item_dmac_code_5_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_5 ? 1'b1 : 1'b0;
+		r_acl_item_dmac_code_6      	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_6 ? r_reg_bus_data[15:0] : r_acl_item_dmac_code_6;
+		r_acl_item_dmac_code_6_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_DMAC_CODE_6 ? 1'b1 : 1'b0;
+		
+		r_acl_item_smac_code_1          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_1 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_1;
+		r_acl_item_smac_code_1_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_1 ? 1'b1 : 1'b0;
+		r_acl_item_smac_code_2          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_2 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_2;
+		r_acl_item_smac_code_2_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_2 ? 1'b1 : 1'b0;
+		r_acl_item_smac_code_3          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_3 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_3;
+		r_acl_item_smac_code_3_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_3 ? 1'b1 : 1'b0;
+		r_acl_item_smac_code_4          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_4 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_4;
+		r_acl_item_smac_code_4_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_4 ? 1'b1 : 1'b0;
+		r_acl_item_smac_code_5          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_5 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_5;
+		r_acl_item_smac_code_5_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_5 ? 1'b1 : 1'b0;
+		r_acl_item_smac_code_6          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_6 ? r_reg_bus_data[15:0] : r_acl_item_smac_code_6;
+		r_acl_item_smac_code_6_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_SMAC_CODE_6 ? 1'b1 : 1'b0;
+		
+		r_acl_item_vlan_code_1          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_1 ? r_reg_bus_data[15:0] : r_acl_item_vlan_code_1;
+		r_acl_item_vlan_code_1_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_1 ? 1'b1 : 1'b0;
+		r_acl_item_vlan_code_2          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_2 ? r_reg_bus_data[15:0] : r_acl_item_vlan_code_2;
+		r_acl_item_vlan_code_2_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_2 ? 1'b1 : 1'b0;
+		r_acl_item_vlan_code_3          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_3 ? r_reg_bus_data[15:0] : r_acl_item_vlan_code_3;
+		r_acl_item_vlan_code_3_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_3 ? 1'b1 : 1'b0;
+		r_acl_item_vlan_code_4          <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_4 ? r_reg_bus_data[15:0] : r_acl_item_vlan_code_4;
+		r_acl_item_vlan_code_4_valid    <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_VLAN_CODE_4 ? 1'b1 : 1'b0;
+		                               
+		                               
+		r_acl_item_ethtype_code_1       <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_ETHTYPE_CODE_1 ? r_reg_bus_data[15:0] : r_acl_item_ethtype_code_1;
+		r_acl_item_ethtype_code_1_valid <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_ETHTYPE_CODE_1 ? 1'b1 : 1'b0;
+		r_acl_item_ethtype_code_2       <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_ETHTYPE_CODE_2 ? r_reg_bus_data[15:0] : r_acl_item_ethtype_code_2;
+		r_acl_item_ethtype_code_2_valid <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_ETHTYPE_CODE_2 ? 1'b1 : 1'b0;
+		
+		
+		r_acl_item_action_pass_state 		<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_PASS_STATE ? r_reg_bus_data[7:0] : r_acl_item_action_pass_state;
+		r_acl_item_action_pass_state_valid 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_PASS_STATE ? 1'b1 : 1'b0;
+		
+		r_acl_item_action_cb_streamhandle 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE     ? r_reg_bus_data[15:0] : r_acl_item_action_cb_streamhandle;
+		r_acl_item_action_cb_streamhandle_valid <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE  ? 1'b1 : 1'b0;
+		
+		r_acl_item_action_flowctrl 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_FLOWCTRL		 ? r_reg_bus_data[5:0] : r_acl_item_action_flowctrl;
+		r_acl_item_action_flowctrl_valid	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_FLOWCTRL ? 1'b1 : 1'b0;
+		
+		r_acl_item_action_txport 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_TXPORT	 ? r_reg_bus_data[15:0] : r_acl_item_action_txport;
+		r_acl_item_action_txport_valid 	<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr ==	REG_CFG_ACL_ITEM_ACTION_TXPORT	 ? 1'b1 : 1'b0;
+		
     end
 end
 
-
 // ¶Ë¿Ú1
-assign o_acl_clr_list_regs_0 = r_acl_port_sel == 3'b000 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_0 = r_acl_port_sel == 3'b000 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_0 = r_acl_port_sel;
+assign o_acl_port_sel_0_valid = r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_0 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_0 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_a1 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a1_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_a2 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a2_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_a3 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a3_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_a4 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a4_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_a5 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a5_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_a6 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_a6_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a1 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a1_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a2 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a2_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a3 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a3_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a4 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a4_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a5 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a5_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_a6 		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_a6_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_a1		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_a1_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_a2		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_a2_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_a3		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_a3_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_a4		 = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_a4_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_a1		  = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_a1_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_a2		  = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_a2_valid = r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_a	= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_a_valid= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_a= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_a_valid= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_a= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_a_valid= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_a= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_a_valid= r_acl_port_sel[2:0] == 3'b000 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú2
-assign o_acl_clr_list_regs_1 = r_acl_port_sel == 3'b001 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_1 = r_acl_port_sel == 3'b001 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_1 							= r_acl_port_sel;
+assign o_acl_port_sel_1_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_1 = r_acl_port_sel[2:0] == 3'b001 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_1 = r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_b1 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b1_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_b2 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b2_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_b3 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b3_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_b4 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b4_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_b5 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b5_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_b6 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_b6_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b1 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b1_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b2 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b2_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b3 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b3_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b4 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b4_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b5 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b5_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_b6 					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_b6_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_b1					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_b1_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_b2					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_b2_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_b3					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_b3_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_b4					= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_b4_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_b1		  		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_b1_valid 		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_b2		  		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_b2_valid 		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_b			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_b_valid		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_b		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_b_valid= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_b				= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_b_valid		= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_b				= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_b_valid			= r_acl_port_sel[2:0] == 3'b001 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú3
-assign o_acl_clr_list_regs_2 = r_acl_port_sel == 3'b010 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_2 = r_acl_port_sel == 3'b010 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_2 							= r_acl_port_sel;
+assign o_acl_port_sel_2_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_2 = r_acl_port_sel[2:0] == 3'b010 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_2 = r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_c1 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c1_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_c2 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c2_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_c3 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c3_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_c4 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c4_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_c5 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c5_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_c6 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_c6_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c1 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c1_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c2 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c2_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c3 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c3_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c4 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c4_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c5 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c5_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_c6 					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_c6_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_c1					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_c1_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_c2					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_c2_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_c3					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_c3_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_c4					= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_c4_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_c1		  		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_c1_valid 		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_c2		  		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_c2_valid 		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_c			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_c_valid		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_c		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_c_valid= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_c				= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_c_valid		= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_c				= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_c_valid			= r_acl_port_sel[2:0] == 3'b010 ? r_acl_item_action_txport_valid : 1'b0;
 // ¶Ë¿Ú4
-assign o_acl_clr_list_regs_3 = r_acl_port_sel == 3'b011 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_3 = r_acl_port_sel == 3'b011 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_3 							= r_acl_port_sel;
+assign o_acl_port_sel_3_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_3 = r_acl_port_sel[2:0] == 3'b011 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_3 = r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_d1 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d1_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_d2 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d2_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_d3 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d3_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_d4 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d4_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_d5 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d5_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_d6 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_d6_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d1 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d1_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d2 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d2_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d3 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d3_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d4 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d4_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d5 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d5_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_d6 					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_d6_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_d1					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_d1_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_d2					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_d2_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_d3					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_d3_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_d4					= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_d4_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_d1		  		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_d1_valid 		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_d2		  		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_d2_valid 		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_d			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_d_valid		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_d		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_d_valid= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_d				= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_d_valid		= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_d				= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_d_valid			= r_acl_port_sel[2:0] == 3'b011 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú5
-assign o_acl_clr_list_regs_4 = r_acl_port_sel == 3'b100 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_4 = r_acl_port_sel == 3'b100 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_4 							= r_acl_port_sel;
+assign o_acl_port_sel_4_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_4 = r_acl_port_sel[2:0] == 3'b100 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_4 = r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_e1 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e1_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_e2 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e2_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_e3 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e3_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_e4 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e4_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_e5 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e5_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_e6 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_e6_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e1 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e1_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e2 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e2_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e3 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e3_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e4 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e4_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e5 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e5_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_e6 					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_e6_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_e1					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_e1_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_e2					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_e2_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_e3					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_e3_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_e4					= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_e4_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_e1		  		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_e1_valid 		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_e2		  		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_e2_valid 		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_e			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_e_valid		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_e		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_e_valid= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_e				= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_e_valid		= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_e				= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_e_valid			= r_acl_port_sel[2:0] == 3'b100 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú6
-assign o_acl_clr_list_regs_5 = r_acl_port_sel == 3'b101 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_5 = r_acl_port_sel == 3'b101 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_5 							= r_acl_port_sel;
+assign o_acl_port_sel_5_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_5 = r_acl_port_sel[2:0] == 3'b101 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_5 = r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_f1 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f1_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_f2 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f2_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_f3 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f3_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_f4 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f4_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_f5 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f5_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_f6 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_f6_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f1 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f1_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f2 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f2_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f3 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f3_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f4 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f4_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f5 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f5_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_f6 					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_f6_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_f1					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_f1_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_f2					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_f2_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_f3					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_f3_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_f4					= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_f4_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_f1		  		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_f1_valid 		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_f2		  		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_f2_valid 		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_f			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_f_valid		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_f		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_f_valid= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_f				= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_f_valid		= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_f				= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_f_valid			= r_acl_port_sel[2:0] == 3'b101 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú7
-assign o_acl_clr_list_regs_6 = r_acl_port_sel == 3'b110 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_6 = r_acl_port_sel == 3'b110 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_6 							= r_acl_port_sel;
+assign o_acl_port_sel_6_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_6 = r_acl_port_sel[2:0] == 3'b110 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_6 = r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_g1 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g1_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_g2 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g2_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_g3 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g3_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_g4 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g4_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_g5 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g5_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_g6 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_g6_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g1 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g1_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g2 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g2_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g3 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g3_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g4 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g4_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g5 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g5_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_g6 					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_g6_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_g1					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_g1_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_g2					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_g2_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_g3					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_g3_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_g4					= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_g4_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_g1		  		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_g1_valid 		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_g2		  		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_g2_valid 		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_g			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_g_valid		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_g		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_g_valid= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_g				= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_g_valid		= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_g				= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_g_valid			= r_acl_port_sel[2:0] == 3'b110 ? r_acl_item_action_txport_valid : 1'b0;
+
 // ¶Ë¿Ú8
-assign o_acl_clr_list_regs_7 = r_acl_port_sel == 3'b111 ? r_acl_clr_list_regs : 1'b0;
-assign o_acl_item_sel_regs_7 = r_acl_port_sel == 3'b111 ? r_acl_item_sel_regs : 5'b0;
+assign o_acl_port_sel_7 							= r_acl_port_sel;
+assign o_acl_port_sel_7_valid 						= r_acl_port_sel_valid;
+assign o_acl_clr_list_regs_7 = r_acl_port_sel[2:0] == 3'b111 ? r_acl_clr_list_regs : 1'b0;
+assign o_acl_item_sel_regs_7 = r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_sel_regs : 5'b0;
+assign o_cfg_acl_item_dmac_code_h1 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_1 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h1_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_h2 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_2 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h2_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_h3 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_3 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h3_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_h4 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_4 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h4_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_h5 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_5 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h5_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_dmac_code_h6 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_6 : 16'h0000;
+assign o_cfg_acl_item_dmac_code_h6_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_dmac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h1 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_1 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h1_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_1_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h2 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_2 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h2_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_2_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h3 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_3 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h3_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_3_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h4 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_4 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h4_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_4_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h5 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_5 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h5_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_5_valid : 1'b0;
+assign o_cfg_acl_item_smac_code_h6 					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_6 : 16'h0000;
+assign o_cfg_acl_item_smac_code_h6_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_smac_code_6_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_h1					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_1 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_h1_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_1_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_h2					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_2 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_h2_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_2_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_h3					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_3 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_h3_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_3_valid : 1'b0;
+assign o_cfg_acl_item_vlan_code_h4					= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_4 : 16'h0000;
+assign o_cfg_acl_item_vlan_code_h4_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_vlan_code_4_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_h1		  		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_ethtype_code_1 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_h1_valid 		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_ethtype_code_1_valid : 1'b0;
+assign o_cfg_acl_item_ethertype_code_h2		  		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_ethtype_code_2 : 16'h0000;
+assign o_cfg_acl_item_ethertype_code_h2_valid 		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_ethtype_code_2_valid : 1'b0;
+assign o_cfg_acl_item_action_pass_state_h			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_pass_state : 8'h00;	
+assign o_cfg_acl_item_action_pass_state_h_valid		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_pass_state_valid : 1'b0;
+assign o_cfg_acl_item_action_cb_streamhandle_h		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_cb_streamhandle : 16'h0000;
+assign o_cfg_acl_item_action_cb_streamhandle_h_valid= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_cb_streamhandle_valid : 1'b0;
+assign o_cfg_acl_item_action_flowctrl_h				= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_flowctrl : 6'h00;
+assign o_cfg_acl_item_action_flowctrl_h_valid		= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_flowctrl_valid : 1'b0;
+assign o_cfg_acl_item_action_txport_h				= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_txport : 16'h0000;
+assign o_cfg_acl_item_action_txport_h_valid			= r_acl_port_sel[2:0] == 3'b111 ? r_acl_item_action_txport_valid : 1'b0;
+
 
 /*========================================  qbu_rx¼Ä´æÆ÷Ğ´¿ØÖÆĞÅºÅ¹ÜÀí ========================================*/
 
@@ -1191,24 +2187,24 @@ always @(posedge i_clk or posedge i_rst) begin
             REG_CFG_ACL_CLR_LIST:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_clr_list_regs;
             REG_CFG_ACL_LIST_RDY:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | w_acl_list_rdy_regs;
             REG_CFG_ACL_ITEM_SEL:  r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_sel_regs;
-            REG_CFG_ACL_ITEM_DMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[15:0];
-            REG_CFG_ACL_ITEM_DMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[31:16];
-            REG_CFG_ACL_ITEM_DMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[47:32];
-            REG_CFG_ACL_ITEM_DMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[63:48];
-            REG_CFG_ACL_ITEM_DMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[79:64];
-            REG_CFG_ACL_ITEM_DMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code[95:80];
-            REG_CFG_ACL_ITEM_SMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[15:0];
-            REG_CFG_ACL_ITEM_SMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[31:16];
-            REG_CFG_ACL_ITEM_SMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[47:32];
-            REG_CFG_ACL_ITEM_SMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[63:48];
-            REG_CFG_ACL_ITEM_SMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[79:64];
-            REG_CFG_ACL_ITEM_SMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code[95:80];
-            REG_CFG_ACL_ITEM_VLAN_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[15:0];
-            REG_CFG_ACL_ITEM_VLAN_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[31:16];
-            REG_CFG_ACL_ITEM_VLAN_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[47:32];
-            REG_CFG_ACL_ITEM_VLAN_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code[63:48];
-            REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code[15:0];
-            REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code[31:16];
+            REG_CFG_ACL_ITEM_DMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_1;
+            REG_CFG_ACL_ITEM_DMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_2;
+            REG_CFG_ACL_ITEM_DMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_3;
+            REG_CFG_ACL_ITEM_DMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_4;
+            REG_CFG_ACL_ITEM_DMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_5;
+            REG_CFG_ACL_ITEM_DMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_dmac_code_6;
+            REG_CFG_ACL_ITEM_SMAC_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_1;
+            REG_CFG_ACL_ITEM_SMAC_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_2;
+            REG_CFG_ACL_ITEM_SMAC_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_3;
+            REG_CFG_ACL_ITEM_SMAC_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_4;
+            REG_CFG_ACL_ITEM_SMAC_CODE_5: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_5;
+            REG_CFG_ACL_ITEM_SMAC_CODE_6: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_smac_code_6;
+            REG_CFG_ACL_ITEM_VLAN_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code_1;
+            REG_CFG_ACL_ITEM_VLAN_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code_2;
+            REG_CFG_ACL_ITEM_VLAN_CODE_3: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code_3;
+            REG_CFG_ACL_ITEM_VLAN_CODE_4: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_vlan_code_4;
+            REG_CFG_ACL_ITEM_ETHTYPE_CODE_1: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code_1;
+            REG_CFG_ACL_ITEM_ETHTYPE_CODE_2: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_ethtype_code_2;
             REG_CFG_ACL_ITEM_ACTION_PASS_STATE: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_pass_state;
             REG_CFG_ACL_ITEM_ACTION_CB_STREAMHANDLE: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_cb_streamhandle;
             REG_CFG_ACL_ITEM_ACTION_FLOWCTRL: r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | r_acl_item_action_flowctrl;

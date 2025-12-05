@@ -146,22 +146,81 @@ module rx_port_mng#(
     input              wire   [4:0]                             i_port_rx_ultrashortinterval_num   , // 帧间隔
     // ACL 寄存器
     input              wire   [PORT_NUM-1:0]                    i_acl_port_sel                     , // 选择要配置的端口
+	input			   wire										i_acl_port_sel_valid			   ,
     input              wire                                     i_acl_clr_list_regs                , // 清空寄存器列表
     output             wire                                     o_acl_list_rdy_regs                , // 配置寄存器操作空闲
     input              wire   [4:0]                             i_acl_item_sel_regs                , // 配置条目选择
-    //input              wire   [5:0]                             i_acl_item_waddr_regs              , // 每个条目最大支持比对 64 字节
-    //input              wire   [7:0]                             i_acl_item_din_regs                , // 需要比较的字节数据
-    //input              wire                                     i_acl_item_we_regs                 , // 配置使能信号
-    //input              wire   [15:0]                            i_acl_item_rslt_regs               , // 匹配的结果值 - [7:0] 输出帧类型, [15:8] ACL转发指定端口
-    //input              wire                                     i_acl_item_complete_regs           , // 端口 ACL 参数配置完成使能信号
-    input              wire   [95:0]                           i_acl_item_dmac_code                ,
-    input              wire   [95:0]                           i_acl_item_smac_code                ,
-    input              wire   [63:0]                           i_acl_item_vlan_code                ,
-    input              wire   [31:0]                           i_acl_item_ethtype_code             ,
-    input              wire   [5:0]                            i_acl_item_action_pass_state        ,
-    input              wire   [15:0]                           i_acl_item_action_cb_streamhandle   ,
-    input              wire   [5:0]                            i_acl_item_action_flowctrl          ,
-    input              wire   [15:0]                           i_acl_item_action_txport            ,
+// DMAC编码值配置（6个16位字段）
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_1            , // 端口ACL表项-写入dmac值[15:0]
+    input    			wire                             		i_cfg_acl_item_dmac_code_1_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_2            , // 端口ACL表项-写入dmac值[31:16]
+    input    			wire                             		i_cfg_acl_item_dmac_code_2_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_3            , // 端口ACL表项-写入dmac值[47:32]
+    input    			wire                             		i_cfg_acl_item_dmac_code_3_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_4            , // 端口ACL表项-写入dmac值[63:48]
+    input    			wire                             		i_cfg_acl_item_dmac_code_4_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_5            , // 端口ACL表项-写入dmac值[79:64]
+    input    			wire                             		i_cfg_acl_item_dmac_code_5_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_dmac_code_6            , // 端口ACL表项-写入dmac值[95:80]
+    input    			wire                             		i_cfg_acl_item_dmac_code_6_valid      , // 写入有效信号
+		
+    // SMAC编码值配置（6个16位字段）		
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_1            , // 端口ACL表项-写入smac值[15:0]
+    input    			wire                             		i_cfg_acl_item_smac_code_1_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_2            , // 端口ACL表项-写入smac值[31:16]
+    input    			wire                             		i_cfg_acl_item_smac_code_2_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_3            , // 端口ACL表项-写入smac值[47:32]
+    input    			wire                             		i_cfg_acl_item_smac_code_3_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_4            , // 端口ACL表项-写入smac值[63:48]
+    input    			wire                             		i_cfg_acl_item_smac_code_4_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_5            , // 端口ACL表项-写入smac值[79:64]
+    input    			wire                             		i_cfg_acl_item_smac_code_5_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_smac_code_6            , // 端口ACL表项-写入smac值[95:80]
+    input    			wire                             		i_cfg_acl_item_smac_code_6_valid      , // 写入有效信号
+		
+    // VLAN编码值配置（4个16位字段）		
+    input    			wire [15:0]                      		i_cfg_acl_item_vlan_code_1            , // 端口ACL表项-写入vlan值[15:0]
+    input    			wire                             		i_cfg_acl_item_vlan_code_1_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_vlan_code_2            , // 端口ACL表项-写入vlan值[31:16]
+    input    			wire                             		i_cfg_acl_item_vlan_code_2_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_vlan_code_3            , // 端口ACL表项-写入vlan值[47:32]
+    input    			wire                             		i_cfg_acl_item_vlan_code_3_valid      , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_vlan_code_4            , // 端口ACL表项-写入vlan值[63:48]
+    input    			wire                             		i_cfg_acl_item_vlan_code_4_valid      , // 写入有效信号
+
+    // Ethertype编码值配置（2个16位字段）
+    input    			wire [15:0]                      		i_cfg_acl_item_ethertype_code_1       , // 端口ACL表项-写入ethertype值[15:0]
+    input    			wire                             		i_cfg_acl_item_ethertype_code_1_valid , // 写入有效信号
+					
+    input    			wire [15:0]                      		i_cfg_acl_item_ethertype_code_2       , // 端口ACL表项-写入ethertype值[31:16]
+    input    			wire                             		i_cfg_acl_item_ethertype_code_2_valid , // 写入有效信号
+
+    // ACL动作配置
+    input    			wire [7:0]                       	    i_cfg_acl_item_action_pass_state      , // 端口ACL动作-报文状态
+    input    			wire                             	    i_cfg_acl_item_action_pass_state_valid, // 写入有效信号
+				    
+    input    			wire [15:0]                      	    i_cfg_acl_item_action_cb_streamhandle , // 端口ACL动作-stream_handle值
+    input    			wire                             	    i_cfg_acl_item_action_cb_streamhandle_valid, // 写入有效信号
+				    
+    input    			wire [5:0]                       	    i_cfg_acl_item_action_flowctrl        , // 端口ACL动作-报文流控选择
+    input    			wire                             	    i_cfg_acl_item_action_flowctrl_valid  , // 写入有效信号
+				    
+    input    			wire [15:0]                      	    i_cfg_acl_item_action_txport          , // 端口ACL动作-报文发送端口映射
+    input    			wire                             	    i_cfg_acl_item_action_txport_valid    ,  // 写入有效信号
+
     // 状态寄存器
     output             wire   [15:0]                            o_port_diag_state                  , // 端口状态寄存器，详情见寄存器表说明定义 
     output             wire                                     o_tcam_config_busy                 , // TCAM 配置忙
@@ -331,6 +390,12 @@ wire                                    w_dmac_vld                         ;
 wire                                    w_smac_vld                         ;
 wire                                    w_rtag_flag                        ; 
 
+
+wire    [PORT_NUM-1:0]					w_acl_port_sel					   ;
+wire									w_acl_port_sel_valid			   ;
+wire									w_acl_clr_list_regs				   ;
+wire	[4:0]							w_acl_item_sel_regs				   ;	
+
 /* ------------------------------ 内部数据流链接 ------------------------------- */
 // assign              o_mac_cross_port_link               =      w_mac_cross_port_link        ;
 assign              o_mac_cross_port_speed              =      w_mac_cross_port_speed       ;
@@ -353,15 +418,11 @@ assign              w_mac_axi_data_valid                =      i_mac_axi_data_va
 assign              o_mac_axi_data_ready                =      w_mac_axi_data_ready         ;
 assign              w_mac_axi_data_last                 =      i_mac_axi_data_last          ;
 
-assign              w_acl_port_sel                      =      i_acl_port_sel               ;   
+assign              w_acl_port_sel                      =      i_acl_port_sel               ; 
+assign 				w_acl_port_sel_valid				=	   i_acl_port_sel_valid			;  
 assign              w_acl_clr_list_regs                 =      i_acl_clr_list_regs          ;   
 assign              o_acl_list_rdy_regs                 =      w_acl_list_rdy_regs          ;   
 assign              w_acl_item_sel_regs                 =      i_acl_item_sel_regs          ;   
-//assign              w_acl_item_waddr_regs               =      i_acl_item_waddr_regs        ;   
-//assign              w_acl_item_din_regs                 =      i_acl_item_din_regs          ;   
-//assign              w_acl_item_we_regs                  =      i_acl_item_we_regs           ;   
-//assign              w_acl_item_rslt_regs                =      i_acl_item_rslt_regs         ;   
-//assign              w_acl_item_complete_regs            =      i_acl_item_complete_regs     ;   
 
 assign              w_swlist_tx_port                    =      i_swlist_tx_port             ;
 assign              w_swlist_vld                        =      i_swlist_vld                 ;
@@ -562,44 +623,146 @@ rx_acllookup_data rx_acllookup_data_inst (
 );
 
 // --------------
+
+//tcam_top #(
+//    .LOOK_UP_DATA_WIDTH             ( LOOK_UP_DATA_WIDTH          ),   // 需要查询的数据总位宽
+//    .REG_ADDR_BUS_WIDTH             ( REG_ADDR_BUS_WIDTH          ),   // 接收 MAC 层的配置寄存器地址位宽
+//    .REG_DATA_BUS_WIDTH             ( REG_DATA_BUS_WIDTH          ),   // 接收 MAC 层的配置寄存器数据位宽
+//    .ACTION_WIDTH                   ( 24                          ),   // ACTION
+//    .CAM_NUM                        ( 256                         )    // 表项数量
+//) tcam_top_inst (           
+//    .i_clk                          ( i_clk                       ),
+//    .i_rst                          ( i_rst                       ),
+//    /*---------------------------------------- 匹配数据输入 ------------------------------------------*/
+//    .i_look_up_data                 ( w_mac_width_port_axi_data   ),
+//    .i_look_up_data_vld             ( w_mac_width_axi_data_valid  ),
+//    /*---------------------------------------- 匹配 ACTION 输出 --------------------------------------*/
+//    // .o_acl_frmtype                  ( w_acl_frmtype               ),
+//    // .o_acl_fetchinfo                ( w_acl_fetch_info            ),
+//    .o_acl_action                   ( w_acl_action                ),
+//    .o_acl_cb_frm                   ( w_acl_cb_frm                ),
+//    .o_acl_cb_streamhandle          ( w_acl_cb_streamhandle       ),
+//    .o_acl_flow_ctrl                ( w_acl_flow_ctrl             ),
+//    .o_acl_forwardport              ( w_acl_forwardport           ),  
+//    .o_acl_vld                      ( w_acl_vld                   ),
+//    /*---------------------------------------- 寄存器配置接口 -----------------------------------------*/
+//    .o_tcam_busy                    ( o_tcam_config_busy          ) // 输出给上层表明现在tcam正busy
+//    // 寄存器控制信号       
+//    //.i_refresh_list_pulse           ( i_refresh_list_pulse        ), // 刷新寄存器列表（状态寄存器和控制寄存器）
+//    //.i_switch_err_cnt_clr           ( i_switch_err_cnt_clr        ), // 刷新错误计数器
+//    //.i_switch_err_cnt_stat          ( i_switch_err_cnt_stat       ), // 刷新错误状态寄存器
+//    // 寄存器写控制接口       
+//    //.i_switch_reg_bus_we            ( i_switch_reg_bus_we         ), // 寄存器写使能
+//    //.i_switch_reg_bus_we_addr       ( i_switch_reg_bus_we_addr    ), // 寄存器写地址
+//    //.i_switch_reg_bus_we_din        ( i_switch_reg_bus_we_din     ), // 寄存器写数据
+//    //.i_switch_reg_bus_we_din_v      ( i_switch_reg_bus_we_din_v   ), // 寄存器写数据使能
+//    // 寄存器读控制接口       
+//    //.i_switch_reg_bus_rd            ( i_switch_reg_bus_rd         ), // 寄存器读使能
+//    //.i_switch_reg_bus_rd_addr       ( i_switch_reg_bus_rd_addr    ), // 寄存器读地址
+//    //.o_switch_reg_bus_we_dout       ( o_switch_reg_bus_we_dout    ), // 读出寄存器数据
+//    //.o_switch_reg_bus_we_dout_v     ( o_switch_reg_bus_we_dout_v  )  // 读数据有效使能
+//  );
+
+
 tcam_top #(
-    .LOOK_UP_DATA_WIDTH             ( LOOK_UP_DATA_WIDTH          ),   // 需要查询的数据总位宽
-    .REG_ADDR_BUS_WIDTH             ( REG_ADDR_BUS_WIDTH          ),   // 接收 MAC 层的配置寄存器地址位宽
-    .REG_DATA_BUS_WIDTH             ( REG_DATA_BUS_WIDTH          ),   // 接收 MAC 层的配置寄存器数据位宽
-    .ACTION_WIDTH                   ( 24                          ),   // ACTION
-    .CAM_NUM                        ( 256                         )    // 表项数量
-) tcam_top_inst (           
-    .i_clk                          ( i_clk                       ),
-    .i_rst                          ( i_rst                       ),
-    /*---------------------------------------- 匹配数据输入 ------------------------------------------*/
-    .i_look_up_data                 ( w_mac_width_port_axi_data   ),
-    .i_look_up_data_vld             ( w_mac_width_axi_data_valid  ),
-    /*---------------------------------------- 匹配 ACTION 输出 --------------------------------------*/
-    // .o_acl_frmtype                  ( w_acl_frmtype               ),
-    // .o_acl_fetchinfo                ( w_acl_fetch_info            ),
-    .o_acl_action                   ( w_acl_action                ),
-    .o_acl_cb_frm                   ( w_acl_cb_frm                ),
-    .o_acl_cb_streamhandle          ( w_acl_cb_streamhandle       ),
-    .o_acl_flow_ctrl                ( w_acl_flow_ctrl             ),
-    .o_acl_forwardport              ( w_acl_forwardport           ),  
-    .o_acl_vld                      ( w_acl_vld                   ),
-    /*---------------------------------------- 寄存器配置接口 -----------------------------------------*/
-    .o_tcam_busy                    ( o_tcam_config_busy          ) // 输出给上层表明现在tcam正busy
-    // 寄存器控制信号       
-    //.i_refresh_list_pulse           ( i_refresh_list_pulse        ), // 刷新寄存器列表（状态寄存器和控制寄存器）
-    //.i_switch_err_cnt_clr           ( i_switch_err_cnt_clr        ), // 刷新错误计数器
-    //.i_switch_err_cnt_stat          ( i_switch_err_cnt_stat       ), // 刷新错误状态寄存器
-    // 寄存器写控制接口       
-    //.i_switch_reg_bus_we            ( i_switch_reg_bus_we         ), // 寄存器写使能
-    //.i_switch_reg_bus_we_addr       ( i_switch_reg_bus_we_addr    ), // 寄存器写地址
-    //.i_switch_reg_bus_we_din        ( i_switch_reg_bus_we_din     ), // 寄存器写数据
-    //.i_switch_reg_bus_we_din_v      ( i_switch_reg_bus_we_din_v   ), // 寄存器写数据使能
-    // 寄存器读控制接口       
-    //.i_switch_reg_bus_rd            ( i_switch_reg_bus_rd         ), // 寄存器读使能
-    //.i_switch_reg_bus_rd_addr       ( i_switch_reg_bus_rd_addr    ), // 寄存器读地址
-    //.o_switch_reg_bus_we_dout       ( o_switch_reg_bus_we_dout    ), // 读出寄存器数据
-    //.o_switch_reg_bus_we_dout_v     ( o_switch_reg_bus_we_dout_v  )  // 读数据有效使能
-  );
+	 .LOOK_UP_DATA_WIDTH             ( LOOK_UP_DATA_WIDTH    ),
+	 .PORT_MNG_DATA_WIDTH            ( PORT_MNG_DATA_WIDTH   ),
+	 .REG_ADDR_BUS_WIDTH             ( REG_ADDR_BUS_WIDTH    ),
+	 .REG_DATA_BUS_WIDTH             ( REG_DATA_BUS_WIDTH    ),
+	 .PORT_ID                        ( PORT_INDEX            ),
+	 .CAM_NUM                        ( CAM_NUM               )
+) tcam_top_inst (
+	 .i_clk                          ( i_clk                        	 ),
+	 .i_rst                          ( i_rst                        	 ),
+	 //
+	 .i_look_up_data                 ( w_mac_width_port_axi_data     	 ),
+	 .i_look_up_data_vld             ( w_mac_width_axi_data_valid    	 ),
+	 
+	 .o_acl_action                   ( w_acl_action               		 ),
+	 .o_acl_cb_frm                   ( w_acl_cb_frm               		 ),
+	 .o_acl_cb_streamhandle          ( w_acl_cb_streamhandle      		 ),
+	 .o_acl_flow_ctrl                ( w_acl_flow_ctrl            		 ),
+	 .o_acl_forwardport              ( w_acl_forwardport          		 ),
+	 .o_acl_vld                      ( w_acl_vld                  		 ),
+	 .o_tcam_busy                    ( o_tcam_config_busy                ),
+	 
+	 // New configuration interface
+	 .i_cfg_acl_port_sel             ( w_acl_port_sel       		),   //
+	 .i_cfg_acl_port_sel_valid       ( w_acl_port_sel_valid       	),   //
+	 .i_cfg_acl_clr_list_regs        ( w_acl_clr_list_regs        	),   //
+	 .o_cfg_acl_list_rdy_regs        ( w_acl_list_rdy_regs        	),   //
+	 .o_cfg_acl_clr_busy_regs		 (),
+
+	 // DMAC
+	 .i_cfg_acl_item_dmac_code_1     	(i_cfg_acl_item_dmac_code_1     ),  
+	 .i_cfg_acl_item_dmac_code_1_valid	(i_cfg_acl_item_dmac_code_1_valid),
+	 .i_cfg_acl_item_dmac_code_2     	(i_cfg_acl_item_dmac_code_2     ),  
+	 .i_cfg_acl_item_dmac_code_2_valid	(i_cfg_acl_item_dmac_code_2_valid),
+	 .i_cfg_acl_item_dmac_code_3     	(i_cfg_acl_item_dmac_code_3     ),  
+	 .i_cfg_acl_item_dmac_code_3_valid	(i_cfg_acl_item_dmac_code_3_valid),
+	 .i_cfg_acl_item_dmac_code_4     	(i_cfg_acl_item_dmac_code_4     ),  
+	 .i_cfg_acl_item_dmac_code_4_valid	(i_cfg_acl_item_dmac_code_4_valid),
+	 .i_cfg_acl_item_dmac_code_5     	(i_cfg_acl_item_dmac_code_5     ),  
+	 .i_cfg_acl_item_dmac_code_5_valid	(i_cfg_acl_item_dmac_code_5_valid),
+	 .i_cfg_acl_item_dmac_code_6     	(i_cfg_acl_item_dmac_code_6     ),  
+	 .i_cfg_acl_item_dmac_code_6_valid	(i_cfg_acl_item_dmac_code_6_valid),
+																		
+	 // SMAC                                       
+	 .i_cfg_acl_item_smac_code_1     	(i_cfg_acl_item_smac_code_1     ),       
+	 .i_cfg_acl_item_smac_code_1_valid	(i_cfg_acl_item_smac_code_1_valid),
+	 .i_cfg_acl_item_smac_code_2     	(i_cfg_acl_item_smac_code_2     ),       
+	 .i_cfg_acl_item_smac_code_2_valid	(i_cfg_acl_item_smac_code_2_valid),
+	 .i_cfg_acl_item_smac_code_3     	(i_cfg_acl_item_smac_code_3     ),
+	 .i_cfg_acl_item_smac_code_3_valid	(i_cfg_acl_item_smac_code_3_valid),
+	 .i_cfg_acl_item_smac_code_4     	(i_cfg_acl_item_smac_code_4     ),
+	 .i_cfg_acl_item_smac_code_4_valid	(i_cfg_acl_item_smac_code_4_valid),
+	 .i_cfg_acl_item_smac_code_5     	(i_cfg_acl_item_smac_code_5     ),
+	 .i_cfg_acl_item_smac_code_5_valid	(i_cfg_acl_item_smac_code_5_valid),
+	 .i_cfg_acl_item_smac_code_6     	(i_cfg_acl_item_smac_code_6     ),
+	 .i_cfg_acl_item_smac_code_6_valid	(i_cfg_acl_item_smac_code_6_valid),
+
+	 // VLAN
+	 .i_cfg_acl_item_vlan_code_1     	(i_cfg_acl_item_vlan_code_1     ),
+	 .i_cfg_acl_item_vlan_code_1_valid	(i_cfg_acl_item_vlan_code_1_valid),
+	 .i_cfg_acl_item_vlan_code_2     	(i_cfg_acl_item_vlan_code_2     ),
+	 .i_cfg_acl_item_vlan_code_2_valid	(i_cfg_acl_item_vlan_code_2_valid),
+	 .i_cfg_acl_item_vlan_code_3     	(i_cfg_acl_item_vlan_code_3     ),
+	 .i_cfg_acl_item_vlan_code_3_valid	(i_cfg_acl_item_vlan_code_3_valid),
+	 .i_cfg_acl_item_vlan_code_4     	(i_cfg_acl_item_vlan_code_4     ),
+	 .i_cfg_acl_item_vlan_code_4_valid	(i_cfg_acl_item_vlan_code_4_valid),
+
+	 // Ethertype
+	 .i_cfg_acl_item_ethertype_code_1					(i_cfg_acl_item_ethertype_code_1		),
+	 .i_cfg_acl_item_ethertype_code_1_valid				(i_cfg_acl_item_ethertype_code_1_valid	),
+	 .i_cfg_acl_item_ethertype_code_2					(i_cfg_acl_item_ethertype_code_2		),
+	 .i_cfg_acl_item_ethertype_code_2_valid				(i_cfg_acl_item_ethertype_code_2_valid	),
+														
+	 // Action                                           
+	 .i_cfg_acl_item_action_pass_state					(i_cfg_acl_item_action_pass_state				),
+	 .i_cfg_acl_item_action_pass_state_valid			(i_cfg_acl_item_action_pass_state_valid		),
+	 .i_cfg_acl_item_action_cb_streamhandle				(i_cfg_acl_item_action_cb_streamhandle			),
+	 .i_cfg_acl_item_action_cb_streamhandle_valid		(i_cfg_acl_item_action_cb_streamhandle_valid	),
+	 .i_cfg_acl_item_action_flowctrl 					(i_cfg_acl_item_action_flowctrl 				),
+	 .i_cfg_acl_item_action_flowctrl_valid				(i_cfg_acl_item_action_flowctrl_valid			),
+	 .i_cfg_acl_item_action_txport   					(i_cfg_acl_item_action_txport   				),
+	 .i_cfg_acl_item_action_txport_valid				(i_cfg_acl_item_action_txport_valid			),
+
+	 .w_action_wea                   			    () 
+	 // .o_fsm_state                    (w_fsm_state) // Removed in tcam_top? Let's check.
+	 // Checking tcam_top.v again... it has w_fsm_state output?
+	 // tcam_top.v: output wire [3:0] w_fsm_state
+	 // Wait, I need to check if I missed it in my read.
+	 // Yes, line 323: wire [3:0] w_fsm_state; but is it an output port?
+	 // In tcam_top module definition:
+	 // output w_action_wea,
+	 // ...
+	 // output wire o_tcam_busy,
+	 // ...
+	 // It doesn't seem to have w_fsm_state as a port in the module declaration I read earlier.
+	 // Let me re-read the module declaration part of tcam_top.v carefully.
+);
+
+
 
 rx_mac_hash_calc#(
     .CWIDTH                         ( HASH_DATA_WIDTH                )
