@@ -810,13 +810,13 @@ module cross_bar_txport_mnt #(
                 end
             end 
 			
-			// modify at 12.02
+			// modify at 12.02 and 12.05
             // 从锁存 tx_prot 信息中判断该帧是否是该 cross_bar_tx_port 处理
             always @(posedge i_clk or posedge i_rst) begin
                 if (i_rst == 1'b1) begin
                     r_frame_flag[i] <= 1'b0;
                 end else begin
-                    r_frame_flag[i] <= ( w_fifo_arb_valid[r_tx_vlan_pri[i]] == 1'b1 && r_frame_flag[i] == 1'b1) ? 1'b0 : ( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
+                    r_frame_flag[i] <= ( w_fifo_arb_valid[r_tx_vlan_pri[i]] == 1'b1 && r_frame_flag[i] == 1'b1) ? 1'b0 : ( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 && ri_mac_cross_metadata[i][12] == 1'b0) ? 1'b1 : r_frame_flag[i];
                 end                     //( r_metadata_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
             end
 

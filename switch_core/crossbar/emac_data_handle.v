@@ -131,7 +131,7 @@ module emac_data_handle#(
 
 wire [7:0]                      w_all_metadata_valid;
 wire [7:0]                      w_all_tx_port [7:0];
-
+wire [7:0]                      w_all_discard;
 //**********************reg******************************************
 
 reg   [CROSS_DATA_WIDTH:0]             ri_emac_cross_port_axi_data [PORT_FIFO_PRI_NUM-1:0]   ;
@@ -175,6 +175,11 @@ assign w_all_tx_port[4] =  i_rxmac4_qbu_metadata[59:52];
 assign w_all_tx_port[5] =  i_rxmac5_qbu_metadata[59:52];
 assign w_all_tx_port[6] =  i_rxmac6_qbu_metadata[59:52];
 assign w_all_tx_port[7] =  i_rxmac7_qbu_metadata[59:52];
+
+// modify at 12.05
+assign w_all_discard 	=  {i_rxmac7_qbu_metadata[12],i_rxmac6_qbu_metadata[12],i_rxmac5_qbu_metadata[12],
+                            i_rxmac4_qbu_metadata[12],i_rxmac3_qbu_metadata[12],i_rxmac2_qbu_metadata[12],
+                            i_rxmac1_qbu_metadata[12],i_rxmac0_qbu_metadata[12]};
 
 //EMAC0
 assign     o_rxmac0_qbu_axis_ready      =   1'b1;    
@@ -550,7 +555,7 @@ generate
              if (i_rst == 1'b1) begin
                  r_frame_flag[i] <= 1'b0;
              end else begin
-                 r_frame_flag[i] <= ( ro_emac_tx_axis_last == 1'b1) ? 1'b0 : ( w_all_metadata_valid[i] == 1'b1 && w_all_tx_port[i][PORT_ATTRIBUTE] == 1'b1 ) ? 1'b1 : r_frame_flag[i];
+                 r_frame_flag[i] <= ( ro_emac_tx_axis_last == 1'b1) ? 1'b0 : ( w_all_metadata_valid[i] == 1'b1 && w_all_tx_port[i][PORT_ATTRIBUTE] == 1'b1 && w_all_discard[i] == 1'b0) ? 1'b1 : r_frame_flag[i];
              end                   
          end
     end
