@@ -834,12 +834,14 @@ always @(posedge i_clk) begin
     end
 end
 
+
+//modify at 12.04
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_data_out_len <= 16'd0;
     end else begin
-        r_data_out_len <= (r_current_is_critical == 1'b0 && ro_tx_req == 1'b1) ? w_info_ram_rd_data[14:0] : 
-                          (r_current_is_critical == 1'b1 && r_info_ram_re_d2 == 1'b1) ? w_info_ram_rd_data[14:0] :
+        r_data_out_len <= (r_current_is_critical == 1'b0 && ro_tx_req == 1'b1) ? w_info_ram_rd_data[11:0] : 
+                          (r_current_is_critical == 1'b1 && r_info_ram_re_d2 == 1'b1) ? w_info_ram_rd_data[11:0] :
                           r_data_out_len;
     end
 end

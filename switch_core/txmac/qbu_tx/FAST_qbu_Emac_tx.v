@@ -237,7 +237,7 @@ always @(posedge i_clk or posedge i_rst) begin
         o_send_len <= 'b0;
     end
     else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==1 && r_mux_ready)begin
-        o_send_len <= read_fifo_data[31:16];
+        o_send_len <= {4'b0,read_fifo_data[27:16]};
     end
     else begin
         o_send_len <= o_send_len;
@@ -251,7 +251,7 @@ always @(posedge i_clk or posedge i_rst) begin
         data_len <= 'b0;
     end
     else if(empty==0&&i_pmac_send_busy==0&&read_fifo_en==1 && r_mux_ready)begin
-        data_len <= read_fifo_data[31:16];
+        data_len <= {4'b0,read_fifo_data[27:16]};
     end
     else begin
         data_len <= data_len;
@@ -296,7 +296,7 @@ always @(posedge i_clk or posedge i_rst) begin
         data_len_supply <= 'b0;
     end
     else if (read_fifo_en) begin
-         data_len_supply <= read_fifo_data[31:16]-1;
+         data_len_supply <= {4'b0,read_fifo_data[27:16]}-1;
     end
     else if (read_ram_en)begin
          data_len_supply <=data_len_supply-1;
