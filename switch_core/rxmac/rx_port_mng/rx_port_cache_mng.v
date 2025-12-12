@@ -184,10 +184,10 @@ reg                                     ro_tx_req_d1                   ;
 // 队列管理相关寄存器
 reg    [QUEUE_ADDR_WIDTH-1:0]           r_wr_addr                      ; // 写地址
 reg    [QUEUE_ADDR_WIDTH-1:0]           r_rd_addr                      ; // 读地址
-reg    [QUEUE_ADDR_WIDTH:0]             r_ram_data_cnt                 ; // FIFO计数
+reg    [QUEUE_ADDR_WIDTH:0]             r_ram_frame_cnt                ; // FIFO计数
 reg                                     r_queue_full                   ; // 队列满标志
 reg                                     r_queue_empty                  ; // 队列空标志
-
+reg    [RAM_ADDR_WIDTH:0]               r_ram_data_cnt                 ; // FIFO计数
 // 数据RAM相关信号
 wire   [RAM_ADDR_WIDTH-1:0]             w_data_ram_wr_addr             ;
 wire   [RAM_ADDR_WIDTH-1:0]             w_data_ram_rd_addr             ;
@@ -259,6 +259,11 @@ reg    [15:0]                           r_data_out_cnt                 ;
 reg    [15:0]                           r_data_out_len                 ;
 
 wire   [METADATA_WIDTH-1:0]             w_current_metadata             ;
+
+reg 									r_ram_data_discard			   ;
+
+reg 									r_ram_cnt_clr				   ;
+
 // 状态标志
 // reg                         r_input_ready                                                          ; // 输入就绪标志
 // reg                         r_output_valid                                                         ; // 输出有效标志
@@ -342,13 +347,13 @@ end
 // modify at 12.03
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
-        r_ram_data_cnt <= {(QUEUE_ADDR_WIDTH+1){1'b0}};
+        r_ram_frame_cnt <= {(QUEUE_ADDR_WIDTH+1){1'b0}};
     end else begin
-        r_ram_data_cnt <= ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && !((r_process_complete == 1'b1) && (r_queue_empty == 1'b0))) ? 
-                        (r_ram_data_cnt + {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
-                      ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && r_ram_data_cnt != {(QUEUE_ADDR_WIDTH+1){1'b0}} && !((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0))) ? 
-                        (r_ram_data_cnt - {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
-                      r_ram_data_cnt;
+        r_ram_frame_cnt <= ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && !((r_process_complete == 1'b1) && (r_queue_empty == 1'b0))) ? 
+                        (r_ram_frame_cnt + {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
+                      ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && r_ram_frame_cnt != {(QUEUE_ADDR_WIDTH+1){1'b0}} && !((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0))) ? 
+                        (r_ram_frame_cnt - {{QUEUE_ADDR_WIDTH{1'b0}}, 1'b1}) :
+                      r_ram_frame_cnt;
     end
 end
 
@@ -357,7 +362,7 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_queue_full <= 1'b0;
     end else begin
-        r_queue_full <= (r_ram_data_cnt[QUEUE_ADDR_WIDTH] == 1'b1) ? 1'b1 : 1'b0;
+        r_queue_full <= (r_ram_frame_cnt[QUEUE_ADDR_WIDTH] == 1'b1) ? 1'b1 : 1'b0;
     end
 end
 
@@ -365,7 +370,7 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_queue_empty <= 1'b1;
     end else begin
-        r_queue_empty <= (r_ram_data_cnt == {(QUEUE_ADDR_WIDTH+1){1'b0}}) ? 1'b1 : 1'b0;
+        r_queue_empty <= (r_ram_frame_cnt == {(QUEUE_ADDR_WIDTH+1){1'b0}}) ? 1'b1 : 1'b0;
     end
 end
 
@@ -396,18 +401,44 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_data_wr_ptr <= {RAM_ADDR_WIDTH{1'b0}};
     end else begin
-        r_data_wr_ptr <= ((ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1)) ?
+        r_data_wr_ptr <= ((ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1) && r_ram_data_discard == 1'b0) ?
                          ((r_data_wr_ptr == (RAM_DEPTH - 1)) ? {RAM_ADDR_WIDTH{1'b0}} : (r_data_wr_ptr + {{(RAM_ADDR_WIDTH-1){1'b0}}, 1'b1})) :
                          r_data_wr_ptr;
     end
 end
+
+// 数据RAM
+always @(posedge i_clk) begin
+    if (i_rst == 1'b1) begin
+		r_ram_cnt_clr  <= 1'b0;
+        r_ram_data_cnt <= {RAM_ADDR_WIDTH{1'b0}};
+    end else begin
+		r_ram_cnt_clr  <= (r_current_is_critical == 1'b1 && ri_discard_en == 1'b1) ? 1'b1 : 
+						  (ri_cross_metadata_valid == 1'b1 && ri_cross_metadata_last == 1'b1) ? 1'b0 : r_ram_cnt_clr;
+        r_ram_data_cnt <=(r_ram_cnt_clr == 1'b1) ?  {RAM_ADDR_WIDTH{1'b0}} : 
+						 (w_data_ram_we == 1'b1 && w_data_ram_re == 1'b0) ?
+                         ((r_ram_data_cnt == (RAM_DEPTH - 1)) ? {RAM_ADDR_WIDTH{1'b0}} : (r_ram_data_cnt + {{(RAM_ADDR_WIDTH-1){1'b0}}, 1'b1})) :
+						 ((w_data_ram_we == 1'b0 && w_data_ram_re == 1'b1) ? 
+						 (((r_ram_data_cnt == 'd0)) ? {RAM_ADDR_WIDTH{1'b0}} : (r_ram_data_cnt - {{(RAM_ADDR_WIDTH-1){1'b0}}, 1'b1})) : r_ram_data_cnt);
+    end
+end
+
+always @(posedge i_clk) begin
+    if (i_rst == 1'b1) begin
+        r_ram_data_discard <= 1'b0;
+    end else begin
+        r_ram_data_discard <= (i_cross_metadata_valid == 1'b1 && (i_mac_axi_data_user > RAM_DEPTH - r_ram_data_cnt)) ? 1'b1 : 
+							  (i_cross_metadata_valid == 1'b1 && (i_mac_axi_data_user <= RAM_DEPTH - r_ram_data_cnt))? 1'b0 : r_ram_data_discard;
+    end
+end
+
 
 // 帧写入标志
 always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_frame_writing <= 1'b0;
     end else begin
-        r_frame_writing <= ((ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1) && (r_frame_writing == 1'b0)) ? 1'b1 :
+        r_frame_writing <= ((ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1) && (r_frame_writing == 1'b0) && r_ram_data_discard == 1'b0) ? 1'b1 :
                           (((ri_mac_axi_data_valid == 1'b1) && (ri_mac_axi_data_last == 1'b1) && (ro_mac_axi_data_ready == 1'b1)) ? 1'b0 : r_frame_writing);
     end
 end
@@ -971,7 +1002,7 @@ assign o_emac_metadata_last    = (r_current_is_critical == 1'b1 && ((r_rtag_flag
 assign w_data_ram_wr_addr = r_data_wr_ptr;
 assign w_data_ram_rd_addr = r_data_ram_rd_ptr;
 assign w_data_ram_wr_data = {ri_mac_axi_data, ri_mac_axi_data_keep};
-assign w_data_ram_we      = (ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1);
+assign w_data_ram_we      = (ri_mac_axi_data_valid == 1'b1) && (ro_mac_axi_data_ready == 1'b1) && (r_ram_data_discard == 1'b0);
 assign w_data_ram_re      = (r_frame_reading == 1'b1);
 
 ram_simple2port #(
@@ -996,7 +1027,7 @@ ram_simple2port #(
 assign w_info_ram_wr_addr = r_wr_addr                                                                     ;
 assign w_info_ram_rd_addr = r_rd_addr                                                                     ;
 assign w_info_ram_wr_data = {ri_cross_metadata, ri_mac_axi_data_user}                                     ;
-assign w_info_ram_we      = (ri_cross_metadata_valid == 1'b1) && (ri_cross_metadata_last == 1'b1) && (r_queue_full == 1'b0);
+assign w_info_ram_we      = (ri_cross_metadata_valid == 1'b1) && (ri_cross_metadata_last == 1'b1) && (r_queue_full == 1'b0) && (r_ram_data_discard == 1'b0);
 
 // 信息RAM读使能：每次仅拉高一个时钟周期
 // 触发条件：

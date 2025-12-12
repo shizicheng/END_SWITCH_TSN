@@ -161,7 +161,7 @@ reg                                      write_fifo_en               ;
 wire  [13+ADDR_WIDTH-1:0]                read_fifo_data              ;
 reg                                      read_fifo_en                ;
 wire                                     empty                       ;
-
+wire  [ADDR_WIDTH-1:0]					 w_data_len					 ;
 /***************component*************/
 ram_simple2port #(
     .RAM_WIDTH        (DWIDTH         ),  
@@ -250,7 +250,11 @@ assign o_Data_diver_axis_data    = read_ram_en_r ? read_ram_data : 0;
 assign o_Data_diver_axis_keep    = read_ram_en_r; 
 assign o_Data_diver_axis_last    = r_Data_diver_axis_last;
 assign o_Data_diver_axis_valid   = read_ram_en_r;
-assign o_Data_len                = read_fifo_en_r ? r_read_addr_end - read_ram_addr + 12'd2 : read_ram_add_begin_last;
+assign o_Data_len				 = {{(12-ADDR_WIDTH){1'b0}},w_data_len};
+
+
+
+assign w_data_len                = read_fifo_en_r ? r_read_addr_end - read_ram_addr + 12'd2 : read_ram_add_begin_last;
 //r_crc_vld
 
 
