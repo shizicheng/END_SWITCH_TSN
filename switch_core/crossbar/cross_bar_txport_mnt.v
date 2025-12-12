@@ -837,7 +837,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][0] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][0] <= ( w_fifo_arb_valid[0] == 1'b1 && w_fifo_arb_result[0][i] == 1'b1) ? 1'b0 :   //仲裁结果是当前端口的当前fifo
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd0) ? 1'b1 : r_tx_port_cache_req[i][0];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[0] == 1'b1 && r_tx_vlan_pri[i] == 3'd0) ? 1'b1 : r_tx_port_cache_req[i][0];
                                                 //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd0) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end     
@@ -847,7 +847,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][1] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][1] <= ( w_fifo_arb_valid[1] == 1'b1 && w_fifo_arb_result[1][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd1) ? 1'b1 : r_tx_port_cache_req[i][1];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[1] == 1'b1 && r_tx_vlan_pri[i] == 3'd1) ? 1'b1 : r_tx_port_cache_req[i][1];
                                                 //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd1) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -857,7 +857,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][2] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][2] <= ( w_fifo_arb_valid[2] == 1'b1 && w_fifo_arb_result[2][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd2) ? 1'b1 : r_tx_port_cache_req[i][2];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[2] == 1'b1 && r_tx_vlan_pri[i] == 3'd2) ? 1'b1 : r_tx_port_cache_req[i][2];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd2) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -867,7 +867,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][3] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][3] <= ( w_fifo_arb_valid[3] == 1'b1 && w_fifo_arb_result[3][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd3) ? 1'b1 : r_tx_port_cache_req[i][3];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[3] == 1'b1 && r_tx_vlan_pri[i] == 3'd3) ? 1'b1 : r_tx_port_cache_req[i][3];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd3) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -877,7 +877,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][4] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][4] <= ( w_fifo_arb_valid[4] == 1'b1 && w_fifo_arb_result[4][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd4) ? 1'b1 : r_tx_port_cache_req[i][4];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[4] == 1'b1 && r_tx_vlan_pri[i] == 3'd4) ? 1'b1 : r_tx_port_cache_req[i][4];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd4) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -887,7 +887,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][5] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][5] <= ( w_fifo_arb_valid[5] == 1'b1 && w_fifo_arb_result[5][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd5) ? 1'b1 : r_tx_port_cache_req[i][5];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[5] == 1'b1 && r_tx_vlan_pri[i] == 3'd5) ? 1'b1 : r_tx_port_cache_req[i][5];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd5) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -897,7 +897,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][6] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][6] <= ( w_fifo_arb_valid[6] == 1'b1 && w_fifo_arb_result[6][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd6) ? 1'b1 : r_tx_port_cache_req[i][6];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[6] == 1'b1 && r_tx_vlan_pri[i] == 3'd6) ? 1'b1 : r_tx_port_cache_req[i][6];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd6) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
@@ -907,7 +907,7 @@ module cross_bar_txport_mnt #(
                     r_tx_port_cache_req[i][7] <= 1'b0;
                 end else begin
                     r_tx_port_cache_req[i][7] <= ( w_fifo_arb_valid[7] == 1'b1 && w_fifo_arb_result[7][i] == 1'b1) ? 1'b0 : 
-                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd7) ? 1'b1 : r_tx_port_cache_req[i][7];
+                                                 ( r_frame_flag[i] == 1'b1 && w_fifio_data_busy[7] == 1'b1 && r_tx_vlan_pri[i] == 3'd7) ? 1'b1 : r_tx_port_cache_req[i][7];
                                                  //( r_frame_flag[i] == 1'b1 && r_tx_vlan_pri[i] == 3'd7) ? 1'b1 : r_tx_port_cache_req[i][0];
                 end
             end 
