@@ -369,7 +369,7 @@ always @(posedge i_clk or posedge i_rst) begin
         r_init_local_mac[31:16]<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_INIT_LOCAL_MAC1 ? r_reg_bus_data[15:0] : r_init_local_mac[31:16];
         r_init_local_mac[47:32]<= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_INIT_LOCAL_MAC2 ? r_reg_bus_data[15:0] : r_init_local_mac[47:32];
         r_init_local_ip[15:0]  <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_INIT_LOCAL_IP0 ? r_reg_bus_data[15:0] : r_init_local_ip[15:0];
-        r_init_local_ip[31:16] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_INIT_LOCAL_IP1 ? r_reg_bus_data[31:0] : r_init_local_ip[31:16];
+        r_init_local_ip[31:16] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_INIT_LOCAL_IP1 ? r_reg_bus_data[15:0] : r_init_local_ip[31:16];
         r_sync_work_cycle[15:0] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_SYNC_WORK_CYCLE0 ? r_reg_bus_data[15:0] : r_sync_work_cycle[15:0];
         r_sync_work_cycle[31:16] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_SYNC_WORK_CYCLE1 ? r_reg_bus_data[15:0] : r_sync_work_cycle[31:16];
         r_sync_phase_limit[15:0] <= r_reg_bus_we == 1'b1 && r_reg_bus_data_vld == 1'b1 && r_reg_bus_addr == REG_SYNC_PHASE_LIMIT0 ? r_reg_bus_data[15:0] : r_sync_phase_limit[15:0];
@@ -440,7 +440,7 @@ always @(posedge i_clk or posedge i_rst) begin
             REG_INIT_LOCAL_CLKID0  : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}},r_init_local_clkid[15:0]};
             REG_INIT_LOCAL_CLKID1  : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}},r_init_local_clkid[31:16]};
             REG_INIT_LOCAL_CLKID2  : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}},r_init_local_clkid[47:32]};
-            REG_INIT_LOCAL_CLKID3  : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}},r_init_local_clkid[64:48]};
+            REG_INIT_LOCAL_CLKID3  : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}},r_init_local_clkid[63:48]};
             REG_INIT_LOCAL_PRIOR1 : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-8{1'b0}},r_init_local_priority1};
             REG_INIT_LOCAL_PRIOR2 : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-8{1'b0}},r_init_local_priority2};
             REG_INIT_LOCAL_CLASS   : r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-8{1'b0}},r_init_local_class};

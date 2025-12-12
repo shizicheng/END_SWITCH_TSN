@@ -241,7 +241,7 @@ generate
         end
         always @(posedge i_clk or posedge i_rst) begin
             if (i_rst) begin
-                r_av_rst <= {(PORT_FIFO_PRI_NUM){1'b0}};
+                r_av_rst[i] <= 1'b0;
             end else begin
                 r_av_rst[i] <= ((queue_av_data[i][16] == 1'b0) && ri_fifoc_empty[i] == 1'b0) ? 1'b1 : 1'b0;  
             end

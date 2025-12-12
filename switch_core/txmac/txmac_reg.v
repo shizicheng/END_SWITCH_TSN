@@ -3961,22 +3961,22 @@ always @(posedge i_clk or posedge i_rst) begin
                 r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_diag_state_5[15:0];  
             end                
 			REG_PORT_TX_BYTE_CNT6  : begin
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_byte_cnt_6[16:0];
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_byte_cnt_6[15:0];
             end         
 			REG_PORT_TX_FRAME_CNT6 : begin     
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_frame_cnt_6[16:0];  
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_frame_cnt_6[15:0];  
             end 
 			REG_PORT_DIAG_STATE6   : begin     
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_diag_state_6[16:0];  
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_diag_state_6[15:0];  
             end                 
 			REG_PORT_TX_BYTE_CNT7  : begin
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_byte_cnt_7[17:0];
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_byte_cnt_7[15:0];
             end         
 			REG_PORT_TX_FRAME_CNT7 : begin     
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_frame_cnt_7[17:0];  
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_tx_frame_cnt_7[15:0];  
             end 
 			REG_PORT_DIAG_STATE7   : begin     
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_diag_state_7[17:0];  
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH{1'b0}}} | i_port_diag_state_7[15:0];  
             end
             //QBV
 			REG_QBV_ENABLE		   : begin     

@@ -6,8 +6,8 @@ module  tx_qos_mng #(
     input               wire                                    i_clk                               , // 250MHz
     input               wire                                    i_rst                               ,
     /*---------------------------------------- 寄存器配置接口 --------------------------------------*/
-    output              wire   [3:0]                            i_qos_sch                           , // 000：WRR,001:SP,010: DWRR
-    output              wire                                    i_qos_en                            , 
+    input               wire   [3:0]                            i_qos_sch                           , // 000：WRR,001:SP,010: DWRR
+    input               wire                                    i_qos_en                            , 
 
     input               wire   [PORT_FIFO_PRI_NUM*4-1:0]        i_weights                           , // WRR 权重 (高位 Q7，低位 Q0)
     input               wire                                    i_config_vld                        ,

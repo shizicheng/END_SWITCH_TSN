@@ -5,7 +5,7 @@ module switch_core_top#(
     parameter                                                   REG_ADDR_BUS_WIDTH      =      16       ,  // 接收 MAC 层的配置寄存器地址位宽
     parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // 接收 MAC 层的配置寄存器数据位宽
     parameter                                                   REG_ADDR_OFS_WIDTH      =      9        ,  
-    parameter                                                   METADATA_WIDTH          =      80       ,  // 信息流（METADATA）的位宽
+    parameter                                                   METADATA_WIDTH          =      81       ,  // 信息流（METADATA）的位宽
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng 数据位宽 
     parameter                                                   HASH_DATA_WIDTH         =      12       ,  // 哈希计算的值的位宽
     parameter                                                   ADDR_WIDTH              =      6        ,  // 地址表的深度     
@@ -1407,7 +1407,7 @@ rx_mac_mng #(
 		.o_emac4_port_axi_user               (w_emac4_port_axi_user  ),      
 		.o_emac4_axi_data_keep               (w_emac4_axi_data_keep  ),      
 		.o_emac4_axi_data_valid              (w_emac4_axi_data_valid ),      
-		.i_emac4_axi_data_ready              (w_emac0_axi_data_ready4),   
+		.i_emac4_axi_data_ready              (w_emac4_axi_data_ready),   
 		.o_emac4_axi_data_last               (w_emac4_axi_data_last  ),        
 		.o_emac4_metadata                    (w_emac4_metadata       ),        
 		.o_emac4_metadata_valid              (w_emac4_metadata_valid ),        

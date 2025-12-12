@@ -120,6 +120,7 @@ module cross_data_cache #(
     input           wire                                   i_emac_tx_axis_ready      
 );
 
+localparam FIFO_DEPTH = 2048;
 // ========================== 信号声明 - 使用数组 ==========================
 // 输入信号数组
 wire [CROSS_DATA_WIDTH-1:0]         i_data [7:0];
@@ -172,7 +173,7 @@ reg [15:0]                          r_tx_mac_fifo_keep [7:0];
 reg                                 w_info_fifo_avaliable_flag [7:0];
 
 // 数据包丢弃相关信号
-wire [15:0]                         w_data_fifo_data_cnt [7:0];
+wire [$clog2(FIFO_DEPTH)-1:0]       w_data_fifo_data_cnt [7:0];
 wire [14:0]                         w_packet_length [7:0];
 wire [15:0]                         w_fifo_remaining_space [7:0];
 reg [14:0]                          r_packet_length [7:0];
@@ -610,7 +611,7 @@ generate
         assign w_packet_length[i] = i_data_user[i][14:0];
         
         // 计算FIFO剩余空间（假设FIFO深度为16384）
-        assign w_fifo_remaining_space[i] = 16'd16384 - w_data_fifo_data_cnt[i];
+        assign w_fifo_remaining_space[i] = 16'd16384 - {16'h0000 | w_data_fifo_data_cnt[i]};
         
         // 数据包丢弃标志
         always @(posedge i_clk or posedge i_rst) begin
@@ -663,14 +664,14 @@ generate
         
         // ------ 数据 FIFO (大容量，Block RAM) ------
         sync_fifo #(
-            .DEPTH                   ( 32768              ),
+            .DEPTH                   ( FIFO_DEPTH         ),
             .WIDTH                   ( CROSS_DATA_WIDTH   ),
             .ALMOST_FULL_THRESHOLD   (      ),
             .ALMOST_EMPTY_THRESHOLD  ( 'd1 ),
             .FLOP_DATA_OUT           ( 1'b0 ),
             .RAM_STYLE               ( 1'b1 )
         ) pri_data_fifo_inst (       
-            .i_clk                    ( i_clk                            ),
+            .i_clk                   ( i_clk                            ),
             .i_rst                   ( i_rst                            ),
             .i_wr_en                 ( r_fifo_wr_en[fifo_idx]             ),
             .i_din                   ( r_data[fifo_idx]                 ),
