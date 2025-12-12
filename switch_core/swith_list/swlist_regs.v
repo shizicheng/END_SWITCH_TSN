@@ -30,6 +30,13 @@ module swlist_regs #(
         output              wire        [11:0]                          o_table_raddr                           ,
         output              wire        [14:0]                          o_table_full_threshold                  , // MAC表满阈???配置寄存器
         output              wire        [31:0]                          o_age_scan_interval                     , // 老化扫描间隔配置寄存器（秒）
+		
+		// SMAC
+		output				wire		[1:0]							o_smac_list_we							,
+		output				wire		[68:0]							o_smac_list_din							,
+		output				wire		[7:0]							o_smac_list_addr						,
+		input				wire		[68:0]							i_smac_list_dout						,
+		output				wire										o_smac_list_clr							,
 
 
         input               wire        [57:0]                          i_dmac_list_dout                        ,
@@ -43,9 +50,26 @@ module swlist_regs #(
         input               wire        [REG_DATA_BUS_WIDTH-1:0]        i_port_move_cnt                        
 );
 
-/*---------------------------------------- 寄存器地??定义 -------------------------------------------*/
+/*---------------------------------------- SMAC寄存器地址定义 -------------------------------------------*/
+localparam	REG_SMAC_LIST_CLR			= 8'h00								; // SMAC表清空操作
+localparam	REG_SMAC_LIST_WE			= 8'h01								; // SMAC表读写操作
+localparam	REG_SMAC_LIST_DIN_0			= 8'h02								; // [47:32]
+localparam	REG_SMAC_LIST_DIN_1			= 8'h03								; // [31:16]
+localparam	REG_SMAC_LIST_DIN_2			= 8'h04								; // [15:0]
+localparam	REG_SMAC_LIST_DIN_3			= 8'h05								; // [60:48] VLAN ID
+localparam	REG_SMAC_LIST_DIN_4			= 8'h06								; // [67:61] port
+localparam	REG_SMAC_LIST_DIN_VALID		= 8'h07								;
+localparam	REG_SMAC_LIST_WRADDR		= 8'h08								;
+localparam	REG_SMAC_LIST_DOUT_0		= 8'h09								; // [47:32]
+localparam	REG_SMAC_LIST_DOUT_1		= 8'h0A								; // [31:16]
+localparam	REG_SMAC_LIST_DOUT_2		= 8'h0B								; // [15:0]
+localparam	REG_SMAC_LIST_DOUT_3		= 8'h0C								; // [60:48] VLAN ID
+localparam	REG_SMAC_LIST_DOUT_4		= 8'h0D								; // [67:61] port
+localparam	REG_SMAC_LIST_DOUT_VALID	= 8'h0E								;
+
+/*---------------------------------------- DMAC寄存器地址定义 -------------------------------------------*/
 localparam  REG_DMAC_TABLE_CLEAR        = 8'h10                             ; // MAC表清空寄存器
-localparam  REG_AGE_TIME_THRESHOLD      = 8'h11                             ; // 老化时间阈???配置寄存器
+localparam  REG_AGE_TIME_THRESHOLD      = 8'h11                             ; // 老化时间阈值配置寄存器
 localparam  REG_DMAC_TABLE_RD           = 8'h12                             ;
 localparam  REG_DMAC_TABLE_RADDR        = 8'h13                             ;
 localparam  REG_DMAC_TABLE_DOUT0        = 8'h14                             ;
@@ -54,13 +78,13 @@ localparam  REG_DMAC_TABLE_DOUT2        = 8'h16                             ;
 localparam  REG_DMAC_TABLE_NUM          = 8'h41                             ;
 localparam  REG_DMAC_TABLE_FULL_ERSTAT  = 8'h44                             ;
 localparam  REG_DMAC_TABLE_FULL_ERCNT   = 8'h48                             ;
-localparam  REG_TABLE_FULL_THRESHOLD    = 8'h50                             ; // MAC表满阈???配置寄存器
-localparam  REG_AGE_SCAN_INTERVAL       = 8'h51                             ; // 老化扫描间隔配置寄存??
-localparam  REG_TABLE_ENTRY_CNT         = 8'h52                             ; // MAC表项计数器（只读??
-localparam  REG_LEARN_STATISTICS        = 8'h53                             ; // MAC学习统计寄存器（只读??
-localparam  REG_COLLISION_STATISTICS    = 8'h54                             ; // 哈希冲突统计寄存器（只读??
-localparam  REG_PORT_MOVE_STATISTICS    = 8'h55                             ; // 端口移动统计寄存器（只读??
-/*---------------------------------------- 状???机定义 -------------------------------------------*/
+localparam  REG_TABLE_FULL_THRESHOLD    = 8'h50                             ; // MAC表满阈值配置寄存器
+localparam  REG_AGE_SCAN_INTERVAL       = 8'h51                             ; // 老化扫描间隔配置寄存器
+localparam  REG_TABLE_ENTRY_CNT         = 8'h52                             ; // MAC表项计数器(只读)
+localparam  REG_LEARN_STATISTICS        = 8'h53                             ; // MAC学习统计寄存器(只读)
+localparam  REG_COLLISION_STATISTICS    = 8'h54                             ; // 哈希冲突统计寄存器(只读)
+localparam  REG_PORT_MOVE_STATISTICS    = 8'h55                             ; // 端口移动统计寄存器(只读)
+/*---------------------------------------- 状态机定义 -------------------------------------------*/
 localparam  IDLE                        = 4'd0                              ; // 空闲状???
 localparam  FIFO_READ_WAIT              = 4'd1                              ; // FIFO读取等待状???（STD模式??要）
 localparam  DMAC_LOOKUP                 = 4'd2                              ; // DMAC查表状???
@@ -88,6 +112,13 @@ reg         [14:0]                      r_table_full_threshold              ; //
 reg         [31:0]                      r_age_scan_interval                 ; // 老化扫描间隔配置寄存器（秒）
 reg                                     r_table_rd;
 reg         [11:0]                      r_table_raddr;
+
+
+reg			[1:0]						r_smac_list_we						;
+reg			[67:0]						r_smac_list_din						;
+reg			[7:0]						r_smac_list_addr					;
+reg										r_smac_list_clr						;
+
 /*========================================  输入数据管理 ========================================*/
 // FIFO输入缓存管理：支持连续输入???不会覆盖正在处理的数据
 always @(posedge i_clk or posedge i_rst) begin
@@ -173,6 +204,58 @@ assign o_table_rd                               = r_table_rd;
 assign o_table_raddr                            = r_table_raddr;
 
 
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_smac_list_clr   <=  1'd0;
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_CLR)) begin
+        r_smac_list_clr   <= r_reg_bus_data[0];
+    end else begin
+		r_smac_list_clr   <=  1'd0;
+	end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_smac_list_we   <=  2'd0;
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_WE)) begin
+        r_smac_list_we   <= r_reg_bus_data[1:0];
+    end else begin
+		r_smac_list_we   <=  2'd0;
+	end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_smac_list_din   <=  68'd0;
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_0)) begin
+        r_smac_list_din[47:32]   <= r_reg_bus_data[15:0];
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_1)) begin
+        r_smac_list_din[31:16]   <= r_reg_bus_data[15:0];
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_2)) begin
+        r_smac_list_din[15:0]   <= r_reg_bus_data[15:0];
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_3)) begin
+        r_smac_list_din[59:48]   <= r_reg_bus_data[11:0];
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_4)) begin
+        r_smac_list_din[67:60]   <= r_reg_bus_data[7:0];
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_DIN_VALID)) begin
+        r_smac_list_din[68]   <= r_reg_bus_data[0];
+    end
+end
+
+always @(posedge i_clk or posedge i_rst) begin
+    if (i_rst) begin
+        r_smac_list_addr   <=  8'd0;
+    end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_SMAC_LIST_WRADDR)) begin
+        r_smac_list_addr   <= r_reg_bus_data[7:0];
+    end
+end
+
+
+assign o_smac_list_addr  = r_smac_list_addr;
+assign o_smac_list_clr   = r_smac_list_clr;
+assign o_smac_list_din   = r_smac_list_din;
+assign o_smac_list_we    = r_smac_list_we;
+
 /*======================================== 寄存器读控制逻辑 ========================================*/
 // 寄存器读数据逻辑
 always @(posedge i_clk or posedge i_rst) begin
@@ -231,6 +314,24 @@ always @(posedge i_clk or posedge i_rst) begin
             REG_PORT_MOVE_STATISTICS: begin
                 r_reg_bus_rdata <= i_port_move_cnt[REG_DATA_BUS_WIDTH-1:0];
             end
+			REG_SMAC_LIST_DOUT_0: begin
+                r_reg_bus_rdata <= i_smac_list_dout[47:32];
+            end
+			REG_SMAC_LIST_DOUT_1: begin
+                r_reg_bus_rdata <= i_smac_list_dout[31:16];
+            end
+			REG_SMAC_LIST_DOUT_2: begin
+                r_reg_bus_rdata <= i_smac_list_dout[15:0];
+            end
+			REG_SMAC_LIST_DOUT_3: begin
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-12{1'b0}},i_smac_list_dout[59:48]};
+            end
+			REG_SMAC_LIST_DOUT_4: begin
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-8{1'b0}},i_smac_list_dout[67:60]};
+            end
+			REG_SMAC_LIST_DOUT_VALID : begin
+				r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-1{1'b0}},i_smac_list_dout[68]};
+			end
             default: begin
                 r_reg_bus_rdata <= {REG_DATA_BUS_WIDTH{1'b0}};
             end

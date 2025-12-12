@@ -271,8 +271,13 @@ endfunction
     wire        [15:0]                          w_learn_success_cnt                     ;
     wire        [REG_DATA_BUS_WIDTH-1:0]        w_collision_cnt                         ;
     wire        [REG_DATA_BUS_WIDTH-1:0]        w_port_move_cnt                         ;
-
-
+	
+	wire		[1:0]							w_smac_list_we							;
+	wire		[68:0]							w_smac_list_din	                        ;
+	wire		[7:0]							w_smac_list_addr                        ;
+	wire		[68:0]							w_smac_list_dout                        ;
+    wire										w_smac_list_clr	                        ;
+																						
 
     // 各端口输出连??
 `ifdef CPU_MAC
@@ -582,6 +587,16 @@ swlist_regs #(
     .o_table_raddr              (w_table_raddr              ),  // 表读地址
     .o_table_full_threshold     (w_table_full_threshold     ),
     .o_age_scan_interval        (w_age_scan_interval        ),
+	
+	.o_smac_list_we				(w_smac_list_we				),
+	.o_smac_list_din	        (w_smac_list_din			),
+	.o_smac_list_addr           (w_smac_list_addr			),
+	.i_smac_list_dout           (w_smac_list_dout			),
+	.o_smac_list_clr	        (w_smac_list_clr			),
+	
+	
+	
+	
     // MAC表状态信??
     .i_dmac_list_dout           (w_dmac_list_dout           ),  // DMAC表输出数??
     .i_dmac_list_cnt            (w_dmac_list_cnt            ),  // DMAC表计??
@@ -624,6 +639,32 @@ swlist_regs #(
 //     .o_port_vector              (w_smac_tx_port_rslt          ),
 //     .o_port_vector_valid        (w_smac_tx_port_vld           )
 // );
+
+smac_mng #(
+        .PORT_NUM                (      PORT_NUM                   		),   // 交换机的端口数
+        .STATIC_RAM_SIZE         (     STATIC_RAM_SIZE					)    // 地址表的深度
+)smac_mng_inst(  
+        .i_clk                       (i_clk),
+        .i_rst                       (i_rst),
+        /*----------------------------- 控制寄存器接口 ------------------------------*/
+		.i_din						 (w_smac_list_din), //写数据，其中[47:0]为MAC地址，[60:48]为VLAN字段，[68:61为转发端口]
+		.i_we						 (w_smac_list_we), //RAM操作符：00-无效操作；01-写操作；10：读操作；11-删除操作
+		.i_addr						 (w_smac_list_addr), //操作表项地址
+		.o_dout						 (w_smac_list_dout), //输出表项的数据
+		.i_smac_list_clr	         (w_smac_list_clr),
+        /*----------------------------- 查找 DMAC 输入 ------------------------------*/
+        .i_lookup_in                 ({w_vlan_id,w_lookup_dmac_out}), //查表数据（Vlan id + MAC）[60:48] - vlan id [47:0] - mac
+        .i_lookup_vld                (w_lookup_dmac_vld_out), //查表数据有效标志位
+        /*----------------------------- 表项的状态 ------------------------------*/
+        .o_smac_list_num             (), //有效写入表项的个数
+        .o_smac_list_full            (), //表满标志位
+		.o_smac_list_empty			 (), //表空标志位
+		.o_smac_list_clash_num		 (), //写入表项冲突计数器，写入冲突：写入表项时需检查表项中是否已经存在，若存在则为写入冲突
+        /*----------------------------- 查表的结果 ------------------------------*/
+        // smac
+        .o_smac_tx_port_rslt         (w_smac_tx_port_rslt), // 输出的转发端口bitmap,最高位为1，代表该报文是本地网卡设备的，将该报文转到内部网卡端口处理
+        .o_smac_tx_port_vld          (w_smac_tx_port_vld)
+);
 
 
 // HASH冲突?? 如果动???MAC表出现冲突，则以冲突表的查表结果为准 
