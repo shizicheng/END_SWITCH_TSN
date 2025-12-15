@@ -108,9 +108,9 @@ module rx_forward_mng#(
 /*--------- 信号声明区 --------*/
 
 // FIFO相关参数定义
-localparam FIFO_DEPTH       = 64                                                                ;
+localparam FIFO_DEPTH       = 128                                                              ;
 localparam FIFO_WIDTH       = PORT_MNG_DATA_WIDTH + (PORT_MNG_DATA_WIDTH/8) + 1                ; // data + keep + last
-localparam FIFO_CNT_WIDTH   = 5                                                                 ; // log2(30) 向上取整
+localparam FIFO_CNT_WIDTH   = $clog2(FIFO_DEPTH)                                               ; // log2(30) 向上取整
 
 // FIFO相关信号
 wire                                    w_fifo_wr_en                    ; // FIFO写使能
@@ -250,7 +250,7 @@ always @(posedge i_clk) begin
         ri_mac_port_axi_data    <= i_mac_port_axi_data;
         ri_mac_axi_data_keep    <= i_mac_axi_data_keep;
         ri_mac_axi_data_last    <= i_mac_axi_data_last;
-        ri_mac_axi_data_user    <= i_mac_axi_data_user;
+        ri_mac_axi_data_user    <= (ri_mac_axi_data_valid == 1'b0 && i_mac_axi_data_valid == 1'b1) ? i_mac_axi_data_user : ri_mac_axi_data_user;
         ri_rtag_flag            <= i_rtag_flag == 1'd1 || (ri_rtag_flag == 1'd1 && i_mac_axi_data_valid == 1'd1) ? 1'd1 : 1'd0;//ri_mac_axi_data_last ? 1'd0 : ri_rtag_flag
         ri_rtag_sequence        <= i_info_valid ? i_rtag_sequence : ri_rtag_sequence;
         ri_frm_vlan_flag        <= i_info_valid ? i_frm_vlan_flag : ri_frm_vlan_flag;
@@ -363,7 +363,7 @@ always @(posedge i_clk) begin
     if (i_rst)
         r_frame_user <= 16'd0;
     else if (!r_fifo_rd_en && w_fifo_rd_en)
-        r_frame_user <= {3'b000,ri_acl_cb_frm,i_mac_axi_data_user[11:0]};
+        r_frame_user <= {3'b000,ri_acl_cb_frm,ri_mac_axi_data_user[11:0]};
 end
 
 reg [15:0] r_fifo_out_cnt;

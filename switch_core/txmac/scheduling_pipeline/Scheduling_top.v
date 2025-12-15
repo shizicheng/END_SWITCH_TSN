@@ -200,7 +200,7 @@ tx_qos_mng #(
     .i_rst                   ( i_rst                   ) ,
     /*---------------------------------------- 寄存器配置接口 -------------------------------------------*/
     .i_qos_sch               ( i_qos_sch               ) ,
-    .i_qos_en                ( i_qos_en                ) ,
+    .i_qos_en                ( 1'b1                    ) ,
     /*---------------------------- 根据调度算法输出需要调度优先级队列 --------------------------------*/ 
     .i_ControlList_state     ( w_ControlList_state     ) ,  // 门控列表的状态
     .i_qos_req               ( w_ControlList_state_vld ) ,

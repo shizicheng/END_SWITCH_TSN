@@ -391,7 +391,7 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_rd_addr <= {QUEUE_ADDR_WIDTH{1'b0}};
     end else begin
-        r_rd_addr <= (r_info_ram_we == 1'b1 || r_process_complete_d1 == 1'b1) ? r_next_addr : r_rd_addr;
+        r_rd_addr <= ((r_info_ram_we == 1'b1 && r_frame_reading == 1'b0) || r_process_complete_d1 == 1'b1) ? r_next_addr : r_rd_addr;
     end
 end
 
@@ -415,7 +415,8 @@ always @(posedge i_clk) begin
     end else begin
 		r_ram_cnt_clr  <= (r_current_is_critical == 1'b1 && ri_discard_en == 1'b1) ? 1'b1 : 
 						  (ri_cross_metadata_valid == 1'b1 && ri_cross_metadata_last == 1'b1) ? 1'b0 : r_ram_cnt_clr;
-        r_ram_data_cnt <=(r_ram_cnt_clr == 1'b1) ?  {RAM_ADDR_WIDTH{1'b0}} : 
+        r_ram_data_cnt <=(r_ram_cnt_clr == 1'b1) ?  {RAM_ADDR_WIDTH{1'b0}} :
+						 (r_timeout_flag == 1'b1) ? r_ram_data_cnt - w_info_ram_rd_data[11:0] : 
 						 (w_data_ram_we == 1'b1 && w_data_ram_re == 1'b0) ?
                          ((r_ram_data_cnt == (RAM_DEPTH - 1)) ? {RAM_ADDR_WIDTH{1'b0}} : (r_ram_data_cnt + {{(RAM_ADDR_WIDTH-1){1'b0}}, 1'b1})) :
 						 ((w_data_ram_we == 1'b0 && w_data_ram_re == 1'b1) ? 
@@ -476,7 +477,7 @@ generate
                 // 新写入帧时，记录地址、优先级和设置有效标志
                 r_frame_start_addrs[gi]     <= ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && (r_wr_addr == gi[QUEUE_ADDR_WIDTH-1:0])) ? r_data_wr_ptr : r_frame_start_addrs[gi];
                 r_frame_pri[gi]             <= ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && (r_wr_addr == gi[QUEUE_ADDR_WIDTH-1:0])) ? ri_cross_metadata[62:60] : r_frame_pri[gi]; // VLAN优先级位
-                r_frame_valid[gi]           <= ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && (r_current_process_addr == gi[QUEUE_ADDR_WIDTH-1:0])) ? 1'b0 :
+                r_frame_valid[gi]           <= ((r_process_complete == 1'b1) && (r_queue_empty == 1'b0) && (r_current_process_addr == gi[QUEUE_ADDR_WIDTH-1:0]) && r_frame_valid[gi] == 1'b1) ? 1'b0 :
                                                ((ri_cross_metadata_valid == 1'b1) && (r_queue_full == 1'b0) && (r_wr_addr == gi[QUEUE_ADDR_WIDTH-1:0])) ? 1'b1 :  r_frame_valid[gi];
             end
         end
@@ -605,7 +606,7 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_timeout_cnt <= {TIMEOUT_CNT_WIDTH{1'b0}};
     end else begin
-        r_timeout_cnt <=   (r_current_is_critical == 1'b0) && r_frame_reading == 1'd0 && r_req_sent == 1'b1  ?
+        r_timeout_cnt <= (r_current_is_critical == 1'b0) && r_frame_reading == 1'd0 && r_req_sent == 1'b1  ?
                          ((r_timeout_cnt == TIMEOUT_CNT_MAX ) ? {TIMEOUT_CNT_WIDTH{1'b0}} : (r_timeout_cnt + {{(TIMEOUT_CNT_WIDTH-1){1'b0}}, 1'b1})) :
                          ((w_recivedall_ack == 1'b1) ? {TIMEOUT_CNT_WIDTH{1'b0}} : {TIMEOUT_CNT_WIDTH{1'b0}});
     end
@@ -857,7 +858,7 @@ always @(posedge i_clk) begin
     if (i_rst == 1'b1) begin
         r_data_out_cnt <= 16'd0;
     end else begin
-        r_data_out_cnt <= (r_current_is_critical == 1'b0 && ro_tx_req == 1'b1) ? 16'd0 :
+        r_data_out_cnt <= (r_current_is_critical == 1'b0 && (ro_tx_req == 1'b1 || ro_tx_req_d1 == 1'b1)) ? 16'd0 :
                           (r_current_is_critical == 1'b1 && r_info_ram_re_d2 == 1'b1) ? 16'd0 :
                           ((ro_mac_cross_axi_data_valid == 1'b1) && (i_mac_cross_axi_data_ready == 1'b1) && r_data_out_cnt <= r_data_out_len) ? (r_data_out_cnt + 16'd1) :
                           ((o_emac_axi_data_valid == 1'b1) && (i_emac_axi_data_ready == 1'b1) && r_data_out_cnt <= r_data_out_len) ? (r_data_out_cnt + 16'd1) :

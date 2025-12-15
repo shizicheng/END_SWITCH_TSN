@@ -633,15 +633,16 @@ always @(*) begin
                               (r_age_scan_en == 1'd1) ? AGE_SCAN :             // 老化扫描
                               IDLE;
         FIFO_READ_WAIT:   // STD模式FIFO读取等待状???
-            r_fsm_nxt_state = DMAC_LOOKUP;                                    // 等待??个周期后数据准备好，进入查表
+            r_fsm_nxt_state = r_state_cnt == 16'd1 ? DMAC_LOOKUP : FIFO_READ_WAIT;                                    // 等待??个周期后数据准备好，进入查表
         DMAC_LOOKUP:   
             r_fsm_nxt_state = (r_state_cnt == 16'd1 &&  w_dmac_match == 1'd1) ? DMAC_REFRESH :  
                               (r_state_cnt == 16'd1 &&  w_dmac_match == 1'd0) ? SMAC_LEARN_CHECK : DMAC_LOOKUP;// 匹配则刷新???化时间 ，然后学习SMAC                                          
         DMAC_REFRESH: 
             r_fsm_nxt_state = SMAC_LEARN_CHECK;                     // 刷新完成，进入SMAC学习        
         SMAC_LEARN_CHECK: 
-            r_fsm_nxt_state = ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd0))) ? SMAC_LEARN_UPDATE :  // SMAC+VLAN匹配或空表项可学??
-                              IDLE;                                  // 哈希冲突（MAC+VLAN不匹配）或表已满，返回空??        
+            r_fsm_nxt_state = (r_state_cnt == 16'd1 && ((w_smac_match == 1'd1) || ((w_entry_valid == 1'd0) && (w_table_full == 1'd0)))) ? SMAC_LEARN_UPDATE :  // SMAC+VLAN匹配或空表项可学??
+                              (r_state_cnt == 16'd1 && ((w_smac_match == 1'd0) && ((w_entry_valid == 1'd1) || (w_table_full == 1'd1)))) ? IDLE   			:
+							  SMAC_LEARN_CHECK;                                  // 哈希冲突（MAC+VLAN不匹配）或表已满，返回空??        
         SMAC_LEARN_UPDATE: 
             r_fsm_nxt_state = (r_state_cnt == 16'd1) ? IDLE : SMAC_LEARN_UPDATE;   // 等待1个时钟周期让RAM数据稳定后返回IDLE        
         AGE_SCAN: 
@@ -1053,11 +1054,14 @@ always @(posedge i_clk or posedge i_rst) begin
             FIFO_READ_WAIT: begin  // FIFO读取等待状???，启动RAM读取
                 r_mac_table_re <= 1'b1;
             end
-            DMAC_LOOKUP, SMAC_LEARN_CHECK: begin
+            DMAC_LOOKUP: begin
+				r_mac_table_re <= r_state_cnt == 16'd1 &&  w_dmac_match == 1'd1 ? 1'b0 : 1'b1; 
+			end
+			SMAC_LEARN_CHECK: begin
                 r_mac_table_re <= 1'b1;
             end
             DMAC_REFRESH: begin
-                r_mac_table_re <= 1'b0;
+                r_mac_table_re <= 1'b1;
             end
             SMAC_LEARN_UPDATE: begin
                 r_mac_table_re <= 1'b0;
@@ -1087,8 +1091,11 @@ always @(posedge i_clk or posedge i_rst) begin
         r_mac_table_we <= 1'b0;
     end else begin
         case (r_fsm_cur_state)
+			DMAC_LOOKUP: begin
+				r_mac_table_we <= r_state_cnt == 16'd1 &&  w_dmac_match == 1'd1 ? 1'b1 : 1'b0; 
+			end
             DMAC_REFRESH: begin
-                r_mac_table_we <= 1'b1;
+                r_mac_table_we <= 1'b0;
             end
             SMAC_LEARN_UPDATE: begin
                 if (r_state_cnt == 16'd1) begin
@@ -1120,10 +1127,14 @@ always @(posedge i_clk or posedge i_rst) begin
         r_mac_table_wdata <= {ENTRY_WIDTH{1'b0}};
     end else begin
         case (r_fsm_cur_state)
-            DMAC_REFRESH: begin
-                r_mac_table_wdata <= {w_entry_valid, r_global_timestamp, w_entry_vlan_id, 
-                                    w_entry_port, w_entry_mac};
-            end
+			DMAC_LOOKUP: begin
+				 r_mac_table_wdata <= r_state_cnt == 16'd1 &&  w_dmac_match == 1'd1 ? {w_entry_valid, r_global_timestamp, w_entry_vlan_id, 
+																					   w_entry_port, w_entry_mac} : {ENTRY_WIDTH{1'b0}};
+			end
+            //DMAC_REFRESH: begin
+            //    r_mac_table_wdata <= {w_entry_valid, r_global_timestamp, w_entry_vlan_id, 
+            //                          w_entry_port, w_entry_mac};
+            //end
             SMAC_LEARN_UPDATE: begin
                 if (r_state_cnt == 16'd1) begin
                     if (w_smac_match) begin

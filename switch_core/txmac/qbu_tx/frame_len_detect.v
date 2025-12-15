@@ -96,24 +96,24 @@ always@(posedge i_clk or posedge i_rst) begin
 	if(i_rst) begin
 		r_e_pad_flag <= 0;
 	end
-	else if(r_e_pad_cnt == 'd46 - 1) begin
-		r_e_pad_flag <= 0;
-	end
-	else if(i_top_Emac_tx_axis_user < 'd46 && i_top_Emac_tx_axis_valid == 1) begin
-		r_e_pad_flag <= 1'b1;
-	end
+	//else if(r_e_pad_cnt == 'd46 - 1) begin
+	//	r_e_pad_flag <= 0;
+	//end
+	//else if(i_top_Emac_tx_axis_user < 'd46 && i_top_Emac_tx_axis_valid == 1) begin
+	//	r_e_pad_flag <= 1'b1;
+	//end
 end
 
 always@(posedge i_clk or posedge i_rst) begin
 	if(i_rst) begin
 		r_p_pad_flag <= 0;
 	end
-	else if(r_p_pad_cnt == 'd46 - 1) begin
-		r_p_pad_flag <= 0;
-	end
-	else if(i_top_Pmac_tx_axis_user < 'd46 && i_top_Pmac_tx_axis_valid == 1) begin
-		r_p_pad_flag <= 1'b1;
-	end
+	//else if(r_p_pad_cnt == 'd46 - 1) begin
+	//	r_p_pad_flag <= 0;
+	//end
+	//else if(i_top_Pmac_tx_axis_user < 'd46 && i_top_Pmac_tx_axis_valid == 1) begin
+	//	r_p_pad_flag <= 1'b1;
+	//end
 end
 
 always@(posedge i_clk or posedge i_rst) begin

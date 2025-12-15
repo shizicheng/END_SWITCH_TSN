@@ -169,8 +169,10 @@ assign o_port_vld           =   ro_port_vld             ;
     always @(posedge i_clk) begin
         if(i_rst)
             ro_port_ack <= 10'd0;
-        else 
+        else if(w_result_valid)
             ro_port_ack <= w_arbiter_result;
+		else if(w_ready_posdge)
+			ro_port_ack <= 10'd0;
     end 
     always @(posedge i_clk) begin
         if(i_rst)
