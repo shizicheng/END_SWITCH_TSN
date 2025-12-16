@@ -52,7 +52,7 @@ module dmac_mng #(
         input               wire                                        i_table_clear_req                       ,
         input               wire        [AGE_TIME_WIDTH-1:0]            i_age_time_threshold                    ,
         input               wire                                        i_table_rd                              ,
-        input               wire        [11:0]                          i_table_raddr                           ,
+        input               wire        [14:0]                          i_table_raddr                           ,
         input              wire         [14:0]                          i_table_full_threshold                  ,
         input              wire         [31:0]                          i_age_scan_interval                     , // ¿œªØ…®√Ëº‰∏Ù≈‰÷√ºƒ¥Ê∆˜£®√Î£©
 

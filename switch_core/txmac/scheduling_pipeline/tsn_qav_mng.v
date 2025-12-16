@@ -70,6 +70,10 @@ reg         [7:0]                   r_exe_idleSlope[0:PORT_FIFO_PRI_NUM-1]      
 reg         [7:0]                   r_exe_sendslope[0:PORT_FIFO_PRI_NUM-1]         ;
 reg         [15:0]                  r_exe_hithreshold[0:PORT_FIFO_PRI_NUM-1]       ;
 reg         [16:0]                  r_exe_lothreshold[0:PORT_FIFO_PRI_NUM-1]       ;
+reg 								r_exe_idletriger[0:PORT_FIFO_PRI_NUM-1]        ;	
+reg 		[7:0] 					r_exe_idlecount [0:PORT_FIFO_PRI_NUM-1]        ;
+reg 								r_exe_sendtriger[0:PORT_FIFO_PRI_NUM-1]        ;	
+reg 		[7:0] 					r_exe_sendcount [0:PORT_FIFO_PRI_NUM-1]        ;
 
 reg         [16:0]                  queue_av_data   [7:0]   ; // 0 - 32768 {1bit符号位+15bit数据位}
 reg         [PORT_FIFO_PRI_NUM-1:0] send_pri_flag           ;
@@ -235,8 +239,8 @@ generate
                 queue_av_data[i] <= 17'd0;
             end else begin
                 queue_av_data[i] <= (r0_config_proc == 1'b1 && r_config_proc == 1'b0) ? r_exe_lothreshold[i] : 
-                (send_pri_flag[i] == 1'b1) ? (queue_av_data[i] - {1'b0,r_exe_sendslope[i]}) : 
-                (send_pri_flag[i] == 1'b0 && queue_av_data[i] != {1'b0,r_exe_hithreshold[i]}) ? (queue_av_data[i] + {1'b0,r_exe_idleSlope[i]}) : queue_av_data[i];
+                (send_pri_flag[i] == 1'b1 && r_exe_sendtriger[i] == 1'b1) ? (queue_av_data[i] - 1'b1) : 
+                (send_pri_flag[i] == 1'b0 && queue_av_data[i] != {1'b0,r_exe_hithreshold[i]} && r_exe_idletriger[i] == 1'b1) ? (queue_av_data[i] + 1'b1) : queue_av_data[i];
             end
         end
         always @(posedge i_clk or posedge i_rst) begin
@@ -246,6 +250,34 @@ generate
                 r_av_rst[i] <= ((queue_av_data[i][16] == 1'b0) && ri_fifoc_empty[i] == 1'b0) ? 1'b1 : 1'b0;  
             end
         end
+		
+		always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+				r_exe_idlecount[i] 	<= 8'b0;
+                r_exe_idletriger[i] <= 1'b0;
+			end else if(r0_config_proc == 1'b1 && r_config_proc == 1'b0) begin
+				r_exe_idlecount[i] 	<= 8'b0;
+                r_exe_idletriger[i] <= 1'b0;
+            end else if(i_qav_en) begin
+				r_exe_idlecount[i] 	<= (r_exe_idlecount[i] == r_exe_idleSlope[i] - 1'b1) ? 8'b0 : r_exe_idlecount[i] + 1'b1;
+                r_exe_idletriger[i] <= (r_exe_idlecount[i] == r_exe_idleSlope[i] - 1'b1) ? 1'b1 : 1'b0;
+            end
+        end
+		
+		always @(posedge i_clk or posedge i_rst) begin
+            if (i_rst) begin
+				r_exe_sendcount[i] 	<= 8'b0;
+                r_exe_sendtriger[i] <= 1'b0;
+			end else if(r0_config_proc == 1'b1 && r_config_proc == 1'b0) begin
+				r_exe_sendcount[i] 	<= 8'b0;
+                r_exe_sendtriger[i] <= 1'b0;
+            end else if(i_qav_en) begin
+				r_exe_sendcount[i] 	<=  (r_exe_sendcount[i] == r_exe_sendslope[i] - 1'b1) ? 8'b0 : r_exe_sendcount[i] + 1'b1;
+                r_exe_sendtriger[i] <=  (r_exe_sendcount[i] == r_exe_sendslope[i] - 1'b1) ? 1'b1 : 1'b0;
+            end
+        end
+		
+		
     end
 endgenerate
 

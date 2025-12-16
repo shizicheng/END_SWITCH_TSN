@@ -2,7 +2,7 @@
 
 module  tx_mac_port_mng #(
     parameter                                                   PORT_NUM                =      4        ,                   // 交换机的端口数
-    parameter                                                   SEHEDUDATA_WIDTH        =      64       ,                   // 信息流（METADATA）的位宽
+    parameter                                                   METADATA_WIDTH          =      81       ,                   // 信息流（METADATA）的位宽
     parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,                   // Mac_port_mng 数据位宽
     parameter                                                   PORT_FIFO_PRI_NUM       =      8        ,                   // 支持端口优先级 FIFO 的数量
     parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH

@@ -258,7 +258,7 @@ endfunction
     wire                                        w_table_clear_req                       ;
     wire        [AGE_TIME_WIDTH-1:0]            w_age_time_threshold                    ;
     wire                                        w_table_rd                              ;
-    wire        [11:0]                          w_table_raddr                           ;
+    wire        [14:0]                          w_table_raddr                           ;
     wire        [14:0]                          w_table_full_threshold                  ;
     wire        [31:0]                          w_age_scan_interval                     ;
 

@@ -27,7 +27,7 @@ module swlist_regs #(
         output              wire                                        o_table_clear_req                       ,
         output              wire        [AGE_TIME_WIDTH-1:0]            o_age_time_threshold                    ,
         output              wire                                        o_table_rd                              ,
-        output              wire        [11:0]                          o_table_raddr                           ,
+        output              wire        [14:0]                          o_table_raddr                           ,
         output              wire        [14:0]                          o_table_full_threshold                  , // MAC±íÂúãĞ???ÅäÖÃ¼Ä´æÆ÷
         output              wire        [31:0]                          o_age_scan_interval                     , // ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æÆ÷£¨Ãë£©
 		
@@ -111,7 +111,7 @@ reg                                     r_table_clear_req                   ; //
 reg         [14:0]                      r_table_full_threshold              ; // MAC±íÂúãĞ???ÅäÖÃ¼Ä´æÆ÷
 reg         [31:0]                      r_age_scan_interval                 ; // ÀÏ»¯É¨Ãè¼ä¸ôÅäÖÃ¼Ä´æÆ÷£¨Ãë£©
 reg                                     r_table_rd;
-reg         [11:0]                      r_table_raddr;
+reg         [14:0]                      r_table_raddr;
 
 
 reg			[1:0]						r_smac_list_we						;
@@ -190,9 +190,9 @@ end
 
 always @(posedge i_clk or posedge i_rst) begin
     if (i_rst) begin
-        r_table_raddr   <=  12'd0;
+        r_table_raddr   <=  15'd0;
     end else if ((r_reg_bus_we == 1'd1) && (r_reg_bus_data_vld == 1'd1) && (r_reg_bus_addr == REG_DMAC_TABLE_RADDR)) begin
-        r_table_raddr   <= r_reg_bus_data[11:0];
+        r_table_raddr   <= r_reg_bus_data[14:0];
     end
 end
 
@@ -281,7 +281,7 @@ always @(posedge i_clk or posedge i_rst) begin
                 r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-1{1'b0}}, r_table_rd}; 
             end
             REG_DMAC_TABLE_RADDR: begin 
-                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-12{1'b0}}, r_table_raddr[11:0]}; 
+                r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-15{1'b0}}, r_table_raddr[14:0]}; 
             end
             REG_DMAC_TABLE_DOUT0: begin 
                 r_reg_bus_rdata <= {{REG_DATA_BUS_WIDTH-16{1'b0}}, i_dmac_list_dout[31:16]}; 

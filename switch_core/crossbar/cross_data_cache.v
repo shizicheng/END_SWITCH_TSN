@@ -178,6 +178,7 @@ wire [14:0]                         w_packet_length [7:0];
 wire [15:0]                         w_fifo_remaining_space [7:0];
 reg [14:0]                          r_packet_length [7:0];
 reg                                 r_packet_valid [7:0];
+wire								w_discard_packet [7:0];
 reg                                 r_discard_packet [7:0];
 reg                                 rr_discard_packet [7:0];
 reg                                 r_packet_active [7:0];
@@ -201,6 +202,8 @@ reg     [(CROSS_DATA_WIDTH/8)-1:0]     ro_pmac_tx_axis_keep ;
 reg                                    ro_pmac_tx_axis_last ;
 reg                                    ro_pmac_tx_axis_last_t;
 reg                                    ro_pmac_tx_axis_valid;
+
+reg									   ri_pmac_tx_axis_ready;
 
 reg     [CROSS_DATA_WIDTH - 1:0]       ro_emac_tx_axis_data ;
 reg     [15:0]                         ro_emac_tx_axis_user ;
@@ -339,6 +342,7 @@ always @(posedge i_clk or posedge i_rst) begin
         ro_pmac_tx_axis_keep     <=  16'd0;
         ro_pmac_tx_axis_last     <=  1'b0;
         ro_pmac_tx_axis_valid    <=  1'b0;
+		ri_pmac_tx_axis_ready	 <=  1'b0;
 
         ro_emac_tx_axis_data     <=  {CROSS_DATA_WIDTH{1'b0}};
         ro_emac_tx_axis_user     <=  16'd0;
@@ -346,51 +350,53 @@ always @(posedge i_clk or posedge i_rst) begin
         ro_emac_tx_axis_last     <=  1'b0;
         ro_emac_tx_axis_valid    <=  1'b0;
     end else begin
-        ro_pmac_tx_axis_data     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_data_fifo_rd_data[0] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_data_fifo_rd_data[1] :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_data_fifo_rd_data[2] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_data_fifo_rd_data[3] :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_data_fifo_rd_data[4] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_data_fifo_rd_data[5] :  
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_data_fifo_rd_data[6] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_data_fifo_rd_data[7] : {CROSS_DATA_WIDTH{1'b0}}; 
+        ro_pmac_tx_axis_data     <=  ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_data_fifo_rd_data[0] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_data_fifo_rd_data[1] :  
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_data_fifo_rd_data[2] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_data_fifo_rd_data[3] :  
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_data_fifo_rd_data[4] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_data_fifo_rd_data[5] :  
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_data_fifo_rd_data[6] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_data_fifo_rd_data[7] : {CROSS_DATA_WIDTH{1'b0}}; 
 
-        ro_pmac_tx_axis_user     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_c_fifo_rd_data[0] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_c_fifo_rd_data[1] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_c_fifo_rd_data[2] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_c_fifo_rd_data[3] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_c_fifo_rd_data[4] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_c_fifo_rd_data[5] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_c_fifo_rd_data[6] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_c_fifo_rd_data[7] : 16'd0;
+        ro_pmac_tx_axis_user     <=  ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? w_c_fifo_rd_data[0] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? w_c_fifo_rd_data[1] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? w_c_fifo_rd_data[2] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? w_c_fifo_rd_data[3] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? w_c_fifo_rd_data[4] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? w_c_fifo_rd_data[5] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? w_c_fifo_rd_data[6] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? w_c_fifo_rd_data[7] : 16'd0;
                                                                                                
-        ro_pmac_tx_axis_keep     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_keep[0] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_keep[1] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_keep[2] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_keep[3] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_keep[4] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_keep[5] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_keep[6] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_keep[7] : 16'd0;
+        ro_pmac_tx_axis_keep     <=  ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_keep[0] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_keep[1] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_keep[2] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_keep[3] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_keep[4] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_keep[5] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_keep[6] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_keep[7] : 16'd0;
 
-        ro_pmac_tx_axis_last     <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_last[0] :
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_last[1] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_last[2] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_last[3] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_last[4] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_last[5] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_last[6] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_last[7] : 1'b0;
+        ro_pmac_tx_axis_last     <=  ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_last[0] :
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_last[1] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_last[2] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_last[3] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_last[4] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_last[5] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_last[6] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_last[7] : 1'b0;
 
-        ro_pmac_tx_axis_valid    <=  ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_vld[0] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_vld[1] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_vld[2] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_vld[3] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_vld[4] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_vld[5] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_vld[6] : 
-                                     ( i_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_vld[7] : 1'b0;  
-    end
+        ro_pmac_tx_axis_valid    <=  ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[0] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[0] == 1'b1 ) ? r_tx_mac_fifo_vld[0] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[1] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[1] == 1'b1 ) ? r_tx_mac_fifo_vld[1] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[2] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[2] == 1'b1 ) ? r_tx_mac_fifo_vld[2] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[3] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[3] == 1'b1 ) ? r_tx_mac_fifo_vld[3] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[4] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[4] == 1'b1 ) ? r_tx_mac_fifo_vld[4] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[5] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[5] == 1'b1 ) ? r_tx_mac_fifo_vld[5] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[6] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[6] == 1'b1 ) ? r_tx_mac_fifo_vld[6] : 
+                                     ( ri_pmac_tx_axis_ready == 1'b1 && r_c_fifo_qbu_flag[7] == 1'b0 && scheduing_work_flag == 1'b1 && ri_scheduing_rst[7] == 1'b1 ) ? r_tx_mac_fifo_vld[7] : 1'b0;  
+		
+		ri_pmac_tx_axis_ready	 <=	 i_pmac_tx_axis_ready;
+	end
 end
 
     // 锁存 TXMAC 调度流水线返回的调度结果
@@ -510,18 +516,22 @@ generate
             if (i_rst) begin
                 r_data_fifo_rd_en[i] <= 1'b0;
             end else begin
-                r_data_fifo_rd_en[i] <= ((r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) && w_info_fifo_avaliable_flag[i]) ? 1'b0 : 
-                                      (ri_scheduing_rst_vld && ri_scheduing_rst[i]) ? 1'b1 : 
-                                      r_data_fifo_rd_en[i];
+                r_data_fifo_rd_en[i] <= (i_pmac_tx_axis_ready == 1'b0) ? 1'b0 : 
+										((r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) && w_info_fifo_avaliable_flag[i]) ? 1'b0 : 
+										(r_tx_mac_fifo_cnt[i] != w_info_fifo_datalen[i] && i_pmac_tx_axis_ready == 1'b1 && w_info_fifo_avaliable_flag[i] == 1'b1) ? 1'b1 : 
+										(ri_scheduing_rst_vld && ri_scheduing_rst[i] && i_pmac_tx_axis_ready) ? 1'b1 : 
+										r_data_fifo_rd_en[i];
             end
         end
+		
+		// ready信号拉下后锁存，rd
 
         // 调度结果返回时，开始拉高读 meta 使能
         always @(posedge i_clk or posedge i_rst) begin
             if (i_rst) begin
                 r_c_fifo_rd_en[i] <= 1'b0;
             end else begin
-                r_c_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0) ? 1'b1 : 1'b0;
+                r_c_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0 && i_pmac_tx_axis_ready) ? 1'b1 : 1'b0;
             end
         end
 
@@ -531,8 +541,8 @@ generate
                 r_tx_mac_fifo_cnt[i] <= 16'd1;
             end else begin
                 r_tx_mac_fifo_cnt[i] <= ((r_tx_mac_fifo_cnt[i] == w_info_fifo_datalen[i]) && w_info_fifo_avaliable_flag[i]) ? 16'd1 : 
-                                      (r_data_fifo_rd_en[i]) ? (r_tx_mac_fifo_cnt[i] + 16'd1) : 
-                                      r_tx_mac_fifo_cnt[i];
+										(r_data_fifo_rd_en[i] && i_pmac_tx_axis_ready) ? (r_tx_mac_fifo_cnt[i] + 16'd1) : 
+										r_tx_mac_fifo_cnt[i];
             end
         end
 
@@ -568,7 +578,7 @@ generate
             if (i_rst) begin
                 r_info_fifo_rd_en[i] <= 1'b0;
             end else begin
-                r_info_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0) ? 1'b1 : 1'b0;
+                r_info_fifo_rd_en[i] <= (ri_scheduing_rst_vld && ri_scheduing_rst[i] && r_scheduing_work_flag == 1'b0 && i_pmac_tx_axis_ready) ? 1'b1 : 1'b0;
             end
         end
 
@@ -577,7 +587,7 @@ generate
             if (i_rst) begin
                 r_tx_mac_fifo_vld[i] <= 1'b0;
             end else begin
-                r_tx_mac_fifo_vld[i] <= r_data_fifo_rd_en[i];
+                r_tx_mac_fifo_vld[i] <= r_data_fifo_rd_en[i] && i_pmac_tx_axis_ready;
             end
         end
 
@@ -611,8 +621,10 @@ generate
         assign w_packet_length[i] = i_data_user[i][14:0];
         
         // 计算FIFO剩余空间（假设FIFO深度为16384）
-        assign w_fifo_remaining_space[i] = 16'd16384 - {16'h0000 | w_data_fifo_data_cnt[i]};
+        assign w_fifo_remaining_space[i] = {16'h0000 | FIFO_DEPTH} - {16'h0000 | w_data_fifo_data_cnt[i]};
         
+		assign w_discard_packet[i] = i_data_vld[i] == 1'b1 && r_packet_active[i] == 1'b0 && (w_fifo_remaining_space[i] < {1'b0, w_packet_length[i]}) ? 1'b1 : 1'b0;
+		
         // 数据包丢弃标志
         always @(posedge i_clk or posedge i_rst) begin
             if (i_rst) begin
@@ -634,7 +646,7 @@ generate
             if (i_rst) begin
                 r_packet_active[i] <= 1'b0;
             end else begin
-                r_packet_active[i] <= (i_data_vld[i] == 1'b1 && r_packet_active[i] == 1'b0) ? 1'b1 : 
+                r_packet_active[i] <= (i_data_vld[i] == 1'b1 && r_packet_active[i] == 1'b0 && w_discard_packet[i] == 1'b0) ? 1'b1 : 
                                      (i_data_last[i] == 1'b1 && i_data_vld[i] == 1'b1) ? 1'b0 : 
                                      r_packet_active[i];
             end
@@ -648,7 +660,7 @@ generate
             if (i_rst) begin
                 r_fifo_wr_en[i] <= 1'b0;
             end else begin
-                r_fifo_wr_en[i] <= i_data_vld[i] && !r_discard_packet[i] && !w_data_fifo_full[i] ? 1'b1 : 1'b0;
+                r_fifo_wr_en[i] <= i_data_vld[i] && (!r_discard_packet[i] && !w_discard_packet[i]) && !w_data_fifo_full[i] ? 1'b1 : 1'b0;
             end
         end 
 
@@ -676,7 +688,7 @@ generate
             .i_wr_en                 ( r_fifo_wr_en[fifo_idx]             ),
             .i_din                   ( r_data[fifo_idx]                 ),
             .o_full                  ( w_data_fifo_full[fifo_idx]       ),
-            .i_rd_en                 ( r_data_fifo_rd_en[fifo_idx]      ),
+            .i_rd_en                 ( r_data_fifo_rd_en[fifo_idx]&&i_pmac_tx_axis_ready ),
             .o_dout                  ( w_data_fifo_rd_data[fifo_idx]    ),
             .o_empty                 ( w_data_fifo_empty[fifo_idx]      ),
             .o_almost_full           ( ),

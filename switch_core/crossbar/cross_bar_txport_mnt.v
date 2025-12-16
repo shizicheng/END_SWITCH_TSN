@@ -998,14 +998,14 @@ module cross_bar_txport_mnt #(
                     r_port_ack[i] <= 1'b0;    
                     r_port_ack_rst[i] <= {(PORT_FIFO_PRI_NUM+1){1'b0}};
                 end else begin    
-                    r_port_ack[i] <= ( w_fifo_arb_valid[0] == 1'b1 && w_fifo_arb_result[0][i] == 1'b1 ) ? 1'b1 : 
-                                     ( w_fifo_arb_valid[1] == 1'b1 && w_fifo_arb_result[1][i] == 1'b1 ) ? 1'b1 : 
-                                     ( w_fifo_arb_valid[2] == 1'b1 && w_fifo_arb_result[2][i] == 1'b1 ) ? 1'b1 :                     
-                                     ( w_fifo_arb_valid[3] == 1'b1 && w_fifo_arb_result[3][i] == 1'b1 ) ? 1'b1 :                     
-                                     ( w_fifo_arb_valid[4] == 1'b1 && w_fifo_arb_result[4][i] == 1'b1 ) ? 1'b1 : 
-                                     ( w_fifo_arb_valid[5] == 1'b1 && w_fifo_arb_result[5][i] == 1'b1 ) ? 1'b1 :                     
-                                     ( w_fifo_arb_valid[6] == 1'b1 && w_fifo_arb_result[6][i] == 1'b1 ) ? 1'b1 :                     
-                                     ( w_fifo_arb_valid[7] == 1'b1 && w_fifo_arb_result[7][i] == 1'b1 ) ? 1'b1 : 1'b0;
+                    r_port_ack[i] <= ( w_fifo_arb_valid[0] == 1'b1 && w_fifo_arb_result[0][i] == 1'b1 && w_pri_ready[0]) ? 1'b1 : 
+                                     ( w_fifo_arb_valid[1] == 1'b1 && w_fifo_arb_result[1][i] == 1'b1 && w_pri_ready[1]) ? 1'b1 : 
+                                     ( w_fifo_arb_valid[2] == 1'b1 && w_fifo_arb_result[2][i] == 1'b1 && w_pri_ready[2]) ? 1'b1 :                     
+                                     ( w_fifo_arb_valid[3] == 1'b1 && w_fifo_arb_result[3][i] == 1'b1 && w_pri_ready[3]) ? 1'b1 :                     
+                                     ( w_fifo_arb_valid[4] == 1'b1 && w_fifo_arb_result[4][i] == 1'b1 && w_pri_ready[4]) ? 1'b1 : 
+                                     ( w_fifo_arb_valid[5] == 1'b1 && w_fifo_arb_result[5][i] == 1'b1 && w_pri_ready[5]) ? 1'b1 :                     
+                                     ( w_fifo_arb_valid[6] == 1'b1 && w_fifo_arb_result[6][i] == 1'b1 && w_pri_ready[6]) ? 1'b1 :                     
+                                     ( w_fifo_arb_valid[7] == 1'b1 && w_fifo_arb_result[7][i] == 1'b1 && w_pri_ready[7]) ? 1'b1 : 1'b0;
                    
                     r_port_ack_rst[i] <= ( w_fifo_arb_valid[0] == 1'b1 && w_fifo_arb_result[0][i] == 1'b1) ? 10'b00_0000_0001 : 
                                          ( w_fifo_arb_valid[1] == 1'b1 && w_fifo_arb_result[1][i] == 1'b1) ? 10'b00_0000_0010 : 
