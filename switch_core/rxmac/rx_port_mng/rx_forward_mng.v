@@ -167,10 +167,10 @@ reg     [15:0]                          ri_mac_axi_data_user            ;
 reg     [15:0]                          ri_rtag_sequence                ;
 reg                                     ri_frm_vlan_flag                ;
 reg     [2:0]                           ri_vlan_pri                     ;
-reg     [PORT_NUM-1:0]                  r_rx_port                       ;
+reg     [7:0]                  			r_rx_port                       ;
 reg     [7:0]                           ri_acl_frmtype                  ;
 reg                                     ri_acl_vld                      ; 
-// reg     [15:0]                          ri_acl_fetch_info               ;
+// reg     [15:0]                          ri_acl_fetch_info            ;
 reg     [1:0]                           ri_frm_cb_op                    ;
 reg                                     ri_frm_qbu                      ;
 reg     [6:0]                           ri_timestamp_addr               ;
@@ -283,9 +283,9 @@ assign w_discard = (ri_acl_action == 3'b001) ? 1'b1 : ri_discard;
 // 接收端口标识（基于参数PORT_INDEX）
 always @(posedge i_clk) begin
     if (i_rst) begin
-        r_rx_port <= {PORT_NUM{1'b0}};
+        r_rx_port <= {8{1'b0}};
     end else begin
-        r_rx_port <= 1'b1 << PORT_INDEX[2:0];
+        r_rx_port <= 8'b0 | {1'b1 << PORT_INDEX[2:0]};
     end
 end
  

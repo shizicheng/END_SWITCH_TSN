@@ -398,33 +398,72 @@ module cross_bar_txport_mnt #(
     assign                              o_lldp_cross_axi_data_ready = ro_mac_cross_axi_data_ready[9];
 
 // ----------  
+`ifdef CPU_MAC
     assign      o_tx0_ack           =      r_port_ack[0]     ;
     assign      o_tx0_ack_rst       =      r_port_ack_rst[0] ;   
-
+`else
+	assign      o_tx0_ack           =      1'b0 ;
+    assign      o_tx0_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC1
     assign      o_tx1_ack           =      r_port_ack[1]     ;
     assign      o_tx1_ack_rst       =      r_port_ack_rst[1] ;
-    
+`else
+	assign      o_tx1_ack           =      1'b0 ;
+    assign      o_tx1_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC2    
     assign      o_tx2_ack           =      r_port_ack[2]     ;
     assign      o_tx2_ack_rst       =      r_port_ack_rst[2] ;
-
+`else
+	assign      o_tx2_ack           =      1'b0 ;
+    assign      o_tx2_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC3
     assign      o_tx3_ack           =      r_port_ack[3]     ;
     assign      o_tx3_ack_rst       =      r_port_ack_rst[3] ;
-
+`else
+	assign      o_tx3_ack           =      1'b0 ;
+    assign      o_tx3_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC4
     assign      o_tx4_ack           =      r_port_ack[4]     ;
     assign      o_tx4_ack_rst       =      r_port_ack_rst[4] ;
-
+`else
+	assign      o_tx4_ack           =      1'b0 ;
+    assign      o_tx4_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC5
     assign      o_tx5_ack           =      r_port_ack[5]     ;
     assign      o_tx5_ack_rst       =      r_port_ack_rst[5] ;
-
+`else
+	assign      o_tx5_ack           =      1'b0 ;
+    assign      o_tx5_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC6
     assign      o_tx6_ack           =      r_port_ack[6]     ;
     assign      o_tx6_ack_rst       =      r_port_ack_rst[6] ;
-
+`else
+	assign      o_tx6_ack           =      1'b0 ;
+    assign      o_tx6_ack_rst       =      8'b0 ;   
+`endif
+`ifdef MAC7
     assign      o_tx7_ack           =      r_port_ack[7]     ;
     assign      o_tx7_ack_rst       =      r_port_ack_rst[7] ;
-
+`else
+	assign      o_tx7_ack           =      1'b0 ;
+    assign      o_tx7_ack_rst       =      8'b0 ;   
+`endif
+`ifdef TSN_AS
     assign      o_tsn_as_tx_ack     =      r_tsn_as_tx_ack   ;
-
+`else
+	assign 		o_tsn_as_tx_ack		=		1'b0;
+`endif
+`ifdef LLDP
     assign      o_lldp_tx_ack       =      r_lldp_tx_ack     ;
+`else
+	assign 		o_lldp_tx_ack		=		1'b0;
+`endif
     
 // ----------
     always @(posedge i_clk or posedge i_rst) begin
@@ -490,6 +529,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx0_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i == 1) begin
@@ -520,6 +584,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx1_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i == 2) begin
@@ -550,6 +639,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx2_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==3) begin
@@ -580,6 +694,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx3_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==4) begin
@@ -610,6 +749,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx4_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==5) begin
@@ -640,6 +804,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx5_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==6) begin
@@ -670,6 +859,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx6_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==7) begin
@@ -700,6 +914,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tx7_req                   ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==8) begin
@@ -732,6 +971,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                      <=  i_tsn_as_tx_req               ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
             else if (i==9) begin
@@ -764,6 +1028,31 @@ module cross_bar_txport_mnt #(
                             ri_tx0_req[i]                       <=  i_lldp_tx_req               ;
                         end
                     end
+				`else
+					always @(posedge i_clk or posedge i_rst) begin
+						if (i_rst == 1'b1) begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+						else begin
+							ri_mac_cross_port_axi_data[i]       <=  {(CROSS_DATA_WIDTH + 1){1'b0}};
+							ri_mac_cross_axi_data_keep[i]       <=  {(CROSS_DATA_WIDTH/8){1'b0}};
+							ri_mac_cross_axi_data_user[i]       <=  {16{1'b0}};
+							ri_mac_cross_axi_data_valid[i]      <=  1'b0;
+							ri_mac_cross_axi_data_last[i]       <=  1'b0;
+							ri_mac_cross_metadata[i]            <=  {METADATA_WIDTH{1'b0}};
+							ri_mac_cross_metadata_valid[i]      <=  1'b0;
+							ri_mac_cross_metadata_last[i]       <=  1'b0;
+							ri_tx0_req[i]                       <=  1'b0;
+						end
+					end
                 `endif
             end
         end
@@ -1246,6 +1535,7 @@ emac_data_handle #(
     
     /********************************rx port*********************************************/
     // rxmac0 通道
+	`ifdef CPU_MAC
     .i_rxmac0_qbu_axis_data             (i_rxmac0_qbu_axis_data),
     .i_rxmac0_qbu_axis_keep             (i_rxmac0_qbu_axis_keep),
     .i_rxmac0_qbu_axis_user             (i_rxmac0_qbu_axis_user),
@@ -1256,8 +1546,9 @@ emac_data_handle #(
     .i_rxmac0_qbu_metadata_valid        (i_rxmac0_qbu_metadata_valid),
     .i_rxmac0_qbu_metadata_last         (i_rxmac0_qbu_metadata_last),
     .o_rxmac0_qbu_metadata_ready        (o_rxmac0_qbu_metadata_ready),
-    
+    `endif
     // rxmac1 通道
+	`ifdef MAC1
     .i_rxmac1_qbu_axis_data             (i_rxmac1_qbu_axis_data),
     .i_rxmac1_qbu_axis_keep             (i_rxmac1_qbu_axis_keep),
     .i_rxmac1_qbu_axis_user             (i_rxmac1_qbu_axis_user),
@@ -1268,8 +1559,9 @@ emac_data_handle #(
     .i_rxmac1_qbu_metadata_valid        (i_rxmac1_qbu_metadata_valid),
     .i_rxmac1_qbu_metadata_last         (i_rxmac1_qbu_metadata_last),
     .o_rxmac1_qbu_metadata_ready        (o_rxmac1_qbu_metadata_ready),
-    
+	`endif
     // rxmac2 通道
+	`ifdef MAC2
     .i_rxmac2_qbu_axis_data             (i_rxmac2_qbu_axis_data),
     .i_rxmac2_qbu_axis_keep             (i_rxmac2_qbu_axis_keep),
     .i_rxmac2_qbu_axis_user             (i_rxmac2_qbu_axis_user),
@@ -1280,8 +1572,9 @@ emac_data_handle #(
     .i_rxmac2_qbu_metadata_valid        (i_rxmac2_qbu_metadata_valid),
     .i_rxmac2_qbu_metadata_last         (i_rxmac2_qbu_metadata_last),
     .o_rxmac2_qbu_metadata_ready        (o_rxmac2_qbu_metadata_ready),
-    
+    `endif
     // rxmac3 通道
+	`ifdef MAC3
     .i_rxmac3_qbu_axis_data             (i_rxmac3_qbu_axis_data),
     .i_rxmac3_qbu_axis_keep             (i_rxmac3_qbu_axis_keep),
     .i_rxmac3_qbu_axis_user             (i_rxmac3_qbu_axis_user),
@@ -1292,8 +1585,9 @@ emac_data_handle #(
     .i_rxmac3_qbu_metadata_valid        (i_rxmac3_qbu_metadata_valid),
     .i_rxmac3_qbu_metadata_last         (i_rxmac3_qbu_metadata_last),
     .o_rxmac3_qbu_metadata_ready        (o_rxmac3_qbu_metadata_ready),
-    
+    `endif
     // rxmac4 通道
+	`ifdef MAC4
     .i_rxmac4_qbu_axis_data             (i_rxmac4_qbu_axis_data),
     .i_rxmac4_qbu_axis_keep             (i_rxmac4_qbu_axis_keep),
     .i_rxmac4_qbu_axis_user             (i_rxmac4_qbu_axis_user),
@@ -1304,8 +1598,9 @@ emac_data_handle #(
     .i_rxmac4_qbu_metadata_valid        (i_rxmac4_qbu_metadata_valid),
     .i_rxmac4_qbu_metadata_last         (i_rxmac4_qbu_metadata_last),
     .o_rxmac4_qbu_metadata_ready        (o_rxmac4_qbu_metadata_ready),
-    
+    `endif
     // rxmac5 通道
+	`ifdef MAC5
     .i_rxmac5_qbu_axis_data             (i_rxmac5_qbu_axis_data),
     .i_rxmac5_qbu_axis_keep             (i_rxmac5_qbu_axis_keep),
     .i_rxmac5_qbu_axis_user             (i_rxmac5_qbu_axis_user),
@@ -1316,8 +1611,9 @@ emac_data_handle #(
     .i_rxmac5_qbu_metadata_valid        (i_rxmac5_qbu_metadata_valid),
     .i_rxmac5_qbu_metadata_last         (i_rxmac5_qbu_metadata_last),
     .o_rxmac5_qbu_metadata_ready        (o_rxmac5_qbu_metadata_ready),
-    
+    `endif
     // rxmac6 通道
+	`ifdef MAC6
     .i_rxmac6_qbu_axis_data             (i_rxmac6_qbu_axis_data),
     .i_rxmac6_qbu_axis_keep             (i_rxmac6_qbu_axis_keep),
     .i_rxmac6_qbu_axis_user             (i_rxmac6_qbu_axis_user),
@@ -1328,8 +1624,9 @@ emac_data_handle #(
     .i_rxmac6_qbu_metadata_valid        (i_rxmac6_qbu_metadata_valid),
     .i_rxmac6_qbu_metadata_last         (i_rxmac6_qbu_metadata_last),
     .o_rxmac6_qbu_metadata_ready        (o_rxmac6_qbu_metadata_ready),
-    
+    `endif
     // rxmac7 通道
+	`ifdef MAC7
     .i_rxmac7_qbu_axis_data             (i_rxmac7_qbu_axis_data),
     .i_rxmac7_qbu_axis_keep             (i_rxmac7_qbu_axis_keep),
     .i_rxmac7_qbu_axis_user             (i_rxmac7_qbu_axis_user),
@@ -1340,7 +1637,7 @@ emac_data_handle #(
     .i_rxmac7_qbu_metadata_valid        (i_rxmac7_qbu_metadata_valid),
     .i_rxmac7_qbu_metadata_last         (i_rxmac7_qbu_metadata_last),
     .o_rxmac7_qbu_metadata_ready        (o_rxmac7_qbu_metadata_ready),
-    
+    `endif
     /********************************tx port*********************************************/
     // emac0 发送通道
     .o_emac0_tx_axis_data               (o_emac_tx_axis_data   ),

@@ -1,761 +1,761 @@
 `include "synth_cmd_define.vh"
 
-module rx_mac_mng#(
-    parameter                                                   PORT_NUM                =      8        ,  // ½»»»»úµÄ¶Ë¿ÚÊý
-    parameter                                                   REG_ADDR_BUS_WIDTH      =      9        ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷µØÖ·Î»¿í
-    parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // ½ÓÊÕ MAC ²ãµÄÅäÖÃ¼Ä´æÆ÷Êý¾ÝÎ»¿í
-    parameter                                                   METADATA_WIDTH          =      81       ,  // ÐÅÏ¢Á÷£¨METADATA£©µÄÎ»¿í
-    parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng Êý¾ÝÎ»¿í 
-    parameter                                                   PORT_FIFO_PRI_NUM       =      8        ,  // ÓÅÏÈ¼¶fifoÊýÁ¿
-    parameter                                                   HASH_DATA_WIDTH         =      15       ,  // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í
-    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // ¾ÛºÏ×ÜÏßÊä³ö 
+module rx_mac_mng
+#(
+    parameter                                                   PORT_NUM                =      8        ,  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+    parameter                                                   REG_ADDR_BUS_WIDTH      =      9        ,  // ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ö·Î»ï¿½ï¿½
+    parameter                                                   REG_DATA_BUS_WIDTH      =      16       ,  // ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+    parameter                                                   METADATA_WIDTH          =      81       ,  // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½METADATAï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+    parameter                                                   PORT_MNG_DATA_WIDTH     =      8        ,  // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ 
+    parameter                                                   PORT_FIFO_PRI_NUM       =      8        ,  // ï¿½ï¿½ï¿½È¼ï¿½fifoï¿½ï¿½ï¿½ï¿½
+    parameter                                                   HASH_DATA_WIDTH         =      15       ,  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½
+    parameter                                                   CROSS_DATA_WIDTH        =     PORT_MNG_DATA_WIDTH // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
 )(
     input               wire                                    i_clk                               ,   // 250MHz
     input               wire                                    i_rst                               ,
-    /*---------------------------------------- CPU_MACÊý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- CPU_MACï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef CPU_MAC
-    // ÊäÈëµÄÊý¾ÝÁ÷
-    input               wire                                    i_cpu_mac0_port_link                , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_cpu_mac0_port_speed               , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_cpu_mac0_port_filter_preamble_v   , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_cpu_mac0_axi_data                 , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_cpu_mac0_axi_data_keep            , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_cpu_mac0_axi_data_valid           , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_cpu_mac0_axi_data_ready           , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_cpu_mac0_axi_data_last            , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á
-    output              wire                                    o_cpu_mac0_time_irq                 , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_cpu_mac0_frame_seq                , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp0_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac0_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_cpu_mac0_port_link                , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_cpu_mac0_port_speed               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_cpu_mac0_port_filter_preamble_v   , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_cpu_mac0_axi_data                 , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_cpu_mac0_axi_data_keep            , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_cpu_mac0_axi_data_valid           , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_cpu_mac0_axi_data_ready           , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_cpu_mac0_axi_data_last            , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½
+    output              wire                                    o_cpu_mac0_time_irq                 , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_cpu_mac0_frame_seq                , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp0_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac0_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac0_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac0_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac0_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac0_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac0_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac0_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // CPU_MAC Êä³öµÄÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac0_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac0_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac0_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac0_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac0_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac0_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // CPU_MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac0_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac0_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac0_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac0_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac0_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac0_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac0_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac0_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac0_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac0_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac0_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac0_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac0_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac0_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac0_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac0_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac0_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac0_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac0_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac0_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx0_req                           ,
 
-    input              wire                                     i_mac0_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac0_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac0_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+    input              wire                                     i_mac0_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac0_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac0_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac0_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac0_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac0_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac0_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac0_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac0_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac0_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac0_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac0_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac0_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac0_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac0_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac0_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac0_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac0_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac0_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac0_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac0_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac0_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac0_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-	/*---------------------------------------- MAC1 Êý¾ÝÁ÷ -------------------------------------------*/
+	/*---------------------------------------- MAC1 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC1
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac1_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac1_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac1_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac1_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac1_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac1_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac1_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac1_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac1_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac1_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp1_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac1_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac1_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac1_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac1_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac1_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac1_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac1_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac1_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac1_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac1_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac1_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp1_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac1_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac1_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac1_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac1_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac1_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac1_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac1_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC1 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac1_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac1_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac1_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac1_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac1_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac1_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC1 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac1_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac1_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac1_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac1_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac1_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac1_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac1_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac1_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_mac1_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_mac1_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_mac1_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_mac1_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac1_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac1_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac1_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac1_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_mac1_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_mac1_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_mac1_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_mac1_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output              wire                                    o_tx1_req                           ,
 
-    input              wire                                     i_mac1_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac1_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac1_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac1_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac1_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac1_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac1_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac1_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac1_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac1_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac1_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac1_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac1_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac1_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac1_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac1_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac1_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac1_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac1_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac1_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac1_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac1_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac1_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac1_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac1_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac1_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC2 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC2 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC2
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac2_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac2_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac2_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac2_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac2_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac2_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac2_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac2_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac2_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac2_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp2_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac2_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac2_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac2_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac2_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac2_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac2_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac2_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac2_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac2_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac2_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac2_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp2_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac2_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac2_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac2_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac2_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac2_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac2_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac2_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC2 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac2_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac2_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac2_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac2_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac2_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac2_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC2 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac2_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac2_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac2_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac2_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac2_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac2_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac2_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac2_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac2_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac2_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac2_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac2_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac2_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac2_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac2_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac2_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac2_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac2_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac2_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac2_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx2_req                           ,
 
-    input              wire                                     i_mac2_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac2_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac2_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac2_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac2_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac2_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac2_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac2_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac2_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac2_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac2_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac2_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac2_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac2_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac2_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac2_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac2_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac2_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac2_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac2_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac2_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac2_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac2_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac2_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac2_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac2_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC3 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC3 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC3
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac3_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac3_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac3_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac3_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac3_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac3_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac3_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac3_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac3_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac3_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp3_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac3_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac3_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac3_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac3_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac3_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac3_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac3_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac3_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac3_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac3_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac3_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp3_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac3_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac3_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac3_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac3_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac3_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac3_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac3_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
+    input              wire                                     i_mac3_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac3_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac3_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
 
-    // MAC3 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac3_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac3_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac3_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    // MAC3 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac3_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac3_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac3_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac3_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac3_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac3_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac3_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac3_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac3_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac3_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac3_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac3_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac3_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac3_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac3_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac3_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac3_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac3_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac3_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac3_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx3_req                           ,
 
-    input              wire                                     i_mac3_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac3_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac3_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac3_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac3_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac3_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac3_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac3_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac3_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac3_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac3_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac3_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac3_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac3_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac3_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac3_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac3_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac3_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac3_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac3_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac3_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac3_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac3_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac3_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac3_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac3_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC4 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC4 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC4
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac4_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac4_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac4_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac4_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac4_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac4_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac4_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac4_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac4_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac4_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp4_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac4_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac4_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac4_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac4_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac4_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac4_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac4_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac4_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac4_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac4_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac4_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp4_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac4_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac4_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac4_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac4_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac4_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac4_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac4_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC4 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac4_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac4_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac4_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac4_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac4_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac4_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC4 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac4_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac4_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac4_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac4_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac4_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac4_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac4_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac4_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac4_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac4_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac4_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac4_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac4_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac4_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac4_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac4_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac4_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac4_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac4_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac4_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx4_req                           ,
 
-    input              wire                                     i_mac4_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac4_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac4_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac4_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac4_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac4_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac4_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac4_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac4_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac4_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac4_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac4_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac4_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac4_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac4_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac4_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac4_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac4_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac4_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac4_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac4_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac4_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac4_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac4_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac4_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac4_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC5 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC5 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC5
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac5_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac5_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac5_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac5_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac5_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac5_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac5_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac5_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac5_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac5_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp5_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac5_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac5_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac5_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac5_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac5_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac5_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac5_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac5_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac5_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac5_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac5_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp5_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac5_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac5_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac5_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac5_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac5_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac5_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac5_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC5 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac5_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac5_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac5_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac5_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac5_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac5_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC5 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac5_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac5_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac5_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac5_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac5_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac5_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac5_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac5_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac5_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac5_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac5_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac5_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac5_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac5_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac5_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac5_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac5_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac5_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac5_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac5_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx5_req                           ,
 
-    input              wire                                     i_mac5_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac5_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac5_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+    input              wire                                     i_mac5_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac5_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac5_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac5_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac5_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac5_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac5_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac5_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac5_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac5_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac5_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac5_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac5_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac5_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac5_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac5_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac5_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac5_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac5_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac5_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac5_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac5_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac5_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC6 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC6 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC6
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac6_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac6_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac6_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac6_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac6_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac6_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac6_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac6_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac6_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac6_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp6_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac6_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac6_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac6_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac6_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac6_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac6_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac6_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac6_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac6_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac6_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac6_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp6_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac6_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac6_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac6_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac6_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac6_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac6_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac6_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC6 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac6_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac6_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac6_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac6_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac6_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac6_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC6 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac6_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac6_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac6_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac6_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac6_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac6_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac6_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac6_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac6_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac6_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac6_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac6_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac6_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac6_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac6_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac6_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac6_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac6_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac6_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac6_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx6_req                           ,
 
-    input              wire                                     i_mac6_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac6_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac6_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac6_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac6_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac6_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac6_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac6_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac6_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac6_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac6_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac6_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac6_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac6_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac6_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac6_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac6_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac6_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac6_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac6_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac6_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac6_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac6_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac6_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac6_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac6_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
-    /*---------------------------------------- MAC7 Êý¾ÝÁ÷ -------------------------------------------*/
+    /*---------------------------------------- MAC7 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 `ifdef MAC7
-    // Êý¾ÝÁ÷ÐÅÏ¢ 
-    input               wire                                    i_mac7_port_link                    , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    input               wire   [1:0]                            i_mac7_port_speed                   , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    input               wire                                    i_mac7_port_filter_preamble_v       , // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac7_axi_data                     , // ¶Ë¿ÚÊý¾ÝÁ÷
-    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac7_axi_data_keep                , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    input               wire                                    i_mac7_axi_data_valid               , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    output              wire                                    o_mac7_axi_data_ready               , // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    input               wire                                    i_mac7_axi_data_last                , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    // ±¨ÎÄÊ±¼ä´òÊ±¼ä´Á 
-    output              wire                                    o_mac7_time_irq                     , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    output              wire  [7:0]                             o_mac7_frame_seq                    , // Ö¡ÐòÁÐºÅ
-    output              wire  [7:0]                             o_timestamp7_addr                   , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-    // »º´æ½»»¥Âß¼­
-    output             wire                                     o_mac7_rtag_flag                    , // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ 
+    input               wire                                    i_mac7_port_link                    , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    input               wire   [1:0]                            i_mac7_port_speed                   , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    input               wire                                    i_mac7_port_filter_preamble_v       , // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    input               wire   [PORT_MNG_DATA_WIDTH-1:0]        i_mac7_axi_data                     , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    i_mac7_axi_data_keep                , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    input               wire                                    i_mac7_axi_data_valid               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    output              wire                                    o_mac7_axi_data_ready               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_mac7_axi_data_last                , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    // ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ 
+    output              wire                                    o_mac7_time_irq                     , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    output              wire  [7:0]                             o_mac7_frame_seq                    , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    output              wire  [7:0]                             o_timestamp7_addr                   , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+    // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
+    output             wire                                     o_mac7_rtag_flag                    , // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
     output             wire   [15:0]                            o_mac7_rtag_squence                 , // rtag_squencenum
-    output             wire   [7:0]                             o_mac7_stream_handle                , // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+    output             wire   [7:0]                             o_mac7_stream_handle                , // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 
-    input              wire                                     i_mac7_pass_en                      , // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-    input              wire                                     i_mac7_discard_en                   , // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-    input              wire                                     i_mac7_judge_finish                 , // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-    // MAC7 Êä³öÊý¾ÝÁ÷
-    /*---------------------------------------- µ¥ PORT Êä³öÊý¾ÝÁ÷ -------------------------------------------*/
-    output              wire                                    o_mac7_cross_port_link              , // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    output              wire   [1:0]                            o_mac7_cross_port_speed             , // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac7_cross_port_axi_data          , // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac7_pass_en                      , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+    input              wire                                     i_mac7_discard_en                   , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+    input              wire                                     i_mac7_judge_finish                 , // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+    // MAC7 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+    output              wire                                    o_mac7_cross_port_link              , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    output              wire   [1:0]                            o_mac7_cross_port_speed             , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_mac7_cross_port_axi_data          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_mac7_cross_port_axi_user          ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac7_cross_axi_data_keep          , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_mac7_cross_axi_data_valid         , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_mac7_cross_axi_data_ready         , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_mac7_cross_axi_data_last          , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output             wire   [METADATA_WIDTH-1:0]              o_mac7_cross_metadata               , // ×ÜÏß metadata Êý¾Ý
-    output             wire                                     o_mac7_cross_metadata_valid         , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output             wire                                     o_mac7_cross_metadata_last          , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input              wire                                     i_mac7_cross_metadata_ready         , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_mac7_cross_axi_data_keep          , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_mac7_cross_axi_data_valid         , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_mac7_cross_axi_data_ready         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_mac7_cross_axi_data_last          , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output             wire   [METADATA_WIDTH-1:0]              o_mac7_cross_metadata               , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output             wire                                     o_mac7_cross_metadata_valid         , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output             wire                                     o_mac7_cross_metadata_last          , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input              wire                                     i_mac7_cross_metadata_ready         , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     output             wire                                     o_tx7_req                           ,
 
-    input              wire                                     i_mac7_tx0_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx0_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx1_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx1_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-    input              wire                                     i_mac7_tx2_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx2_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx3_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx3_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx4_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx4_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx5_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx5_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx6_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx6_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    input              wire                                     i_mac7_tx7_ack                      , // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx7_ack_rst                  , // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-    /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡Êä³öÊý¾ÝÁ÷ -------------------------------------------*/ 
-    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac7_port_axi_data               , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    input              wire                                     i_mac7_tx0_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx0_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx1_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx1_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+    input              wire                                     i_mac7_tx2_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx2_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx3_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx3_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx4_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx4_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx5_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx5_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx6_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx6_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input              wire                                     i_mac7_tx7_ack                      , // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+    input              wire   [PORT_FIFO_PRI_NUM-1:0]           i_mac7_tx7_ack_rst                  , // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/ 
+    output              wire   [CROSS_DATA_WIDTH-1:0]           o_emac7_port_axi_data               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     output              wire   [15:0]                           o_emac7_port_axi_user               ,
-    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac7_axi_data_keep               , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    output              wire                                    o_emac7_axi_data_valid              , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    input               wire                                    i_emac7_axi_data_ready              , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    output              wire                                    o_emac7_axi_data_last               , // Êý¾ÝÁ÷½áÊø±êÊ¶
-    /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-    output              wire   [METADATA_WIDTH-1:0]             o_emac7_metadata                    , // ×ÜÏß metadata Êý¾Ý
-    output              wire                                    o_emac7_metadata_valid              , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    output              wire                                    o_emac7_metadata_last               , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    input               wire                                    i_emac7_metadata_ready              , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    output              wire   [(CROSS_DATA_WIDTH/8)-1:0]       o_emac7_axi_data_keep               , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    output              wire                                    o_emac7_axi_data_valid              , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    input               wire                                    i_emac7_axi_data_ready              , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    output              wire                                    o_emac7_axi_data_last               , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+    output              wire   [METADATA_WIDTH-1:0]             o_emac7_metadata                    , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_emac7_metadata_valid              , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    output              wire                                    o_emac7_metadata_last               , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    input               wire                                    i_emac7_metadata_ready              , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 `endif
     
 `ifdef END_POINTER_SWITCH_CORE
     `ifdef CPU_MAC
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id_cpu                       ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac_cpu_hash_key                 , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac_cpu                          , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac_cpu_hash_key                 , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac_cpu                          , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac_cpu_vld                      , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac_cpu_hash_key                 , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac_cpu                          , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac_cpu_hash_key                 , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac_cpu                          , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac_cpu_vld                      , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_cpu_port                       , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_cpu_port_broadcast             , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_cpu_port                       , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_cpu_port_broadcast             , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_cpu_port_vld                   ,
     `endif
     `ifdef MAC1
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id1                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac1_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac1                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac1_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac1                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac1_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac1_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac1                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac1_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac1                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac1_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_1_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_1_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_1_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_1_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_1_port_vld                     ,
     `endif
     `ifdef MAC2
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id2                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac2_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac2                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac2_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac2                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac2_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac2_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac2                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac2_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac2                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac2_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_2_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_2_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_2_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_2_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_2_port_vld                     ,
     `endif
     `ifdef MAC3
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id3                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac3_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac3                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac3_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac3                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac3_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac3_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac3                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac3_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac3                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac3_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_3_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_3_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_3_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_3_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_3_port_vld                     ,
     `endif
     `ifdef MAC4
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id4                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac4_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac4                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac4_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac4                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac4_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac4_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac4                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac4_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac4                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac4_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_4_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_4_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_4_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_4_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_4_port_vld                     ,
     `endif
     `ifdef MAC5
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id5                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac5_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac5                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac5_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac5                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac5_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac5_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac5                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac5_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac5                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac5_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_5_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_5_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_5_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_5_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_5_port_vld                     ,
     `endif
     `ifdef MAC6
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id6                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac6_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac6                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac6_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac6                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac6_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac6_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac6                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac6_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac6                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac6_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_6_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_6_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_6_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_6_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_6_port_vld                     ,
     `endif
     `ifdef MAC7
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         output              wire   [11:0]                           o_vlan_id7                          ,
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac7_hash_key                    , // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        output              wire   [47 : 0]                         o_dmac7                             , // Ä¿µÄ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_dmac7_hash_key                    , // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        output              wire   [47 : 0]                         o_dmac7                             , // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         output              wire                                    o_dmac7_vld                         , // dmac_vld
-        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac7_hash_key                    , // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        output              wire   [47 : 0]                         o_smac7                             , // Ô´ mac µÄÖµ
+        output              wire   [HASH_DATA_WIDTH - 1 : 0]        o_smac7_hash_key                    , // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        output              wire   [47 : 0]                         o_smac7                             , // Ô´ mac ï¿½ï¿½Öµ
         output              wire                                    o_smac7_vld                         , // smac_vld
 
-        input               wire   [PORT_NUM - 1:0]                 i_tx_7_port                         , // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-        input               wire   [1:0]                            i_tx_7_port_broadcast               , // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+        input               wire   [PORT_NUM - 1:0]                 i_tx_7_port                         , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+        input               wire   [1:0]                            i_tx_7_port_broadcast               , // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
         input               wire                                    i_tx_7_port_vld                     ,
     `endif
 `endif
 
 	
-	/*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú -------------------------------------------*/
-    // ¼Ä´æÆ÷¿ØÖÆÐÅºÅ                     
-    input               wire                                    i_refresh_list_pulse                , // Ë¢ÐÂ¼Ä´æÆ÷ÁÐ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
-    input               wire                                    i_switch_err_cnt_clr                , // Ë¢ÐÂ´íÎó¼ÆÊýÆ÷
-    input               wire                                    i_switch_err_cnt_stat               , // Ë¢ÐÂ´íÎó×´Ì¬¼Ä´æÆ÷
-    // ¼Ä´æÆ÷Ð´¿ØÖÆ½Ó¿Ú     
-    input               wire                                    i_switch_reg_bus_we                 , // ¼Ä´æÆ÷Ð´Ê¹ÄÜ
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // ¼Ä´æÆ÷Ð´µØÖ·
-    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // ¼Ä´æÆ÷Ð´Êý¾Ý
-    input               wire                                    i_switch_reg_bus_we_din_v           , // ¼Ä´æÆ÷Ð´Êý¾ÝÊ¹ÄÜ
-    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú     
-    input               wire                                    i_switch_reg_bus_rd                 , // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
-    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // ¼Ä´æÆ÷¶ÁµØÖ·
-    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // ¶Á³ö¼Ä´æÆ÷Êý¾Ý
-    output              wire                                    o_switch_reg_bus_rd_dout_v            // ¶ÁÊý¾ÝÓÐÐ§Ê¹ÄÜ
+	/*---------------------------------------- ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½Ó¿ï¿½ -------------------------------------------*/
+    // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½                     
+    input               wire                                    i_refresh_list_pulse                , // Ë¢ï¿½Â¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_switch_err_cnt_clr                , // Ë¢ï¿½Â´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_switch_err_cnt_stat               , // Ë¢ï¿½Â´ï¿½ï¿½ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Æ½Ó¿ï¿½     
+    input               wire                                    i_switch_reg_bus_we                 , // ï¿½Ä´ï¿½ï¿½ï¿½Ð´Ê¹ï¿½ï¿½
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_we_addr            , // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ö·
+    input               wire   [REG_DATA_BUS_WIDTH-1:0]         i_switch_reg_bus_we_din             , // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½
+    input               wire                                    i_switch_reg_bus_we_din_v           , // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ½Ó¿ï¿½     
+    input               wire                                    i_switch_reg_bus_rd                 , // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    input               wire   [REG_ADDR_BUS_WIDTH-1:0]         i_switch_reg_bus_rd_addr            , // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+    output              wire   [REG_DATA_BUS_WIDTH-1:0]         o_switch_reg_bus_rd_dout            , // ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    output              wire                                    o_switch_reg_bus_rd_dout_v            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½
 
     /*
-        metadata Êý¾Ý×é³É
-            [93:79] : CBÐ­Òé R-TAG×Ö¶Î
-            [78:64] : CBÐ­Òé R-TAG×Ö¶Î
+        metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            [93:79] : CBÐ­ï¿½ï¿½ R-TAGï¿½Ö¶ï¿½
+            [78:64] : CBÐ­ï¿½ï¿½ R-TAGï¿½Ö¶ï¿½
             [63](1bit) : port_speed 
             [62:60](3bit) : vlan_pri 
             [59:52](8bit) : tx_prot
             [51:44](8bit) : acl_frmtype
             [43:28](16bit): acl_fetchinfo
             [27](1bit) : frm_vlan_flag
-            [26:19](8bit) : ÊäÈë¶Ë¿Ú,bitmap±íÊ¾
-            [18:15](4bit) : Qos²ßÂÔ
-            [14:13](2bit) : ÈßÓà¸´ÖÆÓëÏû³ý(cb),01±íÊ¾¸´ÖÆ,10±íÊ¾Ïû³ý,00±íÊ¾·ÇCBÒµÎñÖ¡
-            [12](1bit) : ¶ªÆúÎ»
-            [11](1bit) : ÊÇ·ñÎª¹Ø¼üÖ¡(Qbu)
-            [10:4](7bit) £ºtime_stamp_addr,±¨ÎÄÊ±¼ä´ÁµÄµØÖ·ÐÅÏ¢
+            [26:19](8bit) : ï¿½ï¿½ï¿½ï¿½Ë¿ï¿½,bitmapï¿½ï¿½Ê¾
+            [18:15](4bit) : Qosï¿½ï¿½ï¿½ï¿½
+            [14:13](2bit) : ï¿½ï¿½ï¿½à¸´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½(cb),01ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½,10ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½,00ï¿½ï¿½Ê¾ï¿½ï¿½CBÒµï¿½ï¿½Ö¡
+            [12](1bit) : ï¿½ï¿½ï¿½ï¿½Î»
+            [11](1bit) : ï¿½Ç·ï¿½Îªï¿½Ø¼ï¿½Ö¡(Qbu)
+            [10:4](7bit) ï¿½ï¿½time_stamp_addr,ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Äµï¿½Ö·ï¿½ï¿½Ï¢
     */
 );
 
- 
 `ifdef CPU_MAC
 
-    wire                                    w_cpu_mac0_port_link                ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_cpu_mac0_port_speed               ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_cpu_mac0_port_filter_preamble_v   ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_cpu_mac0_axi_data                 ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_cpu_mac0_axi_data_keep            ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_cpu_mac0_axi_data_valid           ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_cpu_mac0_axi_data_ready           ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_cpu_mac0_axi_data_last            ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_cpu_mac0_port_link                ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_cpu_mac0_port_speed               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_cpu_mac0_port_filter_preamble_v   ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_cpu_mac0_axi_data                 ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_cpu_mac0_axi_data_keep            ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_cpu_mac0_axi_data_valid           ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_cpu_mac0_axi_data_ready           ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_cpu_mac0_axi_data_last            ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_cpu_mac0_time_irq                 ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_cpu_mac0_frame_seq                ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp0_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_cpu_mac0_time_irq                 ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_cpu_mac0_frame_seq                ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp0_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac0_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac0_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac0_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+    wire                                    w_mac0_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac0_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac0_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
 	wire   [15:0]							w_mac0_cross_port_axi_user			;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac0_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac0_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac0_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac0_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac0_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac0_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac0_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac0_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire   [METADATA_WIDTH-1:0]             w_mac0_cross_metadata               ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac0_cross_metadata_valid         ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac0_cross_metadata_last          ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac0_cross_metadata_ready         ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire   [METADATA_WIDTH-1:0]             w_mac0_cross_metadata               ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac0_cross_metadata_valid         ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac0_cross_metadata_last          ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac0_cross_metadata_ready         ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_cpu                       ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac_cpu_hash_key                 ; 
@@ -764,34 +764,34 @@ module rx_mac_mng#(
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_smac_cpu_hash_key                 ; 
     wire   [47 : 0]                         w_smac_cpu                          ; 
     wire                                    w_smac_cpu_vld                      ; 
-    // // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅ wire ±äÁ¿ÉùÃ÷
+    // // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ wire ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     // wire   [15:0]                           w_mac0_rtag_sequence                ;
     // wire                                    w_mac0_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign              o_mac0_rtag_sequence                    =   w_mac0_rtag_sequence             ;
     // assign              o_mac0_rtag_valid                       =   w_mac0_rtag_valid                ;
     wire                                    w_mac0_rtag_flag                    ;
     wire   [15:0]                           w_mac0_rtag_squence                 ;
     wire   [7:0]                            w_mac0_stream_handle                ;
-    wire   [15:0]                           w_hash_ploy_regs_0                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_0              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_0                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_0              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_0                   ;
-    wire                                    w_port_rxmac_down_regs_0            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_0        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_0        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_0         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_0                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_0               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_0                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_0           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_0          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_0  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_0                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_0            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_0        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_0        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_0         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_0                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_0               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_0                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_0           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_0          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_0  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_0                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire								    w_acl_port_sel_0_valid				;
-    wire                                    w_acl_clr_list_regs_0               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_0               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_0               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+    wire                                    w_acl_clr_list_regs_0               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_0               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_0               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 //    wire   [95:0]                           w_acl_item_dmac_code_0              ;
 //    wire   [95:0]                           w_acl_item_smac_code_0              ;
 //    wire   [63:0]                           w_acl_item_vlan_code_0              ;
@@ -800,86 +800,86 @@ module rx_mac_mng#(
 //    wire   [15:0]                           w_acl_item_action_cb_streamhandle_0 ;
 //    wire   [5:0]                            w_acl_item_action_flowctrl_0        ;
 //    wire   [15:0]                           w_acl_item_action_txport_0          ;
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_a1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_a2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_a3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_a4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_a5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_a6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_a1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_a2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ																                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_a3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_a4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_a5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ															                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_a6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_a6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_a1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ											
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_a2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ												
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_a3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ											
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_a4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ							           		
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_a1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ																                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_a2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ													                                                                 		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_a     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_a_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ																	                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_a 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_a_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ																
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_a        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_a_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ																
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_a          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_a_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_a1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_a2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_a3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_a4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_a5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_a6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_a6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_a1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_a2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½																                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_a3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_a4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_a5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½															                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_a6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_a6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_a1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½											
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_a2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½												
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_a3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½											
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_a4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_a4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							           		
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_a1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½																                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_a2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_a2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½													                                                                 		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_a     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_a_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½																	                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_a 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_a_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½																
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_a        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_a_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½																
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_a          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_a_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
 
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_0                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_0          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_0          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_0              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_0        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_0         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_0         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_0                ; // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_0               ; // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_0                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_0                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_0            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_0                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_0                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_0                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_0                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_0                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_0                       ; // Ö¡ÐòºÅ
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_0                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_0          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_0          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_0              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_0        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_0         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_0         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_0                ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_0               ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_0                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_0                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_0            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_0                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_0                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_0                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_0                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_0                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_0                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_0                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac0_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac0_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac0_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac0_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac0_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac0_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac0_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac0_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac0_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac0_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac0_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac0_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac0_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac0_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac0_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac0_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac0_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac0_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac0_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     assign              o_mac0_rtag_flag                        =   w_mac0_rtag_flag                 ;
     assign              o_mac0_rtag_squence                     =   w_mac0_rtag_squence              ;
     assign              o_mac0_stream_handle                    =   w_mac0_stream_handle             ;
@@ -911,44 +911,44 @@ module rx_mac_mng#(
     assign              o_mac0_cross_metadata_last              =  w_mac0_cross_metadata_last        ; 
     assign              w_mac0_cross_metadata_ready             =  i_mac0_cross_metadata_ready       ;  
 
-    assign              o_emac0_port_axi_data                   =  w_emac0_port_axi_data             ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign              o_emac0_port_axi_data                   =  w_emac0_port_axi_data             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign              o_emac0_port_axi_user                   =  w_emac0_port_axi_user             ;
-    assign              o_emac0_axi_data_keep                   =  w_emac0_axi_data_keep             ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign              o_emac0_axi_data_valid                  =  w_emac0_axi_data_valid            ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign              w_emac0_axi_data_ready                  =  i_emac0_axi_data_ready            ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign              o_emac0_axi_data_last                   =  w_emac0_axi_data_last             ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign              o_emac0_metadata                        =  w_emac0_metadata                  ; // ×ÜÏß metadata Êý¾Ý
-    assign              o_emac0_metadata_valid                  =  w_emac0_metadata_valid            ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign              o_emac0_metadata_last                   =  w_emac0_metadata_last             ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign              w_emac0_metadata_ready                  =  i_emac0_metadata_ready            ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign              o_emac0_axi_data_keep                   =  w_emac0_axi_data_keep             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign              o_emac0_axi_data_valid                  =  w_emac0_axi_data_valid            ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign              w_emac0_axi_data_ready                  =  i_emac0_axi_data_ready            ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign              o_emac0_axi_data_last                   =  w_emac0_axi_data_last             ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign              o_emac0_metadata                        =  w_emac0_metadata                  ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign              o_emac0_metadata_valid                  =  w_emac0_metadata_valid            ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign              o_emac0_metadata_last                   =  w_emac0_metadata_last             ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign              w_emac0_metadata_ready                  =  i_emac0_metadata_ready            ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC1
-    wire                                    w_mac1_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac1_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac1_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac1_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac1_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac1_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac1_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac1_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac1_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac1_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac1_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac1_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac1_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac1_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac1_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac1_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac1_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac1_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp1_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac1_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac1_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp1_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac1_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac1_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac1_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac1_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac1_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac1_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac1_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac1_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire	[15:0]							w_mac1_cross_port_axi_user			;
-    wire                                    w_mac1_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac1_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac1_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac1_cross_metadata               ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac1_cross_metadata_valid         ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac1_cross_metadata_last          ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac1_cross_metadata_ready         ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac1_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac1_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac1_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac1_cross_metadata               ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac1_cross_metadata_valid         ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac1_cross_metadata_last          ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac1_cross_metadata_ready         ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac1                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac1_hash_key                    ; 
@@ -956,114 +956,114 @@ module rx_mac_mng#(
     wire                                    w_dmac1_vld                         ; 
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_smac1_hash_key                    ; 
     wire   [47 : 0]                         w_smac1                             ; 
-    wire                                    w_smac1_vld                         ;     // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅ wire ±äÁ¿ÉùÃ÷
+    wire                                    w_smac1_vld                         ;     // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ wire ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     // wire   [15:0]                           w_mac1_rtag_sequence                ;
     // wire                                    w_mac1_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac1_rtag_sequence                =   w_mac1_rtag_sequence             ;
     // assign      o_mac1_rtag_valid                   =   w_mac1_rtag_valid                ;
     wire                                    w_mac1_rtag_flag                    ;
     wire   [15:0]                           w_mac1_rtag_squence                 ;
     wire   [7:0]                            w_mac1_stream_handle                ;
 
-    wire   [15:0]                           w_hash_ploy_regs_1                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_1              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_1                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_1              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_1                   ;
-    wire                                    w_port_rxmac_down_regs_1            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_1        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_1        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_1         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_1                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_1               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_1                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_1           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_1          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_1  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_1                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_1            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_1        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_1        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_1         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_1                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_1               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_1                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_1           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_1          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_1  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_1                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_1_valid				;
-    wire                                    w_acl_clr_list_regs_1               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_1               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_1               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_b1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_b2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_b3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_b4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_b5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_b6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_b1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_b2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_b3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_b4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_b5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_b6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_b6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_b1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_b2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_b3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_b4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_b1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_b2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_b     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_b_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_b 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_b_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_b        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_b_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_b          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_b_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_1                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_1          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_1          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_1              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_1        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_1         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_1         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_1                ; // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_1               ; // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_1                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_1                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_1            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_1                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_1                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_1                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_1                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_1                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_1                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_1               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_1               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_1               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_b1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_b2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_b3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_b4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_b5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_b6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_b6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_b1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_b2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_b3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_b4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_b5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_b6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_b6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_b1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_b2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_b3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_b4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_b4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_b1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_b2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_b2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_b     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_b_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_b 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_b_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_b        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_b_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_b          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_b_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_1                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_1          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_1          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_1              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_1        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_1         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_1         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_1                ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_1               ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_1                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_1                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_1            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_1                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_1                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_1                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_1                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_1                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_1                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_1                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac1_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac1_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac1_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac1_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac1_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac1_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac1_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac1_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac1_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac1_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac1_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac1_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac1_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac1_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac1_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac1_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac1_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac1_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac1_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     assign      o_mac1_rtag_flag                =   w_mac1_rtag_flag                 ;
     assign      o_mac1_rtag_squence             =   w_mac1_rtag_squence              ;
     assign      o_mac1_stream_handle            =   w_mac1_stream_handle             ;
@@ -1094,45 +1094,45 @@ module rx_mac_mng#(
     assign     o_mac1_cross_metadata_last           =  w_mac1_cross_metadata_last        ; 
     assign     w_mac1_cross_metadata_ready          =  i_mac1_cross_metadata_ready       ;   
 
-    assign     o_emac1_port_axi_data                =  w_emac1_port_axi_data             ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac1_port_axi_data                =  w_emac1_port_axi_data             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac1_port_axi_user                =  w_emac1_port_axi_user             ;
-    assign     o_emac1_axi_data_keep                =  w_emac1_axi_data_keep             ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac1_axi_data_valid               =  w_emac1_axi_data_valid            ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac1_axi_data_ready               =  i_emac1_axi_data_ready            ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac1_axi_data_last                =  w_emac1_axi_data_last             ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac1_metadata                     =  w_emac1_metadata                  ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac1_metadata_valid               =  w_emac1_metadata_valid            ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac1_metadata_last                =  w_emac1_metadata_last             ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac1_metadata_ready               =  i_emac1_metadata_ready            ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac1_axi_data_keep                =  w_emac1_axi_data_keep             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac1_axi_data_valid               =  w_emac1_axi_data_valid            ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac1_axi_data_ready               =  i_emac1_axi_data_ready            ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac1_axi_data_last                =  w_emac1_axi_data_last             ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac1_metadata                     =  w_emac1_metadata                  ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac1_metadata_valid               =  w_emac1_metadata_valid            ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac1_metadata_last                =  w_emac1_metadata_last             ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac1_metadata_ready               =  i_emac1_metadata_ready            ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
                          
 `endif
 
 `ifdef MAC2
-    wire                                    w_mac2_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac2_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac2_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac2_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac2_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac2_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac2_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac2_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac2_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac2_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac2_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac2_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac2_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac2_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac2_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac2_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac2_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac2_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp2_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac2_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac2_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp2_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac2_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac2_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac2_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac2_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac2_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac2_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac2_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac2_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac2_cross_port_axi_user			;
-    wire                                    w_mac2_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac2_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac2_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac2_cross_metadata              ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac2_cross_metadata_valid        ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac2_cross_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac2_cross_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac2_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac2_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac2_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac2_cross_metadata              ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac2_cross_metadata_valid        ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac2_cross_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac2_cross_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac2                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac2_hash_key                    ; 
@@ -1143,111 +1143,111 @@ module rx_mac_mng#(
     wire                                    w_smac2_vld                         ; 
     // wire   [15:0]                           w_mac2_rtag_sequence                ;
     // wire                                    w_mac2_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac2_rtag_sequence            =   w_mac2_rtag_sequence             ;
     // assign      o_mac2_rtag_valid               =   w_mac2_rtag_valid                ;
     wire                                    w_mac2_rtag_flag                    ;
     wire   [15:0]                           w_mac2_rtag_squence                 ;
     wire   [7:0]                            w_mac2_stream_handle                ;
 
-    wire   [15:0]                           w_hash_ploy_regs_2                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_2              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_2                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_2              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_2                   ;
-    wire                                    w_port_rxmac_down_regs_2            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_2        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_2        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_2         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_2                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_2               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_2                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_2           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_2          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_2  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_2                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_2            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_2        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_2        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_2         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_2                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_2               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_2                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_2           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_2          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_2  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_2                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_2_valid				;
-    wire                                    w_acl_clr_list_regs_2               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_2               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_2               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_c1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_c2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_c3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_c4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_c5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_c6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_c1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_c2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_c3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_c4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_c5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_c6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_c6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_c1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_c2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_c3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_c4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_c1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_c2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_c     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_c_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_c 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_c_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_c        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_c_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_c          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_c_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_2                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_2          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_2          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_2              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_2        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_2         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_2         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_2                ; // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_2               ; // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_2                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_2                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_2            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_2                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_2                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_2                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_2                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_2                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_2                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_2               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_2               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_2               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_c1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_c2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_c3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_c4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_c5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_c6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_c6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_c1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_c2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_c3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_c4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_c5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_c6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_c6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_c1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_c2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_c3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_c4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_c4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_c1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_c2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_c2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_c     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_c_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_c 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_c_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_c        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_c_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_c          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_c_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_2                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_2          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_2          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_2              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_2        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_2         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_2         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_2                ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_2               ; // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_2                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_2                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_2            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_2                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_2                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_2                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_2                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_2                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_2                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_2                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac2_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac2_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac2_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac2_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac2_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac2_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac2_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac2_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac2_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac2_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac2_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac2_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac2_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac2_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac2_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac2_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac2_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac2_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac2_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     assign      o_mac2_rtag_flag                =   w_mac2_rtag_flag                 ;
     assign      o_mac2_rtag_squence             =   w_mac2_rtag_squence              ;
     assign      o_mac2_stream_handle            =   w_mac2_stream_handle             ;
@@ -1279,44 +1279,44 @@ module rx_mac_mng#(
     assign     o_mac2_cross_metadata_last           =  w_mac2_cross_metadata_last        ; 
     assign     w_mac2_cross_metadata_ready          =  i_mac2_cross_metadata_ready       ;                  
 
-    assign     o_emac2_port_axi_data                =  w_emac2_port_axi_data             ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac2_port_axi_data                =  w_emac2_port_axi_data             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac2_port_axi_user                =  w_emac2_port_axi_user             ;
-    assign     o_emac2_axi_data_keep                =  w_emac2_axi_data_keep             ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac2_axi_data_valid               =  w_emac2_axi_data_valid            ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac2_axi_data_ready               =  i_emac2_axi_data_ready            ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac2_axi_data_last                =  w_emac2_axi_data_last             ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac2_metadata                     =  w_emac2_metadata                  ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac2_metadata_valid               =  w_emac2_metadata_valid            ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac2_metadata_last                =  w_emac2_metadata_last             ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac2_metadata_ready               =  i_emac2_metadata_ready            ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac2_axi_data_keep                =  w_emac2_axi_data_keep             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac2_axi_data_valid               =  w_emac2_axi_data_valid            ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac2_axi_data_ready               =  i_emac2_axi_data_ready            ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac2_axi_data_last                =  w_emac2_axi_data_last             ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac2_metadata                     =  w_emac2_metadata                  ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac2_metadata_valid               =  w_emac2_metadata_valid            ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac2_metadata_last                =  w_emac2_metadata_last             ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac2_metadata_ready               =  i_emac2_metadata_ready            ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC3
-    wire                                    w_mac3_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac3_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac3_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac3_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac3_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac3_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac3_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac3_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac3_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac3_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac3_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac3_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac3_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac3_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac3_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac3_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac3_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac3_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp3_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac3_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac3_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp3_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac3_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac3_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac3_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac3_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac3_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac3_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac3_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac3_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac3_cross_port_axi_user			;
-    wire                                    w_mac3_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac3_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac3_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac3_cross_metadata              ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac3_cross_metadata_valid        ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac3_cross_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac3_cross_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac3_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac3_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac3_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac3_cross_metadata              ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac3_cross_metadata_valid        ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac3_cross_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac3_cross_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac3                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac3_hash_key                    ; 
@@ -1327,110 +1327,110 @@ module rx_mac_mng#(
     wire                                    w_smac3_vld                         ; 
     // wire   [15:0]                           w_mac3_rtag_sequence                ;
     // wire                                    w_mac3_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac3_rtag_sequence            =   w_mac3_rtag_sequence        ;
     // assign      o_mac3_rtag_valid               =   w_mac3_rtag_valid           ;
     wire                                    w_mac3_rtag_flag                    ;
     wire   [15:0]                           w_mac3_rtag_squence                 ;
     wire   [7:0]                            w_mac3_stream_handle                ;
 
-    wire   [15:0]                           w_hash_ploy_regs_3                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_3              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_3                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_3              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_3                   ;
-    wire                                    w_port_rxmac_down_regs_3            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_3        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_3        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_3         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_3                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_3               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_3                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_3           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_3          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_3  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_3                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_3            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_3        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_3        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_3         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_3                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_3               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_3                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_3           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_3          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_3  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_3                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire 									w_acl_port_sel_3_valid				;
-    wire                                    w_acl_clr_list_regs_3               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_3               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_3               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_d1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_d2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_d3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_d4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_d5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_d6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_d1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_d2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_d3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_d4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_d5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_d6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_d6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_d1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_d2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_d3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_d4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_d1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_d2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_d     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_d_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_d 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_d_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_d        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_d_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_d          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_d_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_3                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_3          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_3          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_3              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_3        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_3         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_3         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_3                ; // ¶Ë¿Ú3½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_3               ; // ¶Ë¿Ú3½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_3                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_3                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_3            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_3                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_3                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_3                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_3                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_3                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_3                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_3               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_3               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_3               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_d1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_d2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_d3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_d4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_d5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_d6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_d6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_d1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_d2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_d3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_d4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_d5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_d6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_d6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_d1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_d2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_d3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_d4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_d4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_d1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_d2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_d2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_d     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_d_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_d 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_d_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_d        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_d_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_d          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_d_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_3                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_3          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_3          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_3              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_3        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_3         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_3         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_3                ; // ï¿½Ë¿ï¿½3ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_3               ; // ï¿½Ë¿ï¿½3ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_3                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_3                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_3            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_3                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_3                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_3                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_3                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_3                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_3                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_3                           ;
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac3_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac3_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac3_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac3_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac3_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac3_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac3_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac3_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac3_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac3_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac3_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac3_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac3_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac3_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac3_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac3_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac3_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac3_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac3_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     assign      o_mac3_rtag_flag                =   w_mac3_rtag_flag                 ;
     assign      o_mac3_rtag_squence             =   w_mac3_rtag_squence              ;
     assign      o_mac3_stream_handle            =   w_mac3_stream_handle             ;
@@ -1462,44 +1462,44 @@ module rx_mac_mng#(
     assign     o_mac3_cross_metadata_last       =  w_mac3_cross_metadata_last    ; 
     assign     w_mac3_cross_metadata_ready      =  i_mac3_cross_metadata_ready   ;    
 
-    assign     o_emac3_port_axi_data            =  w_emac3_port_axi_data         ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac3_port_axi_data            =  w_emac3_port_axi_data         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac3_port_axi_user            =  w_emac3_port_axi_user         ;
-    assign     o_emac3_axi_data_keep            =  w_emac3_axi_data_keep         ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac3_axi_data_valid           =  w_emac3_axi_data_valid        ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac3_axi_data_ready           =  i_emac3_axi_data_ready        ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac3_axi_data_last            =  w_emac3_axi_data_last         ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac3_metadata                 =  w_emac3_metadata              ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac3_metadata_valid           =  w_emac3_metadata_valid        ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac3_metadata_last            =  w_emac3_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac3_metadata_ready           =  i_emac3_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac3_axi_data_keep            =  w_emac3_axi_data_keep         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac3_axi_data_valid           =  w_emac3_axi_data_valid        ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac3_axi_data_ready           =  i_emac3_axi_data_ready        ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac3_axi_data_last            =  w_emac3_axi_data_last         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac3_metadata                 =  w_emac3_metadata              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac3_metadata_valid           =  w_emac3_metadata_valid        ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac3_metadata_last            =  w_emac3_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac3_metadata_ready           =  i_emac3_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC4
-    wire                                    w_mac4_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac4_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac4_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac4_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac4_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac4_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac4_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac4_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac4_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac4_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac4_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac4_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac4_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac4_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac4_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac4_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac4_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac4_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp4_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac4_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac4_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp4_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac4_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac4_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac4_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac4_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac4_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac4_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac4_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac4_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac4_cross_port_axi_user			;
-    wire                                    w_mac4_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac4_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac4_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac4_cross_metadata                   ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac4_cross_metadata_valid             ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac4_cross_metadata_last              ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac4_cross_metadata_ready             ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac4_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac4_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac4_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac4_cross_metadata                   ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac4_cross_metadata_valid             ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac4_cross_metadata_last              ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac4_cross_metadata_ready             ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac4                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac4_hash_key                    ; 
@@ -1510,111 +1510,111 @@ module rx_mac_mng#(
     wire                                    w_smac4_vld                         ; 
     // wire   [15:0]                           w_mac4_rtag_sequence                ;
     // wire                                    w_mac4_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac4_rtag_sequence            =   w_mac4_rtag_sequence             ;
     // assign      o_mac4_rtag_valid               =   w_mac4_rtag_valid                ;
     wire                                    w_mac4_rtag_flag                    ;
     wire   [15:0]                           w_mac4_rtag_squence                 ;
     wire   [7:0]                            w_mac4_stream_handle                ;
 
-    wire   [15:0]                           w_hash_ploy_regs_4                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_4              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_4                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_4              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_4                   ;
-    wire                                    w_port_rxmac_down_regs_4            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_4        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_4        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_4         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_4                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_4               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_4                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_4           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_4          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_4  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_4                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_4            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_4        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_4        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_4         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_4                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_4               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_4                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_4           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_4          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_4  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_4                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_4_valid				;
-    wire                                    w_acl_clr_list_regs_4               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_4               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_4               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_e1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_e2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_e3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_e4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_e5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_e6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_e1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_e2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_e3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_e4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_e5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_e6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_e6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_e1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_e2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_e3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_e4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_e1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_e2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_e     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_e_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_e 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_e_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_e        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_e_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_e          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_e_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_4                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_4          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_4          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_4              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_4        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_4         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_4         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_4                ; // ¶Ë¿Ú4½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_4               ; // ¶Ë¿Ú4½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_4                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_4                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_4            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_4                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_4                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_4                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_4                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_4                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_4                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_4               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_4               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_4               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_e1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_e2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_e3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_e4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_e5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_e6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_e6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_e1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_e2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_e3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_e4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_e5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_e6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_e6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_e1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_e2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_e3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_e4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_e4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_e1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_e2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_e2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_e     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_e_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_e 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_e_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_e        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_e_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_e          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_e_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_4                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_4          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_4          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_4              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_4        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_4         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_4         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_4                ; // ï¿½Ë¿ï¿½4ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_4               ; // ï¿½Ë¿ï¿½4ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_4                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_4                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_4            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_4                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_4                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_4                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_4                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_4                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_4                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_4                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac4_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac4_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac4_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac4_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac4_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac4_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac4_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac4_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac4_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac4_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac4_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac4_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac4_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac4_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac4_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac4_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac4_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac4_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac4_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
 
     assign      o_mac4_rtag_flag                =   w_mac4_rtag_flag                 ;
     assign      o_mac4_rtag_squence             =   w_mac4_rtag_squence              ;
@@ -1647,44 +1647,44 @@ module rx_mac_mng#(
     assign     o_mac4_cross_metadata_last       =  w_mac4_cross_metadata_last        ; 
     assign     w_mac4_cross_metadata_ready      =  i_mac4_cross_metadata_ready       ;  
 
-    assign     o_emac4_port_axi_data            =  w_emac4_port_axi_data         ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac4_port_axi_data            =  w_emac4_port_axi_data         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac4_port_axi_user            =  w_emac4_port_axi_user         ;
-    assign     o_emac4_axi_data_keep            =  w_emac4_axi_data_keep         ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac4_axi_data_valid           =  w_emac4_axi_data_valid        ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac4_axi_data_ready           =  i_emac4_axi_data_ready        ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac4_axi_data_last            =  w_emac4_axi_data_last         ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac4_metadata                 =  w_emac4_metadata              ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac4_metadata_valid           =  w_emac4_metadata_valid        ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac4_metadata_last            =  w_emac4_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac4_metadata_ready           =  i_emac4_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac4_axi_data_keep            =  w_emac4_axi_data_keep         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac4_axi_data_valid           =  w_emac4_axi_data_valid        ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac4_axi_data_ready           =  i_emac4_axi_data_ready        ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac4_axi_data_last            =  w_emac4_axi_data_last         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac4_metadata                 =  w_emac4_metadata              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac4_metadata_valid           =  w_emac4_metadata_valid        ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac4_metadata_last            =  w_emac4_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac4_metadata_ready           =  i_emac4_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC5
-    wire                                    w_mac5_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac5_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac5_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac5_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac5_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac5_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac5_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac5_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac5_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac5_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac5_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac5_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac5_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac5_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac5_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac5_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac5_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac5_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp5_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac5_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac5_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp5_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac5_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac5_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac5_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac5_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac5_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac5_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac5_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac5_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac5_cross_port_axi_user			;
-    wire                                    w_mac5_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac5_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac5_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac5_cross_metadata                   ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac5_cross_metadata_valid             ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac5_cross_metadata_last              ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac5_cross_metadata_ready             ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac5_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac5_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac5_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac5_cross_metadata                   ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac5_cross_metadata_valid             ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac5_cross_metadata_last              ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac5_cross_metadata_ready             ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac5                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac5_hash_key                    ; 
@@ -1695,111 +1695,111 @@ module rx_mac_mng#(
     wire                                    w_smac5_vld                         ; 
     // wire   [15:0]                           w_mac5_rtag_sequence                ;
     // wire                                    w_mac5_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac5_rtag_sequence            =   w_mac5_rtag_sequence             ;
     // assign      o_mac5_rtag_valid               =   w_mac5_rtag_valid                ;
     wire                                    w_mac5_rtag_flag                    ;
     wire   [15:0]                           w_mac5_rtag_squence                 ;
     wire   [7:0]                            w_mac5_stream_handle                ;
 
-    wire   [15:0]                           w_hash_ploy_regs_5                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_5              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_5                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_5              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_5                   ;
-    wire                                    w_port_rxmac_down_regs_5            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_5        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_5        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_5         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_5                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_5               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_5                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_5           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_5          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_5  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_5                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_5            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_5        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_5        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_5         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_5                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_5               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_5                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_5           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_5          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_5  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_5                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_5_valid				;
-    wire                                    w_acl_clr_list_regs_5               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_5               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_5               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_f1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_f2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_f3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_f4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_f5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_f6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_f1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_f2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_f3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_f4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_f5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_f6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_f6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_f1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_f2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_f3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_f4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_f1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_f2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_f     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_f_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_f 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_f_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_f        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_f_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_f          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_f_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_5                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_5          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_5          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_5              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_5        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_5         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_5         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_5                ; // ¶Ë¿Ú5½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_5               ; // ¶Ë¿Ú5½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_5                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_5                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_5            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_5                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_5                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_5                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_5                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_5                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_5                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_5               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_5               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_5               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_f1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_f2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_f3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_f4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_f5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_f6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_f6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_f1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_f2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_f3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_f4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_f5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_f6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_f6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_f1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_f2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_f3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_f4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_f4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_f1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_f2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_f2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_f     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_f_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_f 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_f_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_f        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_f_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_f          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_f_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_5                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_5          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_5          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_5              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_5        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_5         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_5         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_5                ; // ï¿½Ë¿ï¿½5ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_5               ; // ï¿½Ë¿ï¿½5ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_5                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_5                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_5            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_5                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_5                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_5                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_5                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_5                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_5                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_5                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac5_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac5_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac5_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac5_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac5_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac5_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac5_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac5_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac5_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac5_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac5_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac5_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac5_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac5_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac5_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac5_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac5_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac5_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac5_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
 
     assign      o_mac5_rtag_flag                =   w_mac5_rtag_flag                 ;
     assign      o_mac5_rtag_squence             =   w_mac5_rtag_squence              ;
@@ -1832,44 +1832,44 @@ module rx_mac_mng#(
     assign     o_mac5_cross_metadata_last           =  w_mac5_cross_metadata_last        ; 
     assign     w_mac5_cross_metadata_ready          =  i_mac5_cross_metadata_ready       ;  
 
-    assign     o_emac5_port_axi_data            =  w_emac5_port_axi_data         ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac5_port_axi_data            =  w_emac5_port_axi_data         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac5_port_axi_user            =  w_emac5_port_axi_user         ;
-    assign     o_emac5_axi_data_keep            =  w_emac5_axi_data_keep         ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac5_axi_data_valid           =  w_emac5_axi_data_valid        ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac5_axi_data_ready           =  i_emac5_axi_data_ready        ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac5_axi_data_last            =  w_emac5_axi_data_last         ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac5_metadata                 =  w_emac5_metadata              ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac5_metadata_valid           =  w_emac5_metadata_valid        ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac5_metadata_last            =  w_emac5_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac5_metadata_ready           =  i_emac5_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac5_axi_data_keep            =  w_emac5_axi_data_keep         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac5_axi_data_valid           =  w_emac5_axi_data_valid        ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac5_axi_data_ready           =  i_emac5_axi_data_ready        ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac5_axi_data_last            =  w_emac5_axi_data_last         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac5_metadata                 =  w_emac5_metadata              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac5_metadata_valid           =  w_emac5_metadata_valid        ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac5_metadata_last            =  w_emac5_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac5_metadata_ready           =  i_emac5_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC6
-    wire                                    w_mac6_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac6_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac6_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac6_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac6_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac6_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac6_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac6_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac6_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac6_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac6_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac6_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac6_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac6_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac6_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac6_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac6_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac6_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp6_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac6_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac6_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp6_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac6_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac6_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac6_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac6_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac6_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac6_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac6_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac6_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac6_cross_port_axi_user			;
-    wire                                    w_mac6_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac6_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac6_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac6_cross_metadata               ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac6_cross_metadata_valid         ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac6_cross_metadata_last          ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac6_cross_metadata_ready         ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac6_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac6_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac6_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac6_cross_metadata               ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac6_cross_metadata_valid         ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac6_cross_metadata_last          ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac6_cross_metadata_ready         ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac6                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac6_hash_key                    ; 
@@ -1880,110 +1880,110 @@ module rx_mac_mng#(
     wire                                    w_smac6_vld                         ; 
     // wire   [15:0]                           w_mac6_rtag_sequence                ;
     // wire                                    w_mac6_rtag_valid                   ;
-    // // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    // // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     // assign      o_mac6_rtag_sequence            =   w_mac6_rtag_sequence        ;
     // assign      o_mac6_rtag_valid               =   w_mac6_rtag_valid           ;
     wire                                    w_mac6_rtag_flag                    ;
     wire   [15:0]                           w_mac6_rtag_squence                 ;
     wire   [7:0]                            w_mac6_stream_handle                ;
-    wire   [15:0]                           w_hash_ploy_regs_6                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_6              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_6                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_6              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_6                   ;
-    wire                                    w_port_rxmac_down_regs_6            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_6        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_6        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_6         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_6                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_6               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_6                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_6           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_6          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_6  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_6                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_6            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_6        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_6        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_6         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_6                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_6               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_6                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_6           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_6          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_6  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_6                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_6_valid				;
-    wire                                    w_acl_clr_list_regs_6               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_6               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_6               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_g1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_g2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_g3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_g4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_g5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_g6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_g1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_g2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_g3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_g4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_g5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_g6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_g6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_g1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_g2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_g3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_g4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_g1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_g2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_g     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_g_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_g 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_g_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_g        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_g_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_g          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_g_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_6                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_6          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_6          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_6              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_6        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_6         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_6         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_6                ; // ¶Ë¿Ú6½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_6               ; // ¶Ë¿Ú6½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_6                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_6                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_6            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_6                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_6                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_6                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_6                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_6                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_6                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_6               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_6               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_6               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_g1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_g2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_g3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_g4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_g5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_g6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_g6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_g1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_g2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_g3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_g4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_g5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_g6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_g6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_g1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_g2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_g3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_g4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_g4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_g1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_g2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_g2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_g     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_g_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_g 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_g_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_g        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_g_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_g          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_g_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_6                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_6          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_6          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_6              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_6        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_6         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_6         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_6                ; // ï¿½Ë¿ï¿½6ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_6               ; // ï¿½Ë¿ï¿½6ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_6                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_6                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_6            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_6                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_6                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_6                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_6                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_6                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_6                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_6                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac6_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac6_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac6_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac6_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac6_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac6_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac6_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac6_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac6_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac6_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac6_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac6_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac6_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac6_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac6_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac6_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac6_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac6_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac6_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
     assign      o_mac6_rtag_flag                =   w_mac6_rtag_flag             ;
     assign      o_mac6_rtag_squence             =   w_mac6_rtag_squence          ;
     assign      o_mac6_stream_handle            =   w_mac6_stream_handle         ;
@@ -2015,44 +2015,44 @@ module rx_mac_mng#(
     assign     o_mac6_cross_metadata_last       =  w_mac6_cross_metadata_last    ; 
     assign     w_mac6_cross_metadata_ready      =  i_mac6_cross_metadata_ready   ; 
 
-    assign     o_emac6_port_axi_data            =  w_emac6_port_axi_data         ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac6_port_axi_data            =  w_emac6_port_axi_data         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac6_port_axi_user            =  w_emac6_port_axi_user         ;
-    assign     o_emac6_axi_data_keep            =  w_emac6_axi_data_keep         ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac6_axi_data_valid           =  w_emac6_axi_data_valid        ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac6_axi_data_ready           =  i_emac6_axi_data_ready        ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac6_axi_data_last            =  w_emac6_axi_data_last         ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac6_metadata                 =  w_emac6_metadata              ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac6_metadata_valid           =  w_emac6_metadata_valid        ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac6_metadata_last            =  w_emac6_metadata_last         ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac6_metadata_ready           =  i_emac6_metadata_ready        ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac6_axi_data_keep            =  w_emac6_axi_data_keep         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac6_axi_data_valid           =  w_emac6_axi_data_valid        ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac6_axi_data_ready           =  i_emac6_axi_data_ready        ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac6_axi_data_last            =  w_emac6_axi_data_last         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac6_metadata                 =  w_emac6_metadata              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac6_metadata_valid           =  w_emac6_metadata_valid        ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac6_metadata_last            =  w_emac6_metadata_last         ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac6_metadata_ready           =  i_emac6_metadata_ready        ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef MAC7
-    wire                                    w_mac7_port_link                    ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac7_port_speed                   ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-    wire                                    w_mac7_port_filter_preamble_v       ; // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac7_axi_data                     ; // ¶Ë¿ÚÊý¾ÝÁ÷
-    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac7_axi_data_keep                ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_mac7_axi_data_valid               ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac7_axi_data_ready               ; // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-    wire                                    w_mac7_axi_data_last                ; // Êý¾ÝÁ÷½áÊø±êÊ¶
+    wire                                    w_mac7_port_link                    ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac7_port_speed                   ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+    wire                                    w_mac7_port_filter_preamble_v       ; // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    wire   [PORT_MNG_DATA_WIDTH-1:0]        w_mac7_axi_data                     ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [(PORT_MNG_DATA_WIDTH/8)-1:0]    w_mac7_axi_data_keep                ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_mac7_axi_data_valid               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac7_axi_data_ready               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac7_axi_data_last                ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
 
-    wire                                    w_mac7_time_irq                     ; // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-    wire  [7:0]                             w_mac7_frame_seq                    ; // Ö¡ÐòÁÐºÅ
-    wire  [7:0]                             w_timestamp7_addr                   ; // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
+    wire                                    w_mac7_time_irq                     ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+    wire  [7:0]                             w_mac7_frame_seq                    ; // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+    wire  [7:0]                             w_timestamp7_addr                   ; // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
 
-    wire                                    w_mac7_cross_port_link              ; // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-    wire   [1:0]                            w_mac7_cross_port_speed             ; // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_mac7_cross_port_axi_data          ; // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac7_cross_axi_data_keep          ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
+    wire                                    w_mac7_cross_port_link              ; // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+    wire   [1:0]                            w_mac7_cross_port_speed             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+    wire   [CROSS_DATA_WIDTH-1:0]           w_mac7_cross_port_axi_data          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_mac7_cross_axi_data_keep          ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
 	wire   [15:0]							w_mac7_cross_port_axi_user			;
-    wire                                    w_mac7_cross_axi_data_valid         ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_mac7_cross_axi_data_ready         ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-    wire                                    w_mac7_cross_axi_data_last          ; // Êý¾ÝÁ÷½áÊø±êÊ¶
-    wire   [METADATA_WIDTH-1:0]             w_mac7_cross_metadata               ; // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-    wire                                    w_mac7_cross_metadata_valid         ; // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_mac7_cross_metadata_last          ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_mac7_cross_metadata_ready         ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+    wire                                    w_mac7_cross_axi_data_valid         ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_mac7_cross_axi_data_ready         ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+    wire                                    w_mac7_cross_axi_data_last          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire   [METADATA_WIDTH-1:0]             w_mac7_cross_metadata               ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_mac7_cross_metadata_valid         ; // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_mac7_cross_metadata_last          ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_mac7_cross_metadata_ready         ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
 
     wire   [11:0]                           w_vlan_id_mac7                      ;
     wire   [HASH_DATA_WIDTH - 1 : 0]        w_dmac7_hash_key                    ; 
@@ -2067,104 +2067,104 @@ module rx_mac_mng#(
     wire                                    w_mac7_rtag_flag                    ;
     wire   [15:0]                           w_mac7_rtag_squence                 ;
     wire   [7:0]                            w_mac7_stream_handle                ;
-    wire   [15:0]                           w_hash_ploy_regs_7                  ; // ¹þÏ£¶àÏîÊ½
-    wire   [15:0]                           w_hash_init_val_regs_7              ; // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+    wire   [15:0]                           w_hash_ploy_regs_7                  ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+    wire   [15:0]                           w_hash_init_val_regs_7              ; // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
     wire                                    w_hash_regs_vld_7                   ;
-    wire                                    w_port_rxmac_down_regs_7            ; // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-    wire                                    w_port_broadcast_drop_regs_7        ; // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_multicast_drop_regs_7        ; // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-    wire                                    w_port_loopback_drop_regs_7         ; // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-    wire   [47:0]                           w_port_mac_regs_7                   ; // ¶Ë¿ÚµÄ MAC µØÖ·
-    wire                                    w_port_mac_vld_regs_7               ; // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-    wire   [7:0]                            w_port_mtu_regs_7                   ; // MTUÅäÖÃÖµ
-    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_7           ; // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-    wire   [15:0]                           w_port_flowctrl_cfg_regs_7          ; // ÏÞÁ÷¹ÜÀíÅäÖÃ
-    wire   [4:0]                            w_port_rx_ultrashortinterval_num_7  ; // Ö¡¼ä¸ô
-    // ACL ¼Ä´æÆ÷
-    wire   [6-1:0]                   		w_acl_port_sel_7                    ; // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+    wire                                    w_port_rxmac_down_regs_7            ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_broadcast_drop_regs_7        ; // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_multicast_drop_regs_7        ; // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire                                    w_port_loopback_drop_regs_7         ; // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    wire   [47:0]                           w_port_mac_regs_7                   ; // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+    wire                                    w_port_mac_vld_regs_7               ; // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+    wire   [7:0]                            w_port_mtu_regs_7                   ; // MTUï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [PORT_NUM-1:0]                   w_port_mirror_frwd_regs_7           ; // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+    wire   [15:0]                           w_port_flowctrl_cfg_regs_7          ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_port_rx_ultrashortinterval_num_7  ; // Ö¡ï¿½ï¿½ï¿½
+    // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [6-1:0]                   		w_acl_port_sel_7                    ; // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 	wire									w_acl_port_sel_7_valid				;
-    wire                                    w_acl_clr_list_regs_7               ; // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-    wire                                    w_acl_list_rdy_regs_7               ; // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-    wire   [4:0]                            w_acl_item_sel_regs_7               ; // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_dmac_code_h1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_dmac_code_h2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_dmac_code_h3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_dmac_code_h4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_dmac_code_h5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_dmac_code_h6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-	wire                               		w_cfg_acl_item_smac_code_h1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-	wire                               		w_cfg_acl_item_smac_code_h2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                     
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-	wire                               		w_cfg_acl_item_smac_code_h3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-	wire                               		w_cfg_acl_item_smac_code_h4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h5            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-	wire                               		w_cfg_acl_item_smac_code_h5_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                 
-	wire   [15:0]                      		w_cfg_acl_item_smac_code_h6            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-	wire                               		w_cfg_acl_item_smac_code_h6_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ	
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h1            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-	wire                                	w_cfg_acl_item_vlan_code_h1_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h2            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-	wire                                	w_cfg_acl_item_vlan_code_h2_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h3            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-	wire                                	w_cfg_acl_item_vlan_code_h3_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h4            			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-	wire                                	w_cfg_acl_item_vlan_code_h4_valid      			; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h1       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-	wire                                	w_cfg_acl_item_ethertype_code_h1_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                          
-	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h2       			; // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-	wire                                	w_cfg_acl_item_ethertype_code_h2_valid 			; // Ð´ÈëÓÐÐ§ÐÅºÅ						                                                     		                                          
-	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_h     			; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-	wire                                	w_cfg_acl_item_action_pass_state_h_valid		; // Ð´ÈëÓÐÐ§ÐÅºÅ							                          
-	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_h 		; // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-	wire                                	w_cfg_acl_item_action_cb_streamhandle_h_valid	; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_h        		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-	wire                                	w_cfg_acl_item_action_flowctrl_h_valid  		; // Ð´ÈëÓÐÐ§ÐÅºÅ						
-	wire   [15:0]                       	w_cfg_acl_item_action_txport_h          		; // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-	wire                                	w_cfg_acl_item_action_txport_h_valid      		; // Ð´ÈëÓÐÐ§ÐÅºÅ
-    // ×´Ì¬¼Ä´æÆ÷
-    wire   [15:0]                           w_port_diag_state_7                 ; // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå
-    // Õï¶Ï¼Ä´æÆ÷
-    wire                                    w_port_rx_ultrashort_frm_7          ; // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-    wire                                    w_port_rx_overlength_frm_7          ; // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-    wire                                    w_port_rx_crcerr_frm_7              ; // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-    wire   [15:0]                           w_port_rx_loopback_frm_cnt_7        ; // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_broadflow_drop_cnt_7         ; // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_multiflow_drop_cnt_7         ; // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-    // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-    wire   [15:0]                           w_port_rx_byte_cnt_7                ; // ¶Ë¿Ú7½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-    wire   [15:0]                           w_port_rx_frame_cnt_7               ; // ¶Ë¿Ú7½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-    //qbu_rx¼Ä´æÆ÷
-    wire                                    w_rx_busy_7                         ; // ½ÓÊÕÃ¦ÐÅºÅ
-    wire   [15:0]                           w_rx_fragment_cnt_7                 ; // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-    wire                                    w_rx_fragment_mismatch_7            ; // ·ÖÆ¬²»Æ¥Åä
-    wire   [15:0]                           w_err_rx_crc_cnt_7                  ; // CRC´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_rx_frame_cnt_7                ; // Ö¡´íÎó¼ÆÊý
-    wire   [15:0]                           w_err_fragment_cnt_7                ; // ·ÖÆ¬´íÎó¼ÆÊý
-    wire   [15:0]                           w_rx_frames_cnt_7                   ; // ½ÓÊÕÖ¡¼ÆÊý
-    wire   [7:0]                            w_frag_next_rx_7                    ; // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-    wire   [7:0]                            w_frame_seq_7                       ; // Ö¡ÐòºÅ
+    wire                                    w_acl_clr_list_regs_7               ; // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+    wire                                    w_acl_list_rdy_regs_7               ; // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [4:0]                            w_acl_item_sel_regs_7               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+	wire                               		w_cfg_acl_item_dmac_code_h1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+	wire                               		w_cfg_acl_item_dmac_code_h2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+	wire                               		w_cfg_acl_item_dmac_code_h3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+	wire                               		w_cfg_acl_item_dmac_code_h4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+	wire                               		w_cfg_acl_item_dmac_code_h5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                      		w_cfg_acl_item_dmac_code_h6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+	wire                               		w_cfg_acl_item_dmac_code_h6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+	wire                               		w_cfg_acl_item_smac_code_h1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+	wire                               		w_cfg_acl_item_smac_code_h2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                     
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+	wire                               		w_cfg_acl_item_smac_code_h3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+	wire                               		w_cfg_acl_item_smac_code_h4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h5            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+	wire                               		w_cfg_acl_item_smac_code_h5_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                 
+	wire   [15:0]                      		w_cfg_acl_item_smac_code_h6            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+	wire                               		w_cfg_acl_item_smac_code_h6_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h1            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+	wire                                	w_cfg_acl_item_vlan_code_h1_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h2            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+	wire                                	w_cfg_acl_item_vlan_code_h2_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h3            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+	wire                                	w_cfg_acl_item_vlan_code_h3_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_vlan_code_h4            			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+	wire                                	w_cfg_acl_item_vlan_code_h4_valid      			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h1       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+	wire                                	w_cfg_acl_item_ethertype_code_h1_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                          
+	wire   [15:0]                       	w_cfg_acl_item_ethertype_code_h2       			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+	wire                                	w_cfg_acl_item_ethertype_code_h2_valid 			; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						                                                     		                                          
+	wire   [7:0]                        	w_cfg_acl_item_action_pass_state_h     			; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+	wire                                	w_cfg_acl_item_action_pass_state_h_valid		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½							                          
+	wire   [15:0]                       	w_cfg_acl_item_action_cb_streamhandle_h 		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+	wire                                	w_cfg_acl_item_action_cb_streamhandle_h_valid	; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [5:0]                        	w_cfg_acl_item_action_flowctrl_h        		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_flowctrl_h_valid  		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½						
+	wire   [15:0]                       	w_cfg_acl_item_action_txport_h          		; // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+	wire                                	w_cfg_acl_item_action_txport_h_valid      		; // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_diag_state_7                 ; // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+    wire                                    w_port_rx_ultrashort_frm_7          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+    wire                                    w_port_rx_overlength_frm_7          ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+    wire                                    w_port_rx_crcerr_frm_7              ; // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+    wire   [15:0]                           w_port_rx_loopback_frm_cnt_7        ; // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_broadflow_drop_cnt_7         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_multiflow_drop_cnt_7         ; // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_port_rx_byte_cnt_7                ; // ï¿½Ë¿ï¿½7ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    wire   [15:0]                           w_port_rx_frame_cnt_7               ; // ï¿½Ë¿ï¿½7ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+    //qbu_rxï¿½Ä´ï¿½ï¿½ï¿½
+    wire                                    w_rx_busy_7                         ; // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+    wire   [15:0]                           w_rx_fragment_cnt_7                 ; // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_rx_fragment_mismatch_7            ; // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_crc_cnt_7                  ; // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_rx_frame_cnt_7                ; // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_err_fragment_cnt_7                ; // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    wire   [15:0]                           w_rx_frames_cnt_7                   ; // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+    wire   [7:0]                            w_frag_next_rx_7                    ; // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+    wire   [7:0]                            w_frame_seq_7                       ; // Ö¡ï¿½ï¿½ï¿½
     wire                                    w_reset_7                           ;
 
-    wire   [CROSS_DATA_WIDTH-1:0]           w_emac7_port_axi_data               ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    wire   [CROSS_DATA_WIDTH-1:0]           w_emac7_port_axi_data               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     wire   [15:0]                           w_emac7_port_axi_user               ;
-    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac7_axi_data_keep               ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    wire                                    w_emac7_axi_data_valid              ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    wire                                    w_emac7_axi_data_ready              ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    wire                                    w_emac7_axi_data_last               ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    wire   [METADATA_WIDTH-1:0]             w_emac7_metadata                    ; // ×ÜÏß metadata Êý¾Ý
-    wire                                    w_emac7_metadata_valid              ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    wire                                    w_emac7_metadata_last               ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    wire                                    w_emac7_metadata_ready              ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
-    // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+    wire   [(CROSS_DATA_WIDTH/8)-1:0]       w_emac7_axi_data_keep               ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    wire                                    w_emac7_axi_data_valid              ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    wire                                    w_emac7_axi_data_ready              ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    wire                                    w_emac7_axi_data_last               ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    wire   [METADATA_WIDTH-1:0]             w_emac7_metadata                    ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    wire                                    w_emac7_metadata_valid              ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    wire                                    w_emac7_metadata_last               ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    wire                                    w_emac7_metadata_ready              ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
    
     assign      o_mac7_rtag_flag                =   w_mac7_rtag_flag                 ;
     assign      o_mac7_rtag_squence             =   w_mac7_rtag_squence              ;
@@ -2196,21 +2196,21 @@ module rx_mac_mng#(
     assign     o_mac7_cross_metadata_last       =  w_mac7_cross_metadata_last        ; 
     assign     w_mac7_cross_metadata_ready      =  i_mac7_cross_metadata_ready       ; 
 
-    assign     o_emac7_port_axi_data            =  w_emac7_port_axi_data             ; // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+    assign     o_emac7_port_axi_data            =  w_emac7_port_axi_data             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
     assign     o_emac7_port_axi_user            =  w_emac7_port_axi_user             ;
-    assign     o_emac7_axi_data_keep            =  w_emac7_axi_data_keep             ; // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-    assign     o_emac7_axi_data_valid           =  w_emac7_axi_data_valid            ; // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-    assign     w_emac7_axi_data_ready           =  i_emac7_axi_data_ready            ; // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ i
-    assign     o_emac7_axi_data_last            =  w_emac7_axi_data_last             ; // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-    assign     o_emac7_metadata                 =  w_emac7_metadata                  ; // ×ÜÏß metadata Êý¾Ý
-    assign     o_emac7_metadata_valid           =  w_emac7_metadata_valid            ; // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-    assign     o_emac7_metadata_last            =  w_emac7_metadata_last             ; // ÐÅÏ¢Á÷½áÊø±êÊ¶
-    assign     w_emac7_metadata_ready           =  i_emac7_metadata_ready            ; // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß i
+    assign     o_emac7_axi_data_keep            =  w_emac7_axi_data_keep             ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+    assign     o_emac7_axi_data_valid           =  w_emac7_axi_data_valid            ; // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+    assign     w_emac7_axi_data_ready           =  i_emac7_axi_data_ready            ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½ i
+    assign     o_emac7_axi_data_last            =  w_emac7_axi_data_last             ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+    assign     o_emac7_metadata                 =  w_emac7_metadata                  ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+    assign     o_emac7_metadata_valid           =  w_emac7_metadata_valid            ; // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+    assign     o_emac7_metadata_last            =  w_emac7_metadata_last             ; // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+    assign     w_emac7_metadata_ready           =  i_emac7_metadata_ready            ; // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ i
 `endif
 
 `ifdef END_POINTER_SWITCH_CORE
     `ifdef CPU_MAC
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id_cpu           =   w_vlan_id_cpu                       ;
         assign      o_dmac_cpu_hash_key     =   w_dmac_cpu_hash_key                 ;
         assign      o_dmac_cpu              =   w_dmac_cpu                          ;
@@ -2220,7 +2220,7 @@ module rx_mac_mng#(
         assign      o_smac_cpu_vld          =   w_smac_cpu_vld                      ;
     `endif
     `ifdef MAC1
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id1            	=   w_vlan_id_mac1                   	;
         assign      o_dmac1_hash_key        =   w_dmac1_hash_key                 	;
         assign      o_dmac1                 =   w_dmac1                          	;
@@ -2230,7 +2230,7 @@ module rx_mac_mng#(
         assign      o_smac1_vld             =   w_smac1_vld                      	;
     `endif
     `ifdef MAC2	
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id2             	=   w_vlan_id_mac2                   	;
         assign      o_dmac2_hash_key       	=   w_dmac2_hash_key                 	;
         assign      o_dmac2                	=   w_dmac2                          	;
@@ -2240,7 +2240,7 @@ module rx_mac_mng#(
         assign      o_smac2_vld            	=   w_smac2_vld                      	;
     `endif
     `ifdef MAC3	
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id3             	=   w_vlan_id_mac3                   	;
         assign      o_dmac3_hash_key       	=   w_dmac3_hash_key            		;
         assign      o_dmac3                	=   w_dmac3                     		;
@@ -2250,7 +2250,7 @@ module rx_mac_mng#(
         assign      o_smac3_vld            	=   w_smac3_vld                 		;
     `endif
     `ifdef MAC4 
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id4              =   w_vlan_id_mac4                   	;
         assign      o_dmac4_hash_key        =   w_dmac4_hash_key                 	;
         assign      o_dmac4                 =   w_dmac4                          	;
@@ -2260,7 +2260,7 @@ module rx_mac_mng#(
         assign      o_smac4_vld             =   w_smac4_vld                      	;
     `endif
     `ifdef MAC5
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id5              =   w_vlan_id_mac5                   	;
         assign      o_dmac5_hash_key        =   w_dmac5_hash_key                 	;
         assign      o_dmac5                 =   w_dmac5                          	;
@@ -2270,7 +2270,7 @@ module rx_mac_mng#(
         assign      o_smac5_vld             =   w_smac5_vld                      	;
     `endif
     `ifdef MAC6
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id6              =   w_vlan_id_mac6                   	;
         assign      o_dmac6_hash_key        =   w_dmac6_hash_key    				;
         assign      o_dmac6                 =   w_dmac6             				;
@@ -2280,7 +2280,7 @@ module rx_mac_mng#(
         assign      o_smac6_vld             =   w_smac6_vld         				;
     `endif
     `ifdef MAC7
-        // ¶¥²ãÊä³öÐÅºÅ assign Á¬½Ó
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½ assign ï¿½ï¿½ï¿½ï¿½
         assign      o_vlan_id7              =   w_vlan_id_mac7                   	;
         assign      o_dmac7_hash_key        =   w_dmac7_hash_key                 	;
         assign      o_dmac7                 =   w_dmac7                          	;
@@ -2292,50 +2292,50 @@ module rx_mac_mng#(
 `endif
 
 `ifdef CPU_MAC
-    wire   [PORT_NUM - 1:0]                 w_tx_cpu_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_cpu_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_cpu_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_cpu_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_cpu_port_vld                   ;
 `endif
 
 `ifdef MAC1
-    wire   [PORT_NUM - 1:0]                 w_tx_1_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_1_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_1_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_1_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_1_port_vld                   ;
 `endif
 
 `ifdef MAC2
-    wire   [PORT_NUM - 1:0]                 w_tx_2_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_2_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_2_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_2_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_2_port_vld                   ;
 `endif
 
 `ifdef MAC3
-    wire   [PORT_NUM - 1:0]                 w_tx_3_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_3_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_3_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_3_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_3_port_vld                   ;
 `endif
 
 `ifdef MAC4
-    wire   [PORT_NUM - 1:0]                 w_tx_4_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_4_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_4_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_4_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_4_port_vld                   ;
 `endif
 
 `ifdef MAC5
-    wire   [PORT_NUM - 1:0]                 w_tx_5_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_5_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_5_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_5_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_5_port_vld                   ;
 `endif
 
 `ifdef MAC6
-    wire   [PORT_NUM - 1:0]                 w_tx_6_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_6_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_6_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_6_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_6_port_vld                   ;
 `endif
 
 `ifdef MAC7
-    wire   [PORT_NUM - 1:0]                 w_tx_7_port                       ; // ½»»»±íÄ£¿é·µ»ØµÄ²é±í¶Ë¿ÚÐÅÏ¢
-    wire   [1:0]                            w_tx_7_port_broadcast             ; // 01:×é²¥ 10£º¹ã²¥ 11:·ººé
+    wire   [PORT_NUM - 1:0]                 w_tx_7_port                       ; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·µï¿½ØµÄ²ï¿½ï¿½ï¿½Ë¿ï¿½ï¿½ï¿½Ï¢
+    wire   [1:0]                            w_tx_7_port_broadcast             ; // 01:ï¿½é²¥ 10ï¿½ï¿½ï¿½ã²¥ 11:ï¿½ï¿½ï¿½ï¿½
     wire                                    w_tx_7_port_vld                   ;
 `endif
 
@@ -2400,12 +2400,12 @@ module rx_mac_mng#(
 
 `ifdef CPU_MAC
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ), // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (0                                      )  // ¶Ë¿ÚºÅ                            
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (0                                      )  // ï¿½Ë¿Úºï¿½                            
     )rx_port_mng_inst0 (
         .i_clk                              (i_clk                                  ),   // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -2417,106 +2417,106 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_cpu_mac0_port_link                   ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_cpu_mac0_port_speed                  ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_cpu_mac0_port_filter_preamble_v      ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_cpu_mac0_axi_data                    ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_cpu_mac0_axi_data_keep               ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_cpu_mac0_axi_data_valid              ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_cpu_mac0_axi_data_ready              ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_cpu_mac0_axi_data_last               ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_cpu_mac0_time_irq                    ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_cpu_mac0_frame_seq                   ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp0_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac0_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_cpu_mac0_port_link                   ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_cpu_mac0_port_speed                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_cpu_mac0_port_filter_preamble_v      ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_cpu_mac0_axi_data                    ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_cpu_mac0_axi_data_keep               ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_cpu_mac0_axi_data_valid              ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_cpu_mac0_axi_data_ready              ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_cpu_mac0_axi_data_last               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_cpu_mac0_time_irq                    ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_cpu_mac0_frame_seq                   ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp0_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac0_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac0_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac0_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac0_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac0_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac0_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac0_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac0_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac0_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac0_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_cpu                          ),
-        .o_dmac_hash_key                    (w_dmac_cpu_hash_key                    ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac_cpu                             ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac_cpu_hash_key                    ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac_cpu                             ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac_cpu_vld                         ), // dmac_vld
-        .o_smac_hash_key                    (w_smac_cpu_hash_key                    ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac_cpu                             ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac_cpu_hash_key                    ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac_cpu                             ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac_cpu_vld                         ), // smac_vld
         .i_swlist_tx_port                   (w_tx_cpu_port                          ),
         .i_swlist_vld                       (w_tx_cpu_port_vld                      ),
         .i_swlist_port_broadcast            (w_tx_cpu_port_broadcast                ),
         
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx0_req                              ),
-        .i_mac_tx0_ack                      (i_mac0_tx0_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac0_tx0_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac0_tx1_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac0_tx1_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac0_tx2_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac0_tx2_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac0_tx3_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac0_tx3_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac0_tx4_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac0_tx4_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac0_tx5_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac0_tx5_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac0_tx6_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac0_tx6_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac0_tx7_ack                         ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac0_tx7_ack_rst                     ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac0_tx0_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac0_tx0_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac0_tx1_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac0_tx1_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac0_tx2_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac0_tx2_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac0_tx3_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac0_tx3_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac0_tx4_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac0_tx4_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac0_tx5_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac0_tx5_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac0_tx6_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac0_tx6_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac0_tx7_ack                         ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac0_tx7_ack_rst                     ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac0_qbu_verify_valid                ),
         .o_qbu_response_valid               (o_mac0_qbu_response_valid              ),
 
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac0_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac0_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac0_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac0_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac0_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac0_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac0_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac0_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac0_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac0_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac0_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac0_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý                
-        .o_cross_metadata_valid             (w_mac0_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ 
-        .o_cross_metadata_last              (w_mac0_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶ 
-        .i_cross_metadata_ready             (w_mac0_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß  
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac0_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac0_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac0_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac0_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac0_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac0_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½                
+        .o_cross_metadata_valid             (w_mac0_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ 
+        .o_cross_metadata_last              (w_mac0_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .i_cross_metadata_ready             (w_mac0_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac0_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac0_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac0_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac0_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac0_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac0_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac0_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac0_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac0_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac0_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_0), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_0), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac0_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac0_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac0_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac0_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac0_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac0_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac0_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac0_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_0), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_0), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_0),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_0), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_0), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_0), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_0), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_0), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_0), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_0), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_0), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_0), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_0), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_0), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_0), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_0), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_0), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_0), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_0), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_0), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_0), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_0), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_0), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_0), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_0), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_0_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_0), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_0), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_0), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_0), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_0), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_0), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     	(w_cfg_acl_item_dmac_code_a1	  ),  
@@ -2572,29 +2572,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_a),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_a_valid),
 
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_0), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_0           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_0           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_0               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_0         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_0          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_0          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_0                 ), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_0                  )  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_0), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_0           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_0           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_0               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_0         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_0          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_0          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_0                 ), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_0                  )  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC1
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (1                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (1                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst1 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -2606,105 +2606,105 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac1_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac1_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac1_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac1_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac1_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac1_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac1_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac1_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac1_time_irq                        ), // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac1_frame_seq                       ), // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp1_addr                      ), // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac1_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac1_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac1_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac1_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac1_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac1_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac1_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac1_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac1_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac1_time_irq                        ), // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac1_frame_seq                       ), // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp1_addr                      ), // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac1_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac1_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac1_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac1_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac1_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac1_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac1_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac1_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac1_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac1_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac1                        ),
-        .o_dmac_hash_key                    (w_dmac1_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac1                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac1_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac1                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac1_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac1_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac1                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac1_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac1                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac1_vld                           ), // smac_vld
 
         .i_swlist_tx_port                   (w_tx_1_port                           ),
         .i_swlist_vld                       (w_tx_1_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_1_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx1_req                             ),
-        .i_mac_tx0_ack                      (i_mac1_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac1_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac1_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac1_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac1_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac1_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac1_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac1_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac1_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac1_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac1_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac1_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac1_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac1_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac1_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac1_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac1_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac1_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac1_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac1_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac1_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac1_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac1_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac1_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac1_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac1_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac1_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac1_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac1_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac1_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac1_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac1_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac1_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac1_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac1_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac1_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac1_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac1_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac1_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac1_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac1_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac1_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac1_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac1_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac1_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac1_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac1_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac1_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac1_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac1_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac1_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac1_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac1_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac1_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac1_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac1_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac1_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac1_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac1_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac1_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac1_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac1_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac1_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac1_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac1_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac1_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac1_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac1_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_1), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_1), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac1_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac1_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac1_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac1_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac1_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac1_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac1_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac1_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_1), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_1), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_1),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_1), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_1), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_1), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_1), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_1), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_1), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_1), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_1), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_1), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_1), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_1), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_1), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_1), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_1), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_1), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_1), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_1), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_1), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_1), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_1), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_1), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_1), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_1_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_1), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_1), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_1), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_1), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_1), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_1), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     	(w_cfg_acl_item_dmac_code_b1	  ),  
 		.i_cfg_acl_item_dmac_code_1_valid	(w_cfg_acl_item_dmac_code_b1_valid),
@@ -2758,29 +2758,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_b_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_b   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_b_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_1), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_1           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_1           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_1               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_1         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_1          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_1          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_1                 ), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_1                )  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_1), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_1           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_1           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_1               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_1         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_1          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_1          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_1                 ), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_1                )  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC2
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (2                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (2                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst2 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -2792,104 +2792,104 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac2_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac2_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac2_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac2_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac2_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac2_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac2_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac2_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac2_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac2_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp2_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac2_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac2_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac2_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac2_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac2_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac2_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac2_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac2_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac2_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac2_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac2_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp2_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac2_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac2_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac2_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac2_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac2_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac2_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac2_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac2_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac2_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac2_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac2                        ),
-        .o_dmac_hash_key                    (w_dmac2_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac2                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac2_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac2                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac2_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac2_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac2                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac2_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac2                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac2_vld                           ), // smac_vld
         .i_swlist_tx_port                   (w_tx_2_port                           ),
         .i_swlist_vld                       (w_tx_2_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_2_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx2_req                             ),
-        .i_mac_tx0_ack                      (i_mac2_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac2_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac2_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac2_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac2_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac2_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac2_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac2_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac2_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac2_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac2_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac2_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac2_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac2_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac2_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac2_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac2_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac2_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac2_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac2_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac2_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac2_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac2_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac2_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac2_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac2_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac2_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac2_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac2_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac2_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac2_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac2_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac2_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac2_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac2_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac2_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac2_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac2_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac2_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac2_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac2_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac2_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac2_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac2_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac2_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac2_cross_metadata                      ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac2_cross_metadata_valid                ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac2_cross_metadata_last                 ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac2_cross_metadata_ready                ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac2_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac2_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac2_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac2_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac2_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac2_cross_metadata                      ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac2_cross_metadata_valid                ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac2_cross_metadata_last                 ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac2_cross_metadata_ready                ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac2_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac2_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac2_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac2_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac2_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac2_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac2_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac2_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac2_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac2_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_2), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_2), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac2_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac2_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac2_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac2_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac2_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac2_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac2_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac2_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_2), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_2), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_2),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_2), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_2), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_2), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_2), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_2), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_2), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_2), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_2), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_2), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_2), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_2), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_2), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_2), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_2), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_2), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_2), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_2), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_2), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_2), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_2), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_2), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_2), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_2_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_2), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_2), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_2), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_2), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_2), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_2), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_c1			),  
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_c1_valid		),
@@ -2939,29 +2939,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_c_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_c   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_c_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_2), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_2           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_2           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_2               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_2         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_2          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_2          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_2), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_2)  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_2), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_2           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_2           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_2               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_2         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_2          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_2          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_2), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_2)  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC3
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (3                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (3                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst3 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -2973,105 +2973,105 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac3_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac3_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac3_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac3_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac3_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac3_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac3_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac3_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac3_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac3_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp3_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac3_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac3_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac3_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac3_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac3_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac3_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac3_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac3_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac3_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac3_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac3_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp3_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac3_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac3_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac3_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac3_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac3_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac3_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac3_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac3_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac3_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac3_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac3                        ),
-        .o_dmac_hash_key                    (w_dmac3_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac3                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac3_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac3                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac3_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac3_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac3                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac3_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac3                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac3_vld                           ), // smac_vld
 
         .i_swlist_tx_port                   (w_tx_3_port                           ),
         .i_swlist_vld                       (w_tx_3_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_3_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx3_req                             ),
-        .i_mac_tx0_ack                      (i_mac3_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac3_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac3_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac3_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac3_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac3_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac3_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac3_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac3_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac3_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac3_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac3_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac3_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac3_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac3_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac3_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac3_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac3_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac3_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac3_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac3_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac3_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac3_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac3_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac3_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac3_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac3_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac3_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac3_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac3_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac3_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac3_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac3_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac3_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac3_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac3_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac3_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac3_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac3_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac3_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac3_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac3_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac3_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac3_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac3_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac3_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac3_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac3_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac3_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac3_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac3_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac3_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac3_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac3_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac3_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac3_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac3_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac3_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac3_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac3_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac3_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac3_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac3_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac3_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac3_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac3_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac3_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac3_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_3), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_3), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac3_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac3_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac3_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac3_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac3_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac3_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac3_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac3_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_3), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_3), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_3),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_3), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_3), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_3), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_3), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_3), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_3), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_3), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_3), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_3), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_3), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_3), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_3), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_3), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_3), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_3), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_3), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_3), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_3), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_3), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_3), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_3), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_3), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_3_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_3), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_3), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_3), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_3), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_3), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_3), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_d1			),
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_d1_valid		),
@@ -3121,29 +3121,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_d_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_d   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_d_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_3                 ), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_3           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_3           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_3               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_3         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_3          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_3          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_3                 ), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_3                )  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_3                 ), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_3           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_3           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_3               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_3         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_3          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_3          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_3                 ), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_3                )  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC4
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (4                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (4                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst4 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -3155,105 +3155,105 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac4_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac4_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac4_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac4_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac4_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac4_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac4_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac4_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac4_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac4_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp4_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac4_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac4_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac4_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac4_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac4_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac4_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac4_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac4_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac4_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac4_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac4_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp4_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac4_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac4_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac4_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac4_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac4_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac4_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac4_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac4_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac4_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac4_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac4                        ),
-        .o_dmac_hash_key                    (w_dmac4_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac4                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac4_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac4                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac4_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac4_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac4                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac4_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac4                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac4_vld                           ), // smac_vld
         
         .i_swlist_tx_port                   (w_tx_4_port                           ),
         .i_swlist_vld                       (w_tx_4_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_4_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx4_req                             ),
-        .i_mac_tx0_ack                      (i_mac4_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac4_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac4_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac4_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac4_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac4_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac4_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac4_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac4_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac4_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac4_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac4_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac4_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac4_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac4_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac4_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac4_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac4_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac4_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac4_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac4_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac4_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac4_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac4_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac4_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac4_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac4_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac4_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac4_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac4_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac4_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac4_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac4_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac4_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ ------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac4_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac4_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac4_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac4_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac4_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac4_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac4_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac4_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac4_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac4_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac4_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac4_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac4_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac4_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac4_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac4_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac4_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac4_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac4_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac4_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac4_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac4_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac4_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac4_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac4_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac4_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac4_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac4_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac4_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac4_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac4_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac4_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac4_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac4_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_4), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_4), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac4_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac4_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac4_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac4_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac4_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac4_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac4_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac4_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_4), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_4), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_4), 
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_4), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_4), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_4), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_4), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_4), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_4), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_4), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_4), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_4), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_4), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_4), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_4), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_4), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_4), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_4), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_4), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_4), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_4), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_4), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_4), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_4), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_4), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_4_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_4), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_4), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_4), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_4), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_4), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_4), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_e1			),
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_e1_valid		),
@@ -3303,29 +3303,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_e_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_e   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_e_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_4), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_4           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_4           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_4               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_4         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_4          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_4          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_4                 ), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_4                )  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_4), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_4           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_4           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_4               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_4         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_4          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_4          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_4                 ), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_4                )  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC5
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (5                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (5                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst5 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -3337,105 +3337,105 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac5_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac5_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac5_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac5_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac5_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac5_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac5_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac5_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac5_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac5_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp5_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac5_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac5_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac5_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac5_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac5_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac5_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac5_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac5_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac5_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac5_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac5_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp5_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac5_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac5_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac5_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac5_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac5_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac5_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac5_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac5_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac5_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac5_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac5                        ),
-        .o_dmac_hash_key                    (w_dmac5_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac5                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac5_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac5                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac5_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac5_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac5                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac5_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac5                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac5_vld                           ), // smac_vld
         
         .i_swlist_tx_port                   (w_tx_5_port                           ),
         .i_swlist_vld                       (w_tx_5_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_5_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx5_req                             ),
-        .i_mac_tx0_ack                      (i_mac5_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac5_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac5_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac5_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac5_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac5_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac5_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac5_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac5_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac5_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac5_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac5_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac5_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac5_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac5_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac5_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac5_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac5_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac5_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac5_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac5_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac5_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac5_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac5_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac5_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac5_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac5_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac5_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac5_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac5_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac5_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac5_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac5_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac5_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac5_cross_port_link                ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac5_cross_port_speed               ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac5_cross_port_axi_data            ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac5_cross_port_link                ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac5_cross_port_speed               ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac5_cross_port_axi_data            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac5_cross_port_axi_user            ),
-        .o_mac_cross_axi_data_keep          (w_mac5_cross_axi_data_keep            ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac5_cross_axi_data_valid           ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac5_cross_axi_data_ready           ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac5_cross_axi_data_last            ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac5_cross_metadata                 ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac5_cross_metadata_valid           ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac5_cross_metadata_last            ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac5_cross_metadata_ready           ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac5_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac5_cross_axi_data_keep            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac5_cross_axi_data_valid           ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac5_cross_axi_data_ready           ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac5_cross_axi_data_last            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac5_cross_metadata                 ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac5_cross_metadata_valid           ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac5_cross_metadata_last            ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac5_cross_metadata_ready           ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac5_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac5_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac5_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac5_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac5_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac5_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac5_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac5_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac5_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac5_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_5), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_5), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac5_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac5_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac5_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac5_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac5_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac5_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac5_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac5_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_5), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_5), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_5),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_5), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_5), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_5), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_5), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_5), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_5), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_5), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_5), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_5), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_5), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_5), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_5), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_5), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_5), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_5), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_5), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_5), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_5), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_5), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_5), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_5), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_5), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_5_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_5), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_5), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_5), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_5), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_5), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_5), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_f1			),
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_f1_valid		),
@@ -3485,29 +3485,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_f_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_f   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_f_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_5), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_5           ), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_5           ), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_5               ), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_5         ), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_5          ), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_5          ), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_5), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_5)  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_5), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_5           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_5           ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_5               ), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_5         ), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_5          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_5          ), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_5), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_5)  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC6
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (6                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (6                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst6 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -3519,105 +3519,105 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac6_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac6_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac6_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac6_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac6_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac6_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac6_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac6_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac6_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac6_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp6_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac6_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac6_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac6_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac6_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac6_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac6_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac6_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac6_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac6_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac6_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac6_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp6_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac6_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac6_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac6_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac6_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac6_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac6_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac6_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac6_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac6_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac6_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac6                        ),
-        .o_dmac_hash_key                    (w_dmac6_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac6                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac6_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac6                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac6_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac6_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac6                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac6_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac6                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac6_vld                           ), // smac_vld
         
         .i_swlist_tx_port                   (w_tx_6_port                           ),
         .i_swlist_vld                       (w_tx_6_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_6_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx6_req                             ),
-        .i_mac_tx0_ack                      (i_mac6_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac6_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac6_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac6_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac6_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac6_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac6_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac6_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac6_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac6_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac6_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac6_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac6_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac6_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac6_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac6_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac6_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac6_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac6_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac6_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac6_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac6_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac6_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac6_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac6_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac6_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac6_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac6_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac6_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac6_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac6_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac6_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac6_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac6_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac6_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac6_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac6_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac6_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac6_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac6_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac6_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac6_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac6_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac6_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac6_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac6_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac6_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac6_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac6_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac6_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        .o_mac_cross_axi_data_keep          (w_mac6_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac6_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac6_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac6_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac6_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac6_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac6_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac6_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac6_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac6_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac6_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac6_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac6_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac6_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac6_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac6_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac6_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac6_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_6), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_6), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac6_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac6_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac6_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac6_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac6_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac6_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac6_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac6_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_6), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_6), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_6),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_6), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_6), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_6), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_6), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_6), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_6), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_6), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_6), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_6), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_6), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_6), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_6), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_6), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_6), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_6), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_6), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_6), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_6), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_6), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_6), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_6), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_6_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_6), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_6), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_6), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_6), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_6), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_6), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_g1			),
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_g1_valid		),
@@ -3667,29 +3667,29 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_g_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_g   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_g_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_6), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_6), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_6), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_6), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_6), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_6), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_6), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_6), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_6)  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_6), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_6), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_6), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_6), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_6)  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
 `ifdef MAC7
     rx_port_mng#(
-        .PORT_NUM                           (PORT_NUM                               ), // ½»»»»úµÄ¶Ë¿ÚÊý
-        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng Êý¾ÝÎ»¿í
-        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ¹þÏ£¼ÆËãµÄÖµµÄÎ»¿í 
-        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ÐÅÏ¢Á÷Î»¿í
-        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ¾ÛºÏ×ÜÏßÊä³ö
-        .PORT_INDEX                         (7                                      )  // ¶Ë¿ÚºÅ  
+        .PORT_NUM                           (PORT_NUM                               ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½
+        .PORT_MNG_DATA_WIDTH                (PORT_MNG_DATA_WIDTH                    ), // Mac_port_mng ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
+        .HASH_DATA_WIDTH                    (HASH_DATA_WIDTH                        ), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Î»ï¿½ï¿½ 
+        .METADATA_WIDTH                     (METADATA_WIDTH                         ), // ï¿½ï¿½Ï¢ï¿½ï¿½Î»ï¿½ï¿½
+        .CROSS_DATA_WIDTH                   (CROSS_DATA_WIDTH                       ),  // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .PORT_INDEX                         (7                                      )  // ï¿½Ë¿Úºï¿½  
     )rx_port_mng_inst7 (
         .i_clk                              (i_clk                                  ),       // 250MHz
         .i_rst                              (i_rst                                  ),
@@ -3701,106 +3701,106 @@ module rx_mac_mng#(
         // .i_switch_reg_bus_rd_addr           (i_switch_reg_bus_rd_addr               ),
         // .o_switch_reg_bus_we_dout           (o_switch_reg_bus_we_dout               ),
         // .o_switch_reg_bus_we_dout_v         (o_switch_reg_bus_we_dout_v             ),
-        /*---------------------------------------- ÊäÈëµÄ MAC Êý¾ÝÁ÷ -------------------------------------------*/
-        .i_mac_port_link                    (w_mac7_port_link                       ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        .i_mac_port_speed                   (w_mac7_port_speed                      ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G
-        .i_mac_port_filter_preamble_v       (w_mac7_port_filter_preamble_v          ), // ¶Ë¿ÚÊÇ·ñ¹ýÂËÇ°µ¼ÂëÐÅÏ¢
-        .i_mac_axi_data                     (w_mac7_axi_data                        ), // ¶Ë¿ÚÊý¾ÝÁ÷
-        .i_mac_axi_data_keep                (w_mac7_axi_data_keep                   ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .i_mac_axi_data_valid               (w_mac7_axi_data_valid                  ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .o_mac_axi_data_ready               (w_mac7_axi_data_ready                  ), // ¶Ë¿ÚÊý¾Ý¾ÍÐ÷ÐÅºÅ,±íÊ¾µ±Ç°Ä£¿é×¼±¸ºÃ½ÓÊÕÊý¾Ý
-        .i_mac_axi_data_last                (w_mac7_axi_data_last                   ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- ´òÊ±¼ä´ÁÐÅºÅ -------------------------------------------*/
-        .o_mac_time_irq                     (w_mac7_time_irq                        ) , // ´òÊ±¼ä´ÁÖÐ¶ÏÐÅºÅ
-        .o_mac_frame_seq                    (w_mac7_frame_seq                       ) , // Ö¡ÐòÁÐºÅ
-        .o_timestamp_addr                   (w_timestamp7_addr                      ) , // ´òÊ±¼ä´Á´æ´¢µÄ RAM µØÖ·
-        // R-TAG ÐòÁÐºÅÓëÓÐÐ§ÐÅºÅÊä³ö
-        .o_rtag_flag                        (w_mac7_rtag_flag                       ), // ÊÇ·ñÐ¯´ørtag±êÇ©,ÊÇCBÒµÎñÖ¡,ÐèÒªÏÈ¹ýCBÄ£¿é¾õ¶¨ÊÇ·ñ¶ªÆúºó,ÔÙËÍÈëcrossbar
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½ï¿½ MAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_mac_port_link                    (w_mac7_port_link                       ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        .i_mac_port_speed                   (w_mac7_port_speed                      ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G
+        .i_mac_port_filter_preamble_v       (w_mac7_port_filter_preamble_v          ), // ï¿½Ë¿ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+        .i_mac_axi_data                     (w_mac7_axi_data                        ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_keep                (w_mac7_axi_data_keep                   ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .i_mac_axi_data_valid               (w_mac7_axi_data_valid                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .o_mac_axi_data_ready               (w_mac7_axi_data_ready                  ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½Ý¾ï¿½ï¿½ï¿½ï¿½Åºï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½Ç°Ä£ï¿½ï¿½×¼ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_axi_data_last                (w_mac7_axi_data_last                   ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Åºï¿½ -------------------------------------------*/
+        .o_mac_time_irq                     (w_mac7_time_irq                        ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Ð¶ï¿½ï¿½Åºï¿½
+        .o_mac_frame_seq                    (w_mac7_frame_seq                       ) , // Ö¡ï¿½ï¿½ï¿½Ðºï¿½
+        .o_timestamp_addr                   (w_timestamp7_addr                      ) , // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½æ´¢ï¿½ï¿½ RAM ï¿½ï¿½Ö·
+        // R-TAG ï¿½ï¿½ï¿½Ðºï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½ï¿½ï¿½ï¿½
+        .o_rtag_flag                        (w_mac7_rtag_flag                       ), // ï¿½Ç·ï¿½Ð¯ï¿½ï¿½rtagï¿½ï¿½Ç©,ï¿½ï¿½CBÒµï¿½ï¿½Ö¡,ï¿½ï¿½Òªï¿½È¹ï¿½CBÄ£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½crossbar
         .o_rtag_squence                     (w_mac7_rtag_squence                    ), // rtag_squencenum
-        .o_stream_handle                    (w_mac7_stream_handle                   ), // ACLÁ÷Ê¶±ð,Çø·ÖÁ÷,Ã¿¸öÁ÷µ¥¶ÀÎ¬»¤×Ô¼ºµÄ
+        .o_stream_handle                    (w_mac7_stream_handle                   ), // ACLï¿½ï¿½Ê¶ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î¬ï¿½ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
         
-        .i_pass_en                          (i_mac7_pass_en                         ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ½ÓÊÕ¸ÃÖ¡
-        .i_discard_en                       (i_mac7_discard_en                      ), // ÅÐ¶Ï½á¹û,¿ÉÒÔ¶ªÆú¸ÃÖ¡
-        .i_judge_finish                     (i_mac7_judge_finish                    ), // ÅÐ¶Ï½á¹û,±íÊ¾±¾´Î±¨ÎÄµÄÅÐ¶ÏÍê³É  
-        /*---------------------------------------- ¼ÆËãµÄ¹þÏ£Öµ -------------------------------------------*/
+        .i_pass_en                          (i_mac7_pass_en                         ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô½ï¿½ï¿½Õ¸ï¿½Ö¡
+        .i_discard_en                       (i_mac7_discard_en                      ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_judge_finish                     (i_mac7_judge_finish                    ), // ï¿½Ð¶Ï½ï¿½ï¿½,ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½Î±ï¿½ï¿½Äµï¿½ï¿½Ð¶ï¿½ï¿½ï¿½ï¿½  
+        /*---------------------------------------- ï¿½ï¿½ï¿½ï¿½Ä¹ï¿½Ï£Öµ -------------------------------------------*/
         .o_vlan_id                          (w_vlan_id_mac7                        ),
-        .o_dmac_hash_key                    (w_dmac7_hash_key                      ), // Ä¿µÄ mac µÄ¹þÏ£Öµ
-        .o_dmac                             (w_dmac7                               ), // Ä¿µÄ mac µÄÖµ
+        .o_dmac_hash_key                    (w_dmac7_hash_key                      ), // Ä¿ï¿½ï¿½ mac ï¿½Ä¹ï¿½Ï£Öµ
+        .o_dmac                             (w_dmac7                               ), // Ä¿ï¿½ï¿½ mac ï¿½ï¿½Öµ
         .o_dmac_vld                         (w_dmac7_vld                           ), // dmac_vld
-        .o_smac_hash_key                    (w_smac7_hash_key                      ), // Ô´ mac µÄÖµÓÐÐ§±êÊ¶
-        .o_smac                             (w_smac7                               ), // Ô´ mac µÄÖµ
+        .o_smac_hash_key                    (w_smac7_hash_key                      ), // Ô´ mac ï¿½ï¿½Öµï¿½ï¿½Ð§ï¿½ï¿½Ê¶
+        .o_smac                             (w_smac7                               ), // Ô´ mac ï¿½ï¿½Öµ
         .o_smac_vld                         (w_smac7_vld                           ), // smac_vld
         
         .i_swlist_tx_port                   (w_tx_7_port                           ),
         .i_swlist_vld                       (w_tx_7_port_vld                       ),
         .i_swlist_port_broadcast            (w_tx_7_port_broadcast                 ),
-        // »º´æ½»»¥Âß¼­
+        // ï¿½ï¿½ï¿½æ½»ï¿½ï¿½ï¿½ß¼ï¿½
         .o_tx_req                           (o_tx7_req                             ),
-        .i_mac_tx0_ack                      (i_mac7_tx0_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx0_ack_rst                  (i_mac7_tx0_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx1_ack                      (i_mac7_tx1_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx1_ack_rst                  (i_mac7_tx1_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û  
-        .i_mac_tx2_ack                      (i_mac7_tx2_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx2_ack_rst                  (i_mac7_tx2_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx3_ack                      (i_mac7_tx3_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx3_ack_rst                  (i_mac7_tx3_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx4_ack                      (i_mac7_tx4_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx4_ack_rst                  (i_mac7_tx4_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx5_ack                      (i_mac7_tx5_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx5_ack_rst                  (i_mac7_tx5_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx6_ack                      (i_mac7_tx6_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx6_ack_rst                  (i_mac7_tx6_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
-        .i_mac_tx7_ack                      (i_mac7_tx7_ack                        ), // ÏìÓ¦Ê¹ÄÜÐÅºÅ
-        .i_mac_tx7_ack_rst                  (i_mac7_tx7_ack_rst                    ), // ¶Ë¿ÚµÄÓÅÏÈ¼¶ÏòÁ¿½á¹û
+        .i_mac_tx0_ack                      (i_mac7_tx0_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx0_ack_rst                  (i_mac7_tx0_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx1_ack                      (i_mac7_tx1_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx1_ack_rst                  (i_mac7_tx1_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½  
+        .i_mac_tx2_ack                      (i_mac7_tx2_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx2_ack_rst                  (i_mac7_tx2_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx3_ack                      (i_mac7_tx3_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx3_ack_rst                  (i_mac7_tx3_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx4_ack                      (i_mac7_tx4_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx4_ack_rst                  (i_mac7_tx4_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx5_ack                      (i_mac7_tx5_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx5_ack_rst                  (i_mac7_tx5_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx6_ack                      (i_mac7_tx6_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx6_ack_rst                  (i_mac7_tx6_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_mac_tx7_ack                      (i_mac7_tx7_ack                        ), // ï¿½ï¿½Ó¦Ê¹ï¿½ï¿½ï¿½Åºï¿½
+        .i_mac_tx7_ack_rst                  (i_mac7_tx7_ack_rst                    ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½È¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
         .o_qbu_verify_valid                 (o_mac7_qbu_verify_valid               ),
         .o_qbu_response_valid               (o_mac7_qbu_response_valid             ),
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÊý¾ÝÁ÷ -------------------------------------------*/
-        // .o_mac_cross_port_link              (w_mac7_cross_port_link                 ), // ¶Ë¿ÚµÄÁ¬½Ó×´Ì¬
-        // .o_mac_cross_port_speed             (w_mac7_cross_port_speed                ), // ¶Ë¿ÚËÙÂÊÐÅÏ¢,00-10M,01-100M,10-1000M,10-10G 
-        .o_mac_cross_port_axi_data          (w_mac7_cross_port_axi_data             ), // ¶Ë¿ÚÊý¾ÝÁ÷,×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
+        // .o_mac_cross_port_link              (w_mac7_cross_port_link                 ), // ï¿½Ë¿Úµï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬
+        // .o_mac_cross_port_speed             (w_mac7_cross_port_speed                ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢,00-10M,01-100M,10-1000M,10-10G 
+        .o_mac_cross_port_axi_data          (w_mac7_cross_port_axi_data             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_mac_cross_port_axi_user          (w_mac7_cross_port_axi_user             ),
-        .o_mac_cross_axi_data_keep          (w_mac7_cross_axi_data_keep             ), // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë,ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_mac_cross_axi_data_valid         (w_mac7_cross_axi_data_valid            ), // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_mac_cross_axi_data_ready         (w_mac7_cross_axi_data_ready            ), // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_mac_cross_axi_data_last          (w_mac7_cross_axi_data_last             ), // Êý¾ÝÁ÷½áÊø±êÊ¶
-        /*---------------------------------------- µ¥ PORT ¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_cross_metadata                   (w_mac7_cross_metadata                  ), // ¾ÛºÏ×ÜÏß metadata Êý¾Ý
-        .o_cross_metadata_valid             (w_mac7_cross_metadata_valid            ), // ¾ÛºÏ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_cross_metadata_last              (w_mac7_cross_metadata_last             ), // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_cross_metadata_ready             (w_mac7_cross_metadata_ready            ), // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
+        .o_mac_cross_axi_data_keep          (w_mac7_cross_axi_data_keep             ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_mac_cross_axi_data_valid         (w_mac7_cross_axi_data_valid            ), // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_mac_cross_axi_data_ready         (w_mac7_cross_axi_data_ready            ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_mac_cross_axi_data_last          (w_mac7_cross_axi_data_last             ), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_cross_metadata                   (w_mac7_cross_metadata                  ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_cross_metadata_valid             (w_mac7_cross_metadata_valid            ), // ï¿½Ûºï¿½ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_cross_metadata_last              (w_mac7_cross_metadata_last             ), // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_cross_metadata_ready             (w_mac7_cross_metadata_ready            ), // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
         
-        /*---------------------------------------- µ¥ PORT ¹Ø¼üÖ¡¾ÛºÏÐÅÏ¢Á÷ -------------------------------------------*/
-        .o_emac_port_axi_data               (w_emac7_port_axi_data                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷£¬×î¸ßÎ»±íÊ¾crcerr
+        /*---------------------------------------- ï¿½ï¿½ PORT ï¿½Ø¼ï¿½Ö¡ï¿½Ûºï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ -------------------------------------------*/
+        .o_emac_port_axi_data               (w_emac7_port_axi_data                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½Ê¾crcerr
         .o_emac_port_axi_user               (w_emac7_port_axi_user                  ) ,
-        .o_emac_axi_data_keep               (w_emac7_axi_data_keep                  ) , // ¶Ë¿ÚÊý¾ÝÁ÷ÑÚÂë£¬ÓÐÐ§×Ö½ÚÖ¸Ê¾
-        .o_emac_axi_data_valid              (w_emac7_axi_data_valid                 ) , // ¶Ë¿ÚÊý¾ÝÓÐÐ§
-        .i_emac_axi_data_ready              (w_emac7_axi_data_ready                 ) , // ½»²æ×ÜÏß¾ÛºÏ¼Ü¹¹·´Ñ¹Á÷Ë®ÏßÐÅºÅ
-        .o_emac_axi_data_last               (w_emac7_axi_data_last                  ) , // Êý¾ÝÁ÷½áÊø±êÊ¶ 
-        .o_emac_metadata                    (w_emac7_metadata                       ) , // ×ÜÏß metadata Êý¾Ý
-        .o_emac_metadata_valid              (w_emac7_metadata_valid                 ) , // ×ÜÏß metadata Êý¾ÝÓÐÐ§ÐÅºÅ
-        .o_emac_metadata_last               (w_emac7_metadata_last                  ) , // ÐÅÏ¢Á÷½áÊø±êÊ¶
-        .i_emac_metadata_ready              (w_emac7_metadata_ready                 ) , // ÏÂÓÎÄ£¿é·´Ñ¹Á÷Ë®Ïß 
-        /*---------------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------------*/
-        .i_hash_ploy_regs                   (w_hash_ploy_regs_7), // ¹þÏ£¶àÏîÊ½
-        .i_hash_init_val_regs               (w_hash_init_val_regs_7), // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
+        .o_emac_axi_data_keep               (w_emac7_axi_data_keep                  ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¬ï¿½ï¿½Ð§ï¿½Ö½ï¿½Ö¸Ê¾
+        .o_emac_axi_data_valid              (w_emac7_axi_data_valid                 ) , // ï¿½Ë¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§
+        .i_emac_axi_data_ready              (w_emac7_axi_data_ready                 ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¾ÛºÏ¼Ü¹ï¿½ï¿½ï¿½Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ï¿½Åºï¿½
+        .o_emac_axi_data_last               (w_emac7_axi_data_last                  ) , // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶ 
+        .o_emac_metadata                    (w_emac7_metadata                       ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½
+        .o_emac_metadata_valid              (w_emac7_metadata_valid                 ) , // ï¿½ï¿½ï¿½ï¿½ metadata ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_emac_metadata_last               (w_emac7_metadata_last                  ) , // ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¶
+        .i_emac_metadata_ready              (w_emac7_metadata_ready                 ) , // ï¿½ï¿½ï¿½ï¿½Ä£ï¿½é·´Ñ¹ï¿½ï¿½Ë®ï¿½ï¿½ 
+        /*---------------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------------*/
+        .i_hash_ploy_regs                   (w_hash_ploy_regs_7), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .i_hash_init_val_regs               (w_hash_init_val_regs_7), // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
         .i_hash_regs_vld                    (w_hash_regs_vld_7),
-        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_7), // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_7), // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_7), // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_7), // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .i_port_mac_regs                    (w_port_mac_regs_7), // ¶Ë¿ÚµÄ MAC µØÖ·
-        .i_port_mac_vld_regs                (w_port_mac_vld_regs_7), // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .i_port_mtu_regs                    (w_port_mtu_regs_7), // MTUÅäÖÃÖµ
-        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_7), // ¾µÏñ×ª·¢¼Ä´æÆ÷,Èô¶ÔÓ¦µÄ¶Ë¿ÚÖÃ1,Ôò±¾¶Ë¿Ú½ÓÊÕµ½µÄÈÎºÎ×ª·¢Êý¾ÝÖ¡½«¾µÏñ×ª·¢Öµ±»ÖÃ1µÄ¶Ë¿Ú
-        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_7), // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_7), // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .i_acl_port_sel                     (w_acl_port_sel_7), // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .i_port_rxmac_down_regs             (w_port_rxmac_down_regs_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .i_port_broadcast_drop_regs         (w_port_broadcast_drop_regs_7), // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_multicast_drop_regs         (w_port_multicast_drop_regs_7), // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_loopback_drop_regs          (w_port_loopback_drop_regs_7), // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .i_port_mac_regs                    (w_port_mac_regs_7), // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .i_port_mac_vld_regs                (w_port_mac_vld_regs_7), // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .i_port_mtu_regs                    (w_port_mtu_regs_7), // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_mirror_frwd_regs            (w_port_mirror_frwd_regs_7), // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ä¶Ë¿ï¿½ï¿½ï¿½1,ï¿½ò±¾¶Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½Îºï¿½×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Öµï¿½ï¿½ï¿½ï¿½1ï¿½Ä¶Ë¿ï¿½
+        .i_port_flowctrl_cfg_regs           (w_port_flowctrl_cfg_regs_7), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashortinterval_num   (w_port_rx_ultrashortinterval_num_7), // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_acl_port_sel                     (w_acl_port_sel_7), // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.i_acl_port_sel_valid				(w_acl_port_sel_7_valid),
-        .i_acl_clr_list_regs                (w_acl_clr_list_regs_7), // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_7), // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .i_acl_item_sel_regs                (w_acl_item_sel_regs_7), // ÅäÖÃÌõÄ¿Ñ¡Ôñ
+        .i_acl_clr_list_regs                (w_acl_clr_list_regs_7), // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .o_acl_list_rdy_regs                (w_acl_list_rdy_regs_7), // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_acl_item_sel_regs                (w_acl_item_sel_regs_7), // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
 		// DMAC
 		.i_cfg_acl_item_dmac_code_1     					(w_cfg_acl_item_dmac_code_h1			),
 		.i_cfg_acl_item_dmac_code_1_valid					(w_cfg_acl_item_dmac_code_h1_valid		),
@@ -3850,720 +3850,720 @@ module rx_mac_mng#(
 		.i_cfg_acl_item_action_flowctrl_valid				(w_cfg_acl_item_action_flowctrl_h_valid		),
 		.i_cfg_acl_item_action_txport   					(w_cfg_acl_item_action_txport_h   			),
 		.i_cfg_acl_item_action_txport_valid					(w_cfg_acl_item_action_txport_h_valid			),
-        // ×´Ì¬¼Ä´æÆ÷
-        .o_port_diag_state                  (w_port_diag_state_7), // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷,ÏêÇé¼û¼Ä´æÆ÷±íËµÃ÷¶¨Òå 
-        // Õï¶Ï¼Ä´æÆ÷
-        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_7), // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_7), // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_7), // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_7), // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_7), // ¶Ë¿Ú½ÓÊÕµ½¹ã²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_7), // ¶Ë¿Ú½ÓÊÕµ½×é²¥ÏÞÁ÷¶ø¶ªÆúµÄÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_7), // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_7)  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ  
+        // ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_diag_state                  (w_port_diag_state_7), // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
+        // ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashort_frm           (w_port_rx_ultrashort_frm_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .o_port_rx_overlength_frm           (w_port_rx_overlength_frm_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .o_port_rx_crcerr_frm               (w_port_rx_crcerr_frm_7), // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .o_port_rx_loopback_frm_cnt         (w_port_rx_loopback_frm_cnt_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_broadflow_drop_cnt          (w_port_broadflow_drop_cnt_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_multiflow_drop_cnt          (w_port_multiflow_drop_cnt_7), // ï¿½Ë¿Ú½ï¿½ï¿½Õµï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .o_port_rx_byte_cnt                 (w_port_rx_byte_cnt_7), // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_rx_frame_cnt                (w_port_rx_frame_cnt_7)  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ  
     );
 `endif
 
-/*---------------------------------------- rx_mac_reg Ä£¿éÀý»¯ -------------------------------------------*/
+/*---------------------------------------- rx_mac_reg Ä£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -------------------------------------------*/
 rx_mac_reg #(
     .PORT_NUM               (PORT_NUM               ),
     .REG_ADDR_BUS_WIDTH     (REG_ADDR_BUS_WIDTH     ),
     .REG_DATA_BUS_WIDTH     (REG_DATA_BUS_WIDTH     )
 ) u_rx_mac_reg (
     .i_clk                                          (i_clk                  ),  // 250MHz
-    .i_rst                                          (i_rst                  ),  // ¸´Î»ÐÅºÅ
-    /*-------------------------------- Æ½Ì¨¼Ä´æÆ÷ÊäÈëÓë RXMAC Ïà¹ØµÄ¼Ä´æÆ÷ -------------------------------------*/
+    .i_rst                                          (i_rst                  ),  // ï¿½ï¿½Î»ï¿½Åºï¿½
+    /*-------------------------------- Æ½Ì¨ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RXMAC ï¿½ï¿½ØµÄ¼Ä´ï¿½ï¿½ï¿½ -------------------------------------*/
     `ifdef CPU_MAC
-        .o_hash_ploy_regs_0                             (w_hash_ploy_regs_0                             ),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_0                         (w_hash_init_val_regs_0                         ),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_0                              (w_hash_regs_vld_0                              ),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_0                       (w_port_rxmac_down_regs_0                       ),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_0                   (w_port_broadcast_drop_regs_0                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_0                   (w_port_multicast_drop_regs_0                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_0                    (w_port_loopback_drop_regs_0                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_0                              (w_port_mac_regs_0                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_0                          (w_port_mac_vld_regs_0                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_0                              (w_port_mtu_regs_0                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_0                      (w_port_mirror_frwd_regs_0                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_0                     (w_port_flowctrl_cfg_regs_0                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_0             (w_port_rx_ultrashortinterval_num_0             ),  // Ö¡¼ä¸ô
-        // ACL ¼Ä´æÆ÷
-        .o_acl_port_sel_0                               (w_acl_port_sel_0                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .o_hash_ploy_regs_0                             (w_hash_ploy_regs_0                             ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_0                         (w_hash_init_val_regs_0                         ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_0                              (w_hash_regs_vld_0                              ),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_0                       (w_port_rxmac_down_regs_0                       ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_0                   (w_port_broadcast_drop_regs_0                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_0                   (w_port_multicast_drop_regs_0                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_0                    (w_port_loopback_drop_regs_0                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_0                              (w_port_mac_regs_0                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_0                          (w_port_mac_vld_regs_0                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_0                              (w_port_mtu_regs_0                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_0                      (w_port_mirror_frwd_regs_0                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_0                     (w_port_flowctrl_cfg_regs_0                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_0             (w_port_rx_ultrashortinterval_num_0             ),  // Ö¡ï¿½ï¿½ï¿½
+        // ACL ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_acl_port_sel_0                               (w_acl_port_sel_0                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.o_acl_port_sel_0_valid							(w_acl_port_sel_0_valid							),
-        .o_acl_clr_list_regs_0                          (w_acl_clr_list_regs_0                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_0                          (w_acl_list_rdy_regs_0                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_0                          (w_acl_item_sel_regs_0                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-		.o_cfg_acl_item_dmac_code_a1            		(w_cfg_acl_item_dmac_code_a1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_a1_valid      		(w_cfg_acl_item_dmac_code_a1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_a2            		(w_cfg_acl_item_dmac_code_a2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_a2_valid      		(w_cfg_acl_item_dmac_code_a2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_a3            		(w_cfg_acl_item_dmac_code_a3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_a3_valid      		(w_cfg_acl_item_dmac_code_a3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_a4            		(w_cfg_acl_item_dmac_code_a4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_a4_valid      		(w_cfg_acl_item_dmac_code_a4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_a5            		(w_cfg_acl_item_dmac_code_a5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_a5_valid      		(w_cfg_acl_item_dmac_code_a5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_a6            		(w_cfg_acl_item_dmac_code_a6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_a6_valid      		(w_cfg_acl_item_dmac_code_a6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_a1            		(w_cfg_acl_item_smac_code_a1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_a1_valid      		(w_cfg_acl_item_smac_code_a1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_a2            		(w_cfg_acl_item_smac_code_a2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_a2_valid      		(w_cfg_acl_item_smac_code_a2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_a3            		(w_cfg_acl_item_smac_code_a3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_a3_valid      		(w_cfg_acl_item_smac_code_a3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_a4            		(w_cfg_acl_item_smac_code_a4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_a4_valid      		(w_cfg_acl_item_smac_code_a4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_a5            		(w_cfg_acl_item_smac_code_a5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_a5_valid      		(w_cfg_acl_item_smac_code_a5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_a6            		(w_cfg_acl_item_smac_code_a6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_a6_valid      		(w_cfg_acl_item_smac_code_a6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_a1            		(w_cfg_acl_item_vlan_code_a1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_a1_valid      		(w_cfg_acl_item_vlan_code_a1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_a2            		(w_cfg_acl_item_vlan_code_a2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_a2_valid      		(w_cfg_acl_item_vlan_code_a2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_a3            		(w_cfg_acl_item_vlan_code_a3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_a3_valid      		(w_cfg_acl_item_vlan_code_a3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_a4            		(w_cfg_acl_item_vlan_code_a4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_a4_valid      		(w_cfg_acl_item_vlan_code_a4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_a1       		(w_cfg_acl_item_ethertype_code_a1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_a1_valid 		(w_cfg_acl_item_ethertype_code_a1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_a2       		(w_cfg_acl_item_ethertype_code_a2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_a2_valid 		(w_cfg_acl_item_ethertype_code_a2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_a     		(w_cfg_acl_item_action_pass_state_a     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_a_valid		(w_cfg_acl_item_action_pass_state_a_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_a 		(w_cfg_acl_item_action_cb_streamhandle_a 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_a_valid	(w_cfg_acl_item_action_cb_streamhandle_a_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_a        		(w_cfg_acl_item_action_flowctrl_a        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_a_valid  		(w_cfg_acl_item_action_flowctrl_a_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_a          		(w_cfg_acl_item_action_txport_a          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_a_valid    		(w_cfg_acl_item_action_txport_a_valid    		),  // Ð´ÈëÓÐÐ§ÐÅºÅ
-        //  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_0                            (w_port_diag_state_0                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        //  Õï¶Ï¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_0                     (w_port_rx_ultrashort_frm_0                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_0                     (w_port_rx_overlength_frm_0                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_0                         (w_port_rx_crcerr_frm_0                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_0                   (w_port_rx_loopback_frm_cnt_0                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_0                    (w_port_broadflow_drop_cnt_0                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_0                    (w_port_multiflow_drop_cnt_0                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        // Á÷Á¿Í³¼Æ¼Ä´æÆ÷
-        .i_port_rx_byte_cnt_0                           (w_port_rx_byte_cnt_0                           ),  // ¶Ë¿Ú0½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_0                          (w_port_rx_frame_cnt_0                          ),  // ¶Ë¿Ú0½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        // qbu ¼Ä´æÆ÷       
-        .i_rx_busy_0                                    (w_rx_busy_0                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_0                            (w_rx_fragment_cnt_0                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_0                       (w_rx_fragment_mismatch_0                       ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_0                             (w_err_rx_crc_cnt_0                             ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_0                           (w_err_rx_frame_cnt_0                           ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_0                           (w_err_fragment_cnt_0                           ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_0                              (w_rx_frames_cnt_0                              ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_0                               (w_frag_next_rx_0                               ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_0                                  (w_frame_seq_0                                  ),  // Ö¡ÐòºÅ
-        .o_reset_0                                      (w_reset_0                                      ),  // ¶Ë¿Ú0¸´Î»ÐÅºÅ
+        .o_acl_clr_list_regs_0                          (w_acl_clr_list_regs_0                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_0                          (w_acl_list_rdy_regs_0                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_0                          (w_acl_item_sel_regs_0                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_dmac_code_a1            		(w_cfg_acl_item_dmac_code_a1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_a1_valid      		(w_cfg_acl_item_dmac_code_a1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_a2            		(w_cfg_acl_item_dmac_code_a2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_a2_valid      		(w_cfg_acl_item_dmac_code_a2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_a3            		(w_cfg_acl_item_dmac_code_a3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_a3_valid      		(w_cfg_acl_item_dmac_code_a3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_a4            		(w_cfg_acl_item_dmac_code_a4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_a4_valid      		(w_cfg_acl_item_dmac_code_a4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_a5            		(w_cfg_acl_item_dmac_code_a5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_a5_valid      		(w_cfg_acl_item_dmac_code_a5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_a6            		(w_cfg_acl_item_dmac_code_a6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_a6_valid      		(w_cfg_acl_item_dmac_code_a6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_a1            		(w_cfg_acl_item_smac_code_a1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_a1_valid      		(w_cfg_acl_item_smac_code_a1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_a2            		(w_cfg_acl_item_smac_code_a2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_a2_valid      		(w_cfg_acl_item_smac_code_a2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_a3            		(w_cfg_acl_item_smac_code_a3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_a3_valid      		(w_cfg_acl_item_smac_code_a3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_a4            		(w_cfg_acl_item_smac_code_a4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_a4_valid      		(w_cfg_acl_item_smac_code_a4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_a5            		(w_cfg_acl_item_smac_code_a5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_a5_valid      		(w_cfg_acl_item_smac_code_a5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_a6            		(w_cfg_acl_item_smac_code_a6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_a6_valid      		(w_cfg_acl_item_smac_code_a6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_a1            		(w_cfg_acl_item_vlan_code_a1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_a1_valid      		(w_cfg_acl_item_vlan_code_a1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_a2            		(w_cfg_acl_item_vlan_code_a2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_a2_valid      		(w_cfg_acl_item_vlan_code_a2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_a3            		(w_cfg_acl_item_vlan_code_a3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_a3_valid      		(w_cfg_acl_item_vlan_code_a3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_a4            		(w_cfg_acl_item_vlan_code_a4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_a4_valid      		(w_cfg_acl_item_vlan_code_a4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_a1       		(w_cfg_acl_item_ethertype_code_a1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_a1_valid 		(w_cfg_acl_item_ethertype_code_a1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_a2       		(w_cfg_acl_item_ethertype_code_a2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_a2_valid 		(w_cfg_acl_item_ethertype_code_a2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_a     		(w_cfg_acl_item_action_pass_state_a     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_a_valid		(w_cfg_acl_item_action_pass_state_a_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_a 		(w_cfg_acl_item_action_cb_streamhandle_a 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_a_valid	(w_cfg_acl_item_action_cb_streamhandle_a_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_a        		(w_cfg_acl_item_action_flowctrl_a        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_a_valid  		(w_cfg_acl_item_action_flowctrl_a_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_a          		(w_cfg_acl_item_action_txport_a          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_a_valid    		(w_cfg_acl_item_action_txport_a_valid    		),  // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        //  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_0                            (w_port_diag_state_0                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        //  ï¿½ï¿½Ï¼Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_0                     (w_port_rx_ultrashort_frm_0                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_0                     (w_port_rx_overlength_frm_0                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_0                         (w_port_rx_crcerr_frm_0                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_0                   (w_port_rx_loopback_frm_cnt_0                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_0                    (w_port_broadflow_drop_cnt_0                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_0                    (w_port_multiflow_drop_cnt_0                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // ï¿½ï¿½ï¿½ï¿½Í³ï¿½Æ¼Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_byte_cnt_0                           (w_port_rx_byte_cnt_0                           ),  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_0                          (w_port_rx_frame_cnt_0                          ),  // ï¿½Ë¿ï¿½0ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        // qbu ï¿½Ä´ï¿½ï¿½ï¿½       
+        .i_rx_busy_0                                    (w_rx_busy_0                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_0                            (w_rx_fragment_cnt_0                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_0                       (w_rx_fragment_mismatch_0                       ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_0                             (w_err_rx_crc_cnt_0                             ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_0                           (w_err_rx_frame_cnt_0                           ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_0                           (w_err_fragment_cnt_0                           ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_0                              (w_rx_frames_cnt_0                              ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_0                               (w_frag_next_rx_0                               ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_0                                  (w_frame_seq_0                                  ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_0                                      (w_reset_0                                      ),  // ï¿½Ë¿ï¿½0ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC1
-        .o_hash_ploy_regs_1                             (w_hash_ploy_regs_1                             ),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_1                         (w_hash_init_val_regs_1                         ),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_1                              (w_hash_regs_vld_1                              ),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_1                       (w_port_rxmac_down_regs_1                       ),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_1                   (w_port_broadcast_drop_regs_1                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_1                   (w_port_multicast_drop_regs_1                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_1                    (w_port_loopback_drop_regs_1                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_1                              (w_port_mac_regs_1                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_1                          (w_port_mac_vld_regs_1                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_1                              (w_port_mtu_regs_1                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_1                      (w_port_mirror_frwd_regs_1                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_1                     (w_port_flowctrl_cfg_regs_1                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_1             (w_port_rx_ultrashortinterval_num_1             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_1                               (w_acl_port_sel_1                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .o_hash_ploy_regs_1                             (w_hash_ploy_regs_1                             ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_1                         (w_hash_init_val_regs_1                         ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_1                              (w_hash_regs_vld_1                              ),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_1                       (w_port_rxmac_down_regs_1                       ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_1                   (w_port_broadcast_drop_regs_1                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_1                   (w_port_multicast_drop_regs_1                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_1                    (w_port_loopback_drop_regs_1                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_1                              (w_port_mac_regs_1                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_1                          (w_port_mac_vld_regs_1                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_1                              (w_port_mtu_regs_1                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_1                      (w_port_mirror_frwd_regs_1                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_1                     (w_port_flowctrl_cfg_regs_1                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_1             (w_port_rx_ultrashortinterval_num_1             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_1                               (w_acl_port_sel_1                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.o_acl_port_sel_1_valid							(w_acl_port_sel_1_valid							),
-        .o_acl_clr_list_regs_1                          (w_acl_clr_list_regs_1                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_1                          (w_acl_list_rdy_regs_1                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_cfg_acl_item_dmac_code_b1            		(w_cfg_acl_item_dmac_code_b1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_b1_valid      		(w_cfg_acl_item_dmac_code_b1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_b2            		(w_cfg_acl_item_dmac_code_b2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_b2_valid      		(w_cfg_acl_item_dmac_code_b2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_b3            		(w_cfg_acl_item_dmac_code_b3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_b3_valid      		(w_cfg_acl_item_dmac_code_b3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_b4            		(w_cfg_acl_item_dmac_code_b4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_b4_valid      		(w_cfg_acl_item_dmac_code_b4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_b5            		(w_cfg_acl_item_dmac_code_b5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_b5_valid      		(w_cfg_acl_item_dmac_code_b5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_b6            		(w_cfg_acl_item_dmac_code_b6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_b6_valid      		(w_cfg_acl_item_dmac_code_b6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_b1            		(w_cfg_acl_item_smac_code_b1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_b1_valid      		(w_cfg_acl_item_smac_code_b1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_b2            		(w_cfg_acl_item_smac_code_b2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_b2_valid      		(w_cfg_acl_item_smac_code_b2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_b3            		(w_cfg_acl_item_smac_code_b3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_b3_valid      		(w_cfg_acl_item_smac_code_b3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_b4            		(w_cfg_acl_item_smac_code_b4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_b4_valid      		(w_cfg_acl_item_smac_code_b4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_b5            		(w_cfg_acl_item_smac_code_b5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_b5_valid      		(w_cfg_acl_item_smac_code_b5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_b6            		(w_cfg_acl_item_smac_code_b6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_b6_valid      		(w_cfg_acl_item_smac_code_b6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_b1            		(w_cfg_acl_item_vlan_code_b1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_b1_valid      		(w_cfg_acl_item_vlan_code_b1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_b2            		(w_cfg_acl_item_vlan_code_b2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_b2_valid      		(w_cfg_acl_item_vlan_code_b2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_b3            		(w_cfg_acl_item_vlan_code_b3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_b3_valid      		(w_cfg_acl_item_vlan_code_b3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_b4            		(w_cfg_acl_item_vlan_code_b4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_b4_valid      		(w_cfg_acl_item_vlan_code_b4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_b1       		(w_cfg_acl_item_ethertype_code_b1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_b1_valid 		(w_cfg_acl_item_ethertype_code_b1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_b2       		(w_cfg_acl_item_ethertype_code_b2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_b2_valid 		(w_cfg_acl_item_ethertype_code_b2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_b     		(w_cfg_acl_item_action_pass_state_b     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_b_valid		(w_cfg_acl_item_action_pass_state_b_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_b 		(w_cfg_acl_item_action_cb_streamhandle_b 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_b_valid	(w_cfg_acl_item_action_cb_streamhandle_b_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_b        		(w_cfg_acl_item_action_flowctrl_b        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_b_valid  		(w_cfg_acl_item_action_flowctrl_b_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_b          		(w_cfg_acl_item_action_txport_b          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_b_valid    		(w_cfg_acl_item_action_txport_b_valid    		),  // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_1                            (w_port_diag_state_1                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_1                     (w_port_rx_ultrashort_frm_1                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_1                     (w_port_rx_overlength_frm_1                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_1                         (w_port_rx_crcerr_frm_1                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_1                   (w_port_rx_loopback_frm_cnt_1                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_1                    (w_port_broadflow_drop_cnt_1                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_1                    (w_port_multiflow_drop_cnt_1                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_1                           (w_port_rx_byte_cnt_1                           ),  // ¶Ë¿Ú1½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_1                          (w_port_rx_frame_cnt_1                          ),  // ¶Ë¿Ú1½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_1                                    (w_rx_busy_1                            ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_1                            (w_rx_fragment_cnt_1                    ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_1                       (w_rx_fragment_mismatch_1               ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_1                             (w_err_rx_crc_cnt_1                     ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_1                           (w_err_rx_frame_cnt_1                   ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_1                           (w_err_fragment_cnt_1                   ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_1                              (w_rx_frames_cnt_1                      ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_1                               (w_frag_next_rx_1                       ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_1                                  (w_frame_seq_1                          ),  // Ö¡ÐòºÅ
-        .o_reset_1                                      (w_reset_1                              ),  // ¶Ë¿Ú1¸´Î»ÐÅºÅ
+        .o_acl_clr_list_regs_1                          (w_acl_clr_list_regs_1                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_1                          (w_acl_list_rdy_regs_1                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_b1            		(w_cfg_acl_item_dmac_code_b1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_b1_valid      		(w_cfg_acl_item_dmac_code_b1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_b2            		(w_cfg_acl_item_dmac_code_b2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_b2_valid      		(w_cfg_acl_item_dmac_code_b2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_b3            		(w_cfg_acl_item_dmac_code_b3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_b3_valid      		(w_cfg_acl_item_dmac_code_b3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_b4            		(w_cfg_acl_item_dmac_code_b4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_b4_valid      		(w_cfg_acl_item_dmac_code_b4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_b5            		(w_cfg_acl_item_dmac_code_b5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_b5_valid      		(w_cfg_acl_item_dmac_code_b5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_b6            		(w_cfg_acl_item_dmac_code_b6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_b6_valid      		(w_cfg_acl_item_dmac_code_b6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_b1            		(w_cfg_acl_item_smac_code_b1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_b1_valid      		(w_cfg_acl_item_smac_code_b1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_b2            		(w_cfg_acl_item_smac_code_b2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_b2_valid      		(w_cfg_acl_item_smac_code_b2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_b3            		(w_cfg_acl_item_smac_code_b3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_b3_valid      		(w_cfg_acl_item_smac_code_b3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_b4            		(w_cfg_acl_item_smac_code_b4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_b4_valid      		(w_cfg_acl_item_smac_code_b4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_b5            		(w_cfg_acl_item_smac_code_b5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_b5_valid      		(w_cfg_acl_item_smac_code_b5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_b6            		(w_cfg_acl_item_smac_code_b6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_b6_valid      		(w_cfg_acl_item_smac_code_b6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_b1            		(w_cfg_acl_item_vlan_code_b1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_b1_valid      		(w_cfg_acl_item_vlan_code_b1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_b2            		(w_cfg_acl_item_vlan_code_b2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_b2_valid      		(w_cfg_acl_item_vlan_code_b2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_b3            		(w_cfg_acl_item_vlan_code_b3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_b3_valid      		(w_cfg_acl_item_vlan_code_b3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_b4            		(w_cfg_acl_item_vlan_code_b4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_b4_valid      		(w_cfg_acl_item_vlan_code_b4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_b1       		(w_cfg_acl_item_ethertype_code_b1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_b1_valid 		(w_cfg_acl_item_ethertype_code_b1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_b2       		(w_cfg_acl_item_ethertype_code_b2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_b2_valid 		(w_cfg_acl_item_ethertype_code_b2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_b     		(w_cfg_acl_item_action_pass_state_b     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_b_valid		(w_cfg_acl_item_action_pass_state_b_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_b 		(w_cfg_acl_item_action_cb_streamhandle_b 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_b_valid	(w_cfg_acl_item_action_cb_streamhandle_b_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_b        		(w_cfg_acl_item_action_flowctrl_b        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_b_valid  		(w_cfg_acl_item_action_flowctrl_b_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_b          		(w_cfg_acl_item_action_txport_b          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_b_valid    		(w_cfg_acl_item_action_txport_b_valid    		),  // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_1                            (w_port_diag_state_1                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_1                     (w_port_rx_ultrashort_frm_1                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_1                     (w_port_rx_overlength_frm_1                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_1                         (w_port_rx_crcerr_frm_1                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_1                   (w_port_rx_loopback_frm_cnt_1                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_1                    (w_port_broadflow_drop_cnt_1                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_1                    (w_port_multiflow_drop_cnt_1                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_1                           (w_port_rx_byte_cnt_1                           ),  // ï¿½Ë¿ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_1                          (w_port_rx_frame_cnt_1                          ),  // ï¿½Ë¿ï¿½1ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_1                                    (w_rx_busy_1                            ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_1                            (w_rx_fragment_cnt_1                    ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_1                       (w_rx_fragment_mismatch_1               ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_1                             (w_err_rx_crc_cnt_1                     ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_1                           (w_err_rx_frame_cnt_1                   ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_1                           (w_err_fragment_cnt_1                   ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_1                              (w_rx_frames_cnt_1                      ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_1                               (w_frag_next_rx_1                       ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_1                                  (w_frame_seq_1                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_1                                      (w_reset_1                              ),  // ï¿½Ë¿ï¿½1ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC2
-        .o_hash_ploy_regs_2                             (w_hash_ploy_regs_2                       ),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_2                         (w_hash_init_val_regs_2                       ),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_2                              (w_hash_regs_vld_2                          ),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_2                       (w_port_rxmac_down_regs_2                   ),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_2                   (w_port_broadcast_drop_regs_2                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_2                   (w_port_multicast_drop_regs_2                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_2                    (w_port_loopback_drop_regs_2                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_2                              (w_port_mac_regs_2                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_2                          (w_port_mac_vld_regs_2                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_2                              (w_port_mtu_regs_2                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_2                      (w_port_mirror_frwd_regs_2                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_2                     (w_port_flowctrl_cfg_regs_2                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_2             (w_port_rx_ultrashortinterval_num_2             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_2                               (w_acl_port_sel_2                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .o_hash_ploy_regs_2                             (w_hash_ploy_regs_2                       ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_2                         (w_hash_init_val_regs_2                       ),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_2                              (w_hash_regs_vld_2                          ),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_2                       (w_port_rxmac_down_regs_2                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_2                   (w_port_broadcast_drop_regs_2                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_2                   (w_port_multicast_drop_regs_2                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_2                    (w_port_loopback_drop_regs_2                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_2                              (w_port_mac_regs_2                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_2                          (w_port_mac_vld_regs_2                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_2                              (w_port_mtu_regs_2                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_2                      (w_port_mirror_frwd_regs_2                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_2                     (w_port_flowctrl_cfg_regs_2                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_2             (w_port_rx_ultrashortinterval_num_2             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_2                               (w_acl_port_sel_2                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.o_acl_port_sel_2_valid							(w_acl_port_sel_2_valid							),
-        .o_acl_clr_list_regs_2                          (w_acl_clr_list_regs_2                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_2                          (w_acl_list_rdy_regs_2                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_2                          (w_acl_item_sel_regs_2                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_c1            		(w_cfg_acl_item_dmac_code_c1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_c1_valid      		(w_cfg_acl_item_dmac_code_c1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_c2            		(w_cfg_acl_item_dmac_code_c2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_c2_valid      		(w_cfg_acl_item_dmac_code_c2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_c3            		(w_cfg_acl_item_dmac_code_c3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_c3_valid      		(w_cfg_acl_item_dmac_code_c3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_c4            		(w_cfg_acl_item_dmac_code_c4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_c4_valid      		(w_cfg_acl_item_dmac_code_c4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_c5            		(w_cfg_acl_item_dmac_code_c5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_c5_valid      		(w_cfg_acl_item_dmac_code_c5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_c6            		(w_cfg_acl_item_dmac_code_c6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_c6_valid      		(w_cfg_acl_item_dmac_code_c6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_c1            		(w_cfg_acl_item_smac_code_c1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_c1_valid      		(w_cfg_acl_item_smac_code_c1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_c2            		(w_cfg_acl_item_smac_code_c2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_c2_valid      		(w_cfg_acl_item_smac_code_c2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_c3            		(w_cfg_acl_item_smac_code_c3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_c3_valid      		(w_cfg_acl_item_smac_code_c3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_c4            		(w_cfg_acl_item_smac_code_c4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_c4_valid      		(w_cfg_acl_item_smac_code_c4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_c5            		(w_cfg_acl_item_smac_code_c5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_c5_valid      		(w_cfg_acl_item_smac_code_c5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_c6            		(w_cfg_acl_item_smac_code_c6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_c6_valid      		(w_cfg_acl_item_smac_code_c6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_c1            		(w_cfg_acl_item_vlan_code_c1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_c1_valid      		(w_cfg_acl_item_vlan_code_c1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_c2            		(w_cfg_acl_item_vlan_code_c2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_c2_valid      		(w_cfg_acl_item_vlan_code_c2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_c3            		(w_cfg_acl_item_vlan_code_c3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_c3_valid      		(w_cfg_acl_item_vlan_code_c3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_c4            		(w_cfg_acl_item_vlan_code_c4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_c4_valid      		(w_cfg_acl_item_vlan_code_c4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_c1       		(w_cfg_acl_item_ethertype_code_c1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_c1_valid 		(w_cfg_acl_item_ethertype_code_c1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_c2       		(w_cfg_acl_item_ethertype_code_c2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_c2_valid 		(w_cfg_acl_item_ethertype_code_c2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_c     		(w_cfg_acl_item_action_pass_state_c     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_c_valid		(w_cfg_acl_item_action_pass_state_c_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_c 		(w_cfg_acl_item_action_cb_streamhandle_c 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_c_valid	(w_cfg_acl_item_action_cb_streamhandle_c_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_c        		(w_cfg_acl_item_action_flowctrl_c        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_c_valid  		(w_cfg_acl_item_action_flowctrl_c_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_c          		(w_cfg_acl_item_action_txport_c          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_c_valid    		(w_cfg_acl_item_action_txport_c_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷        
-        .i_port_diag_state_2                            (w_port_diag_state_2                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_2                     (w_port_rx_ultrashort_frm_2                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_2                     (w_port_rx_overlength_frm_2                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_2                         (w_port_rx_crcerr_frm_2                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_2                   (w_port_rx_loopback_frm_cnt_2                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_2                    (w_port_broadflow_drop_cnt_2                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_2                    (w_port_multiflow_drop_cnt_2                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_2                           (w_port_rx_byte_cnt_2                           ),  // ¶Ë¿Ú2½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_2                          (w_port_rx_frame_cnt_2                          ),  // ¶Ë¿Ú2½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_2                                    (w_rx_busy_2                            ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_2                            (w_rx_fragment_cnt_2                      ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_2                       (w_rx_fragment_mismatch_2               ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_2                             (w_err_rx_crc_cnt_2                     ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_2                           (w_err_rx_frame_cnt_2                   ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_2                           (w_err_fragment_cnt_2                   ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_2                              (w_rx_frames_cnt_2                      ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_2                               (w_frag_next_rx_2                       ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_2                                  (w_frame_seq_2                          ),  // Ö¡ÐòºÅ
-        .o_reset_2                                      (w_reset_2                              ),  // ¶Ë¿Ú2¸´Î»ÐÅºÅ
+        .o_acl_clr_list_regs_2                          (w_acl_clr_list_regs_2                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_2                          (w_acl_list_rdy_regs_2                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_2                          (w_acl_item_sel_regs_2                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_c1            		(w_cfg_acl_item_dmac_code_c1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_c1_valid      		(w_cfg_acl_item_dmac_code_c1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_c2            		(w_cfg_acl_item_dmac_code_c2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_c2_valid      		(w_cfg_acl_item_dmac_code_c2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_c3            		(w_cfg_acl_item_dmac_code_c3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_c3_valid      		(w_cfg_acl_item_dmac_code_c3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_c4            		(w_cfg_acl_item_dmac_code_c4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_c4_valid      		(w_cfg_acl_item_dmac_code_c4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_c5            		(w_cfg_acl_item_dmac_code_c5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_c5_valid      		(w_cfg_acl_item_dmac_code_c5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_c6            		(w_cfg_acl_item_dmac_code_c6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_c6_valid      		(w_cfg_acl_item_dmac_code_c6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_c1            		(w_cfg_acl_item_smac_code_c1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_c1_valid      		(w_cfg_acl_item_smac_code_c1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_c2            		(w_cfg_acl_item_smac_code_c2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_c2_valid      		(w_cfg_acl_item_smac_code_c2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_c3            		(w_cfg_acl_item_smac_code_c3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_c3_valid      		(w_cfg_acl_item_smac_code_c3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_c4            		(w_cfg_acl_item_smac_code_c4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_c4_valid      		(w_cfg_acl_item_smac_code_c4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_c5            		(w_cfg_acl_item_smac_code_c5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_c5_valid      		(w_cfg_acl_item_smac_code_c5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_c6            		(w_cfg_acl_item_smac_code_c6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_c6_valid      		(w_cfg_acl_item_smac_code_c6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_c1            		(w_cfg_acl_item_vlan_code_c1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_c1_valid      		(w_cfg_acl_item_vlan_code_c1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_c2            		(w_cfg_acl_item_vlan_code_c2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_c2_valid      		(w_cfg_acl_item_vlan_code_c2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_c3            		(w_cfg_acl_item_vlan_code_c3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_c3_valid      		(w_cfg_acl_item_vlan_code_c3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_c4            		(w_cfg_acl_item_vlan_code_c4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_c4_valid      		(w_cfg_acl_item_vlan_code_c4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_c1       		(w_cfg_acl_item_ethertype_code_c1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_c1_valid 		(w_cfg_acl_item_ethertype_code_c1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_c2       		(w_cfg_acl_item_ethertype_code_c2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_c2_valid 		(w_cfg_acl_item_ethertype_code_c2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_c     		(w_cfg_acl_item_action_pass_state_c     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_c_valid		(w_cfg_acl_item_action_pass_state_c_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_c 		(w_cfg_acl_item_action_cb_streamhandle_c 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_c_valid	(w_cfg_acl_item_action_cb_streamhandle_c_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_c        		(w_cfg_acl_item_action_flowctrl_c        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_c_valid  		(w_cfg_acl_item_action_flowctrl_c_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_c          		(w_cfg_acl_item_action_txport_c          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_c_valid    		(w_cfg_acl_item_action_txport_c_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½        
+        .i_port_diag_state_2                            (w_port_diag_state_2                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_2                     (w_port_rx_ultrashort_frm_2                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_2                     (w_port_rx_overlength_frm_2                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_2                         (w_port_rx_crcerr_frm_2                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_2                   (w_port_rx_loopback_frm_cnt_2                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_2                    (w_port_broadflow_drop_cnt_2                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_2                    (w_port_multiflow_drop_cnt_2                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_2                           (w_port_rx_byte_cnt_2                           ),  // ï¿½Ë¿ï¿½2ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_2                          (w_port_rx_frame_cnt_2                          ),  // ï¿½Ë¿ï¿½2ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_2                                    (w_rx_busy_2                            ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_2                            (w_rx_fragment_cnt_2                      ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_2                       (w_rx_fragment_mismatch_2               ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_2                             (w_err_rx_crc_cnt_2                     ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_2                           (w_err_rx_frame_cnt_2                   ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_2                           (w_err_fragment_cnt_2                   ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_2                              (w_rx_frames_cnt_2                      ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_2                               (w_frag_next_rx_2                       ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_2                                  (w_frame_seq_2                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_2                                      (w_reset_2                              ),  // ï¿½Ë¿ï¿½2ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC3
-        .o_hash_ploy_regs_3                             (w_hash_ploy_regs_3                       		),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_3                         (w_hash_init_val_regs_3                       	),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_3                              (w_hash_regs_vld_3                          	),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_3                       (w_port_rxmac_down_regs_3                   	),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_3                   (w_port_broadcast_drop_regs_3                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_3                   (w_port_multicast_drop_regs_3                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_3                    (w_port_loopback_drop_regs_3                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_3                              (w_port_mac_regs_3                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_3                          (w_port_mac_vld_regs_3                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_3                              (w_port_mtu_regs_3                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_3                      (w_port_mirror_frwd_regs_3                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_3                     (w_port_flowctrl_cfg_regs_3                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_3             (w_port_rx_ultrashortinterval_num_3             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_3                               (w_acl_port_sel_3                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-		.o_acl_port_sel_3_valid                         (w_acl_port_sel_3_valid                         ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-        .o_acl_clr_list_regs_3                          (w_acl_clr_list_regs_3                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_3                          (w_acl_list_rdy_regs_3                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_3                          (w_acl_item_sel_regs_3                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_d1            		(w_cfg_acl_item_dmac_code_d1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_d1_valid      		(w_cfg_acl_item_dmac_code_d1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_d2            		(w_cfg_acl_item_dmac_code_d2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_d2_valid      		(w_cfg_acl_item_dmac_code_d2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_d3            		(w_cfg_acl_item_dmac_code_d3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_d3_valid      		(w_cfg_acl_item_dmac_code_d3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_d4            		(w_cfg_acl_item_dmac_code_d4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_d4_valid      		(w_cfg_acl_item_dmac_code_d4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_d5            		(w_cfg_acl_item_dmac_code_d5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_d5_valid      		(w_cfg_acl_item_dmac_code_d5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_d6            		(w_cfg_acl_item_dmac_code_d6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_d6_valid      		(w_cfg_acl_item_dmac_code_d6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_d1            		(w_cfg_acl_item_smac_code_d1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_d1_valid      		(w_cfg_acl_item_smac_code_d1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_d2            		(w_cfg_acl_item_smac_code_d2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_d2_valid      		(w_cfg_acl_item_smac_code_d2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_d3            		(w_cfg_acl_item_smac_code_d3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_d3_valid      		(w_cfg_acl_item_smac_code_d3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_d4            		(w_cfg_acl_item_smac_code_d4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_d4_valid      		(w_cfg_acl_item_smac_code_d4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_d5            		(w_cfg_acl_item_smac_code_d5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_d5_valid      		(w_cfg_acl_item_smac_code_d5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_d6            		(w_cfg_acl_item_smac_code_d6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_d6_valid      		(w_cfg_acl_item_smac_code_d6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_d1            		(w_cfg_acl_item_vlan_code_d1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_d1_valid      		(w_cfg_acl_item_vlan_code_d1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_d2            		(w_cfg_acl_item_vlan_code_d2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_d2_valid      		(w_cfg_acl_item_vlan_code_d2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_d3            		(w_cfg_acl_item_vlan_code_d3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_d3_valid      		(w_cfg_acl_item_vlan_code_d3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_d4            		(w_cfg_acl_item_vlan_code_d4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_d4_valid      		(w_cfg_acl_item_vlan_code_d4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_d1       		(w_cfg_acl_item_ethertype_code_d1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_d1_valid 		(w_cfg_acl_item_ethertype_code_d1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_d2       		(w_cfg_acl_item_ethertype_code_d2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_d2_valid 		(w_cfg_acl_item_ethertype_code_d2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_d     		(w_cfg_acl_item_action_pass_state_d     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_d_valid		(w_cfg_acl_item_action_pass_state_d_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_d 		(w_cfg_acl_item_action_cb_streamhandle_d 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_d_valid	(w_cfg_acl_item_action_cb_streamhandle_d_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_d        		(w_cfg_acl_item_action_flowctrl_d        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_d_valid  		(w_cfg_acl_item_action_flowctrl_d_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_d          		(w_cfg_acl_item_action_txport_d          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_d_valid    		(w_cfg_acl_item_action_txport_d_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷        
-        .i_port_diag_state_3                            (w_port_diag_state_3                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_3                     (w_port_rx_ultrashort_frm_3                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_3                     (w_port_rx_overlength_frm_3                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_3                         (w_port_rx_crcerr_frm_3                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_3                   (w_port_rx_loopback_frm_cnt_3                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_3                    (w_port_broadflow_drop_cnt_3                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_3                    (w_port_multiflow_drop_cnt_3                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_3                           (w_port_rx_byte_cnt_3                           ),  // ¶Ë¿Ú3½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_3                          (w_port_rx_frame_cnt_3                          ),  // ¶Ë¿Ú3½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_3                                    (w_rx_busy_3                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_3                            (w_rx_fragment_cnt_3                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_3                       (w_rx_fragment_mismatch_3               ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_3                             (w_err_rx_crc_cnt_3                     ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_3                           (w_err_rx_frame_cnt_3                   ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_3                           (w_err_fragment_cnt_3                   ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_3                              (w_rx_frames_cnt_3                      ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_3                               (w_frag_next_rx_3                       ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_3                                  (w_frame_seq_3                          ),  // Ö¡ÐòºÅ
-        .o_reset_3                                      (w_reset_3                              ),  // ¶Ë¿Ú3¸´Î»ÐÅºÅ
+        .o_hash_ploy_regs_3                             (w_hash_ploy_regs_3                       		),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_3                         (w_hash_init_val_regs_3                       	),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_3                              (w_hash_regs_vld_3                          	),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_3                       (w_port_rxmac_down_regs_3                   	),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_3                   (w_port_broadcast_drop_regs_3                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_3                   (w_port_multicast_drop_regs_3                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_3                    (w_port_loopback_drop_regs_3                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_3                              (w_port_mac_regs_3                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_3                          (w_port_mac_vld_regs_3                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_3                              (w_port_mtu_regs_3                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_3                      (w_port_mirror_frwd_regs_3                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_3                     (w_port_flowctrl_cfg_regs_3                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_3             (w_port_rx_ultrashortinterval_num_3             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_3                               (w_acl_port_sel_3                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+		.o_acl_port_sel_3_valid                         (w_acl_port_sel_3_valid                         ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+        .o_acl_clr_list_regs_3                          (w_acl_clr_list_regs_3                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_3                          (w_acl_list_rdy_regs_3                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_3                          (w_acl_item_sel_regs_3                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_d1            		(w_cfg_acl_item_dmac_code_d1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_d1_valid      		(w_cfg_acl_item_dmac_code_d1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_d2            		(w_cfg_acl_item_dmac_code_d2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_d2_valid      		(w_cfg_acl_item_dmac_code_d2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_d3            		(w_cfg_acl_item_dmac_code_d3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_d3_valid      		(w_cfg_acl_item_dmac_code_d3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_d4            		(w_cfg_acl_item_dmac_code_d4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_d4_valid      		(w_cfg_acl_item_dmac_code_d4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_d5            		(w_cfg_acl_item_dmac_code_d5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_d5_valid      		(w_cfg_acl_item_dmac_code_d5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_d6            		(w_cfg_acl_item_dmac_code_d6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_d6_valid      		(w_cfg_acl_item_dmac_code_d6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_d1            		(w_cfg_acl_item_smac_code_d1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_d1_valid      		(w_cfg_acl_item_smac_code_d1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_d2            		(w_cfg_acl_item_smac_code_d2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_d2_valid      		(w_cfg_acl_item_smac_code_d2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_d3            		(w_cfg_acl_item_smac_code_d3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_d3_valid      		(w_cfg_acl_item_smac_code_d3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_d4            		(w_cfg_acl_item_smac_code_d4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_d4_valid      		(w_cfg_acl_item_smac_code_d4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_d5            		(w_cfg_acl_item_smac_code_d5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_d5_valid      		(w_cfg_acl_item_smac_code_d5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_d6            		(w_cfg_acl_item_smac_code_d6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_d6_valid      		(w_cfg_acl_item_smac_code_d6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_d1            		(w_cfg_acl_item_vlan_code_d1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_d1_valid      		(w_cfg_acl_item_vlan_code_d1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_d2            		(w_cfg_acl_item_vlan_code_d2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_d2_valid      		(w_cfg_acl_item_vlan_code_d2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_d3            		(w_cfg_acl_item_vlan_code_d3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_d3_valid      		(w_cfg_acl_item_vlan_code_d3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_d4            		(w_cfg_acl_item_vlan_code_d4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_d4_valid      		(w_cfg_acl_item_vlan_code_d4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_d1       		(w_cfg_acl_item_ethertype_code_d1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_d1_valid 		(w_cfg_acl_item_ethertype_code_d1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_d2       		(w_cfg_acl_item_ethertype_code_d2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_d2_valid 		(w_cfg_acl_item_ethertype_code_d2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_d     		(w_cfg_acl_item_action_pass_state_d     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_d_valid		(w_cfg_acl_item_action_pass_state_d_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_d 		(w_cfg_acl_item_action_cb_streamhandle_d 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_d_valid	(w_cfg_acl_item_action_cb_streamhandle_d_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_d        		(w_cfg_acl_item_action_flowctrl_d        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_d_valid  		(w_cfg_acl_item_action_flowctrl_d_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_d          		(w_cfg_acl_item_action_txport_d          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_d_valid    		(w_cfg_acl_item_action_txport_d_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½        
+        .i_port_diag_state_3                            (w_port_diag_state_3                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_3                     (w_port_rx_ultrashort_frm_3                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_3                     (w_port_rx_overlength_frm_3                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_3                         (w_port_rx_crcerr_frm_3                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_3                   (w_port_rx_loopback_frm_cnt_3                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_3                    (w_port_broadflow_drop_cnt_3                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_3                    (w_port_multiflow_drop_cnt_3                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_3                           (w_port_rx_byte_cnt_3                           ),  // ï¿½Ë¿ï¿½3ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_3                          (w_port_rx_frame_cnt_3                          ),  // ï¿½Ë¿ï¿½3ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_3                                    (w_rx_busy_3                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_3                            (w_rx_fragment_cnt_3                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_3                       (w_rx_fragment_mismatch_3               ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_3                             (w_err_rx_crc_cnt_3                     ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_3                           (w_err_rx_frame_cnt_3                   ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_3                           (w_err_fragment_cnt_3                   ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_3                              (w_rx_frames_cnt_3                      ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_3                               (w_frag_next_rx_3                       ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_3                                  (w_frame_seq_3                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_3                                      (w_reset_3                              ),  // ï¿½Ë¿ï¿½3ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC4
-        .o_hash_ploy_regs_4                             (w_hash_ploy_regs_4                       		),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_4                         (w_hash_init_val_regs_4                       	),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_4                              (w_hash_regs_vld_4                          	),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_4                       (w_port_rxmac_down_regs_4                   	),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_4                   (w_port_broadcast_drop_regs_4                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_4                   (w_port_multicast_drop_regs_4                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_4                    (w_port_loopback_drop_regs_4                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_4                              (w_port_mac_regs_4                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_4                          (w_port_mac_vld_regs_4                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_4                              (w_port_mtu_regs_4                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_4                      (w_port_mirror_frwd_regs_4                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_4                     (w_port_flowctrl_cfg_regs_4                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_4             (w_port_rx_ultrashortinterval_num_4             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_4                               (w_acl_port_sel_4                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .o_hash_ploy_regs_4                             (w_hash_ploy_regs_4                       		),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_4                         (w_hash_init_val_regs_4                       	),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_4                              (w_hash_regs_vld_4                          	),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_4                       (w_port_rxmac_down_regs_4                   	),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_4                   (w_port_broadcast_drop_regs_4                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_4                   (w_port_multicast_drop_regs_4                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_4                    (w_port_loopback_drop_regs_4                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_4                              (w_port_mac_regs_4                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_4                          (w_port_mac_vld_regs_4                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_4                              (w_port_mtu_regs_4                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_4                      (w_port_mirror_frwd_regs_4                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_4                     (w_port_flowctrl_cfg_regs_4                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_4             (w_port_rx_ultrashortinterval_num_4             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_4                               (w_acl_port_sel_4                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.o_acl_port_sel_4_valid							(w_acl_port_sel_4_valid							),
-        .o_acl_clr_list_regs_4                          (w_acl_clr_list_regs_4                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_4                          (w_acl_list_rdy_regs_4                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_4                          (w_acl_item_sel_regs_4                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_e1            		(w_cfg_acl_item_dmac_code_e1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_e1_valid      		(w_cfg_acl_item_dmac_code_e1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_e2            		(w_cfg_acl_item_dmac_code_e2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_e2_valid      		(w_cfg_acl_item_dmac_code_e2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_e3            		(w_cfg_acl_item_dmac_code_e3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_e3_valid      		(w_cfg_acl_item_dmac_code_e3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_e4            		(w_cfg_acl_item_dmac_code_e4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_e4_valid      		(w_cfg_acl_item_dmac_code_e4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_e5            		(w_cfg_acl_item_dmac_code_e5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_e5_valid      		(w_cfg_acl_item_dmac_code_e5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_e6            		(w_cfg_acl_item_dmac_code_e6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_e6_valid      		(w_cfg_acl_item_dmac_code_e6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_e1            		(w_cfg_acl_item_smac_code_e1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_e1_valid      		(w_cfg_acl_item_smac_code_e1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_e2            		(w_cfg_acl_item_smac_code_e2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_e2_valid      		(w_cfg_acl_item_smac_code_e2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_e3            		(w_cfg_acl_item_smac_code_e3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_e3_valid      		(w_cfg_acl_item_smac_code_e3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_e4            		(w_cfg_acl_item_smac_code_e4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_e4_valid      		(w_cfg_acl_item_smac_code_e4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_e5            		(w_cfg_acl_item_smac_code_e5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_e5_valid      		(w_cfg_acl_item_smac_code_e5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_e6            		(w_cfg_acl_item_smac_code_e6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_e6_valid      		(w_cfg_acl_item_smac_code_e6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_e1            		(w_cfg_acl_item_vlan_code_e1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_e1_valid      		(w_cfg_acl_item_vlan_code_e1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_e2            		(w_cfg_acl_item_vlan_code_e2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_e2_valid      		(w_cfg_acl_item_vlan_code_e2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_e3            		(w_cfg_acl_item_vlan_code_e3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_e3_valid      		(w_cfg_acl_item_vlan_code_e3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_e4            		(w_cfg_acl_item_vlan_code_e4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_e4_valid      		(w_cfg_acl_item_vlan_code_e4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_e1       		(w_cfg_acl_item_ethertype_code_e1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_e1_valid 		(w_cfg_acl_item_ethertype_code_e1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_e2       		(w_cfg_acl_item_ethertype_code_e2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_e2_valid 		(w_cfg_acl_item_ethertype_code_e2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_e     		(w_cfg_acl_item_action_pass_state_e     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_e_valid		(w_cfg_acl_item_action_pass_state_e_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_e 		(w_cfg_acl_item_action_cb_streamhandle_e 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_e_valid	(w_cfg_acl_item_action_cb_streamhandle_e_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_e        		(w_cfg_acl_item_action_flowctrl_e        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_e_valid  		(w_cfg_acl_item_action_flowctrl_e_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_e          		(w_cfg_acl_item_action_txport_e          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_e_valid    		(w_cfg_acl_item_action_txport_e_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_4                            (w_port_diag_state_4                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_4                     (w_port_rx_ultrashort_frm_4                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_4                     (w_port_rx_overlength_frm_4                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_4                         (w_port_rx_crcerr_frm_4                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_4                   (w_port_rx_loopback_frm_cnt_4                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_4                    (w_port_broadflow_drop_cnt_4                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_4                    (w_port_multiflow_drop_cnt_4                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_4                           (w_port_rx_byte_cnt_4                           ),  // ¶Ë¿Ú4½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_4                          (w_port_rx_frame_cnt_4                          ),  // ¶Ë¿Ú4½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_4                                    (w_rx_busy_4                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_4                            (w_rx_fragment_cnt_4                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_4                       (w_rx_fragment_mismatch_4                       ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_4                             (w_err_rx_crc_cnt_4                             ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_4                           (w_err_rx_frame_cnt_4                           ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_4                           (w_err_fragment_cnt_4                   ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_4                              (w_rx_frames_cnt_4                      ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_4                               (w_frag_next_rx_4                       ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_4                                  (w_frame_seq_4                          ),  // Ö¡ÐòºÅ
-        .o_reset_4                                      (w_reset_4                              ),  // ¶Ë¿Ú4¸´Î»ÐÅºÅ
+        .o_acl_clr_list_regs_4                          (w_acl_clr_list_regs_4                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_4                          (w_acl_list_rdy_regs_4                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_4                          (w_acl_item_sel_regs_4                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_e1            		(w_cfg_acl_item_dmac_code_e1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_e1_valid      		(w_cfg_acl_item_dmac_code_e1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_e2            		(w_cfg_acl_item_dmac_code_e2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_e2_valid      		(w_cfg_acl_item_dmac_code_e2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_e3            		(w_cfg_acl_item_dmac_code_e3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_e3_valid      		(w_cfg_acl_item_dmac_code_e3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_e4            		(w_cfg_acl_item_dmac_code_e4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_e4_valid      		(w_cfg_acl_item_dmac_code_e4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_e5            		(w_cfg_acl_item_dmac_code_e5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_e5_valid      		(w_cfg_acl_item_dmac_code_e5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_e6            		(w_cfg_acl_item_dmac_code_e6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_e6_valid      		(w_cfg_acl_item_dmac_code_e6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_e1            		(w_cfg_acl_item_smac_code_e1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_e1_valid      		(w_cfg_acl_item_smac_code_e1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_e2            		(w_cfg_acl_item_smac_code_e2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_e2_valid      		(w_cfg_acl_item_smac_code_e2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_e3            		(w_cfg_acl_item_smac_code_e3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_e3_valid      		(w_cfg_acl_item_smac_code_e3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_e4            		(w_cfg_acl_item_smac_code_e4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_e4_valid      		(w_cfg_acl_item_smac_code_e4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_e5            		(w_cfg_acl_item_smac_code_e5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_e5_valid      		(w_cfg_acl_item_smac_code_e5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_e6            		(w_cfg_acl_item_smac_code_e6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_e6_valid      		(w_cfg_acl_item_smac_code_e6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_e1            		(w_cfg_acl_item_vlan_code_e1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_e1_valid      		(w_cfg_acl_item_vlan_code_e1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_e2            		(w_cfg_acl_item_vlan_code_e2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_e2_valid      		(w_cfg_acl_item_vlan_code_e2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_e3            		(w_cfg_acl_item_vlan_code_e3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_e3_valid      		(w_cfg_acl_item_vlan_code_e3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_e4            		(w_cfg_acl_item_vlan_code_e4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_e4_valid      		(w_cfg_acl_item_vlan_code_e4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_e1       		(w_cfg_acl_item_ethertype_code_e1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_e1_valid 		(w_cfg_acl_item_ethertype_code_e1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_e2       		(w_cfg_acl_item_ethertype_code_e2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_e2_valid 		(w_cfg_acl_item_ethertype_code_e2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_e     		(w_cfg_acl_item_action_pass_state_e     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_e_valid		(w_cfg_acl_item_action_pass_state_e_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_e 		(w_cfg_acl_item_action_cb_streamhandle_e 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_e_valid	(w_cfg_acl_item_action_cb_streamhandle_e_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_e        		(w_cfg_acl_item_action_flowctrl_e        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_e_valid  		(w_cfg_acl_item_action_flowctrl_e_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_e          		(w_cfg_acl_item_action_txport_e          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_e_valid    		(w_cfg_acl_item_action_txport_e_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_4                            (w_port_diag_state_4                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_4                     (w_port_rx_ultrashort_frm_4                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_4                     (w_port_rx_overlength_frm_4                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_4                         (w_port_rx_crcerr_frm_4                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_4                   (w_port_rx_loopback_frm_cnt_4                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_4                    (w_port_broadflow_drop_cnt_4                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_4                    (w_port_multiflow_drop_cnt_4                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_4                           (w_port_rx_byte_cnt_4                           ),  // ï¿½Ë¿ï¿½4ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_4                          (w_port_rx_frame_cnt_4                          ),  // ï¿½Ë¿ï¿½4ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_4                                    (w_rx_busy_4                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_4                            (w_rx_fragment_cnt_4                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_4                       (w_rx_fragment_mismatch_4                       ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_4                             (w_err_rx_crc_cnt_4                             ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_4                           (w_err_rx_frame_cnt_4                           ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_4                           (w_err_fragment_cnt_4                   ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_4                              (w_rx_frames_cnt_4                      ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_4                               (w_frag_next_rx_4                       ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_4                                  (w_frame_seq_4                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_4                                      (w_reset_4                              ),  // ï¿½Ë¿ï¿½4ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC5
-        .o_hash_ploy_regs_5                             (w_hash_ploy_regs_5                       		),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_5                         (w_hash_init_val_regs_5                       	),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_5                              (w_hash_regs_vld_5                          	),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_5                       (w_port_rxmac_down_regs_5                   	),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_5                   (w_port_broadcast_drop_regs_5                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_5                   (w_port_multicast_drop_regs_5                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_5                    (w_port_loopback_drop_regs_5                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_5                              (w_port_mac_regs_5                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_5                          (w_port_mac_vld_regs_5                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_5                              (w_port_mtu_regs_5                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_5                      (w_port_mirror_frwd_regs_5                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_5                     (w_port_flowctrl_cfg_regs_5                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_5             (w_port_rx_ultrashortinterval_num_5             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_5                               (w_acl_port_sel_5                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
+        .o_hash_ploy_regs_5                             (w_hash_ploy_regs_5                       		),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_5                         (w_hash_init_val_regs_5                       	),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_5                              (w_hash_regs_vld_5                          	),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_5                       (w_port_rxmac_down_regs_5                   	),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_5                   (w_port_broadcast_drop_regs_5                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_5                   (w_port_multicast_drop_regs_5                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_5                    (w_port_loopback_drop_regs_5                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_5                              (w_port_mac_regs_5                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_5                          (w_port_mac_vld_regs_5                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_5                              (w_port_mtu_regs_5                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_5                      (w_port_mirror_frwd_regs_5                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_5                     (w_port_flowctrl_cfg_regs_5                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_5             (w_port_rx_ultrashortinterval_num_5             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_5                               (w_acl_port_sel_5                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
 		.o_acl_port_sel_5_valid							(w_acl_port_sel_5_valid							),
-        .o_acl_clr_list_regs_5                          (w_acl_clr_list_regs_5                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_5                          (w_acl_list_rdy_regs_5                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_5                          (w_acl_item_sel_regs_5                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_f1            		(w_cfg_acl_item_dmac_code_f1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_f1_valid      		(w_cfg_acl_item_dmac_code_f1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_f2            		(w_cfg_acl_item_dmac_code_f2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_f2_valid      		(w_cfg_acl_item_dmac_code_f2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_f3            		(w_cfg_acl_item_dmac_code_f3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_f3_valid      		(w_cfg_acl_item_dmac_code_f3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_f4            		(w_cfg_acl_item_dmac_code_f4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_f4_valid      		(w_cfg_acl_item_dmac_code_f4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_f5            		(w_cfg_acl_item_dmac_code_f5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_f5_valid      		(w_cfg_acl_item_dmac_code_f5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_f6            		(w_cfg_acl_item_dmac_code_f6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_f6_valid      		(w_cfg_acl_item_dmac_code_f6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_f1            		(w_cfg_acl_item_smac_code_f1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_f1_valid      		(w_cfg_acl_item_smac_code_f1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_f2            		(w_cfg_acl_item_smac_code_f2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_f2_valid      		(w_cfg_acl_item_smac_code_f2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_f3            		(w_cfg_acl_item_smac_code_f3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_f3_valid      		(w_cfg_acl_item_smac_code_f3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_f4            		(w_cfg_acl_item_smac_code_f4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_f4_valid      		(w_cfg_acl_item_smac_code_f4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_f5            		(w_cfg_acl_item_smac_code_f5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_f5_valid      		(w_cfg_acl_item_smac_code_f5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_f6            		(w_cfg_acl_item_smac_code_f6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_f6_valid      		(w_cfg_acl_item_smac_code_f6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_f1            		(w_cfg_acl_item_vlan_code_f1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_f1_valid      		(w_cfg_acl_item_vlan_code_f1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_f2            		(w_cfg_acl_item_vlan_code_f2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_f2_valid      		(w_cfg_acl_item_vlan_code_f2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_f3            		(w_cfg_acl_item_vlan_code_f3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_f3_valid      		(w_cfg_acl_item_vlan_code_f3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_f4            		(w_cfg_acl_item_vlan_code_f4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_f4_valid      		(w_cfg_acl_item_vlan_code_f4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_f1       		(w_cfg_acl_item_ethertype_code_f1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_f1_valid 		(w_cfg_acl_item_ethertype_code_f1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_f2       		(w_cfg_acl_item_ethertype_code_f2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_f2_valid 		(w_cfg_acl_item_ethertype_code_f2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_f     		(w_cfg_acl_item_action_pass_state_f     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_f_valid		(w_cfg_acl_item_action_pass_state_f_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_f 		(w_cfg_acl_item_action_cb_streamhandle_f 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_f_valid	(w_cfg_acl_item_action_cb_streamhandle_f_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_f        		(w_cfg_acl_item_action_flowctrl_f        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_f_valid  		(w_cfg_acl_item_action_flowctrl_f_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_f          		(w_cfg_acl_item_action_txport_f          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_f_valid    		(w_cfg_acl_item_action_txport_f_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_5                            (w_port_diag_state_5                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_5                     (w_port_rx_ultrashort_frm_5                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_5                     (w_port_rx_overlength_frm_5                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_5                         (w_port_rx_crcerr_frm_5                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_5                   (w_port_rx_loopback_frm_cnt_5                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_5                    (w_port_broadflow_drop_cnt_5                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_5                    (w_port_multiflow_drop_cnt_5                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_5                           (w_port_rx_byte_cnt_5                           ),  // ¶Ë¿Ú5½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_5                          (w_port_rx_frame_cnt_5                          ),  // ¶Ë¿Ú5½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_5                                    (w_rx_busy_5                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_5                            (w_rx_fragment_cnt_5                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_5                       (w_rx_fragment_mismatch_5                       ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_5                             (w_err_rx_crc_cnt_5                             ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_5                           (w_err_rx_frame_cnt_5                           ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_5                           (w_err_fragment_cnt_5                           ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_5                              (w_rx_frames_cnt_5                      ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_5                               (w_frag_next_rx_5                       ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_5                                  (w_frame_seq_5                          ),  // Ö¡ÐòºÅ
-        .o_reset_5                                      (w_reset_5                              ),  // ¶Ë¿Ú5¸´Î»ÐÅºÅ
+        .o_acl_clr_list_regs_5                          (w_acl_clr_list_regs_5                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_5                          (w_acl_list_rdy_regs_5                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_5                          (w_acl_item_sel_regs_5                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_f1            		(w_cfg_acl_item_dmac_code_f1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_f1_valid      		(w_cfg_acl_item_dmac_code_f1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_f2            		(w_cfg_acl_item_dmac_code_f2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_f2_valid      		(w_cfg_acl_item_dmac_code_f2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_f3            		(w_cfg_acl_item_dmac_code_f3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_f3_valid      		(w_cfg_acl_item_dmac_code_f3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_f4            		(w_cfg_acl_item_dmac_code_f4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_f4_valid      		(w_cfg_acl_item_dmac_code_f4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_f5            		(w_cfg_acl_item_dmac_code_f5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_f5_valid      		(w_cfg_acl_item_dmac_code_f5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_f6            		(w_cfg_acl_item_dmac_code_f6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_f6_valid      		(w_cfg_acl_item_dmac_code_f6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_f1            		(w_cfg_acl_item_smac_code_f1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_f1_valid      		(w_cfg_acl_item_smac_code_f1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_f2            		(w_cfg_acl_item_smac_code_f2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_f2_valid      		(w_cfg_acl_item_smac_code_f2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_f3            		(w_cfg_acl_item_smac_code_f3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_f3_valid      		(w_cfg_acl_item_smac_code_f3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_f4            		(w_cfg_acl_item_smac_code_f4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_f4_valid      		(w_cfg_acl_item_smac_code_f4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_f5            		(w_cfg_acl_item_smac_code_f5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_f5_valid      		(w_cfg_acl_item_smac_code_f5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_f6            		(w_cfg_acl_item_smac_code_f6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_f6_valid      		(w_cfg_acl_item_smac_code_f6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_f1            		(w_cfg_acl_item_vlan_code_f1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_f1_valid      		(w_cfg_acl_item_vlan_code_f1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_f2            		(w_cfg_acl_item_vlan_code_f2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_f2_valid      		(w_cfg_acl_item_vlan_code_f2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_f3            		(w_cfg_acl_item_vlan_code_f3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_f3_valid      		(w_cfg_acl_item_vlan_code_f3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_f4            		(w_cfg_acl_item_vlan_code_f4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_f4_valid      		(w_cfg_acl_item_vlan_code_f4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_f1       		(w_cfg_acl_item_ethertype_code_f1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_f1_valid 		(w_cfg_acl_item_ethertype_code_f1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_f2       		(w_cfg_acl_item_ethertype_code_f2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_f2_valid 		(w_cfg_acl_item_ethertype_code_f2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_f     		(w_cfg_acl_item_action_pass_state_f     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_f_valid		(w_cfg_acl_item_action_pass_state_f_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_f 		(w_cfg_acl_item_action_cb_streamhandle_f 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_f_valid	(w_cfg_acl_item_action_cb_streamhandle_f_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_f        		(w_cfg_acl_item_action_flowctrl_f        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_f_valid  		(w_cfg_acl_item_action_flowctrl_f_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_f          		(w_cfg_acl_item_action_txport_f          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_f_valid    		(w_cfg_acl_item_action_txport_f_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_5                            (w_port_diag_state_5                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_5                     (w_port_rx_ultrashort_frm_5                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_5                     (w_port_rx_overlength_frm_5                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_5                         (w_port_rx_crcerr_frm_5                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_5                   (w_port_rx_loopback_frm_cnt_5                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_5                    (w_port_broadflow_drop_cnt_5                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_5                    (w_port_multiflow_drop_cnt_5                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_5                           (w_port_rx_byte_cnt_5                           ),  // ï¿½Ë¿ï¿½5ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_5                          (w_port_rx_frame_cnt_5                          ),  // ï¿½Ë¿ï¿½5ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_5                                    (w_rx_busy_5                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_5                            (w_rx_fragment_cnt_5                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_5                       (w_rx_fragment_mismatch_5                       ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_5                             (w_err_rx_crc_cnt_5                             ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_5                           (w_err_rx_frame_cnt_5                           ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_5                           (w_err_fragment_cnt_5                           ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_5                              (w_rx_frames_cnt_5                      ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_5                               (w_frag_next_rx_5                       ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_5                                  (w_frame_seq_5                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_5                                      (w_reset_5                              ),  // ï¿½Ë¿ï¿½5ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC6
-        .o_hash_ploy_regs_6                             (w_hash_ploy_regs_6                       		),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_6                         (w_hash_init_val_regs_6                       	),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_6                              (w_hash_regs_vld_6                          	),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_6                       (w_port_rxmac_down_regs_6                   	),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_6                   (w_port_broadcast_drop_regs_6                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_6                   (w_port_multicast_drop_regs_6                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_6                    (w_port_loopback_drop_regs_6                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_6                              (w_port_mac_regs_6                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_6                          (w_port_mac_vld_regs_6                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_6                              (w_port_mtu_regs_6                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_6                      (w_port_mirror_frwd_regs_6                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_6                     (w_port_flowctrl_cfg_regs_6                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_6             (w_port_rx_ultrashortinterval_num_6             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_6                               (w_acl_port_sel_6                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-		.o_acl_port_sel_6_valid							(w_acl_port_sel_6_valid                         ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-        .o_acl_clr_list_regs_6                          (w_acl_clr_list_regs_6                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_6                          (w_acl_list_rdy_regs_6                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_6                          (w_acl_item_sel_regs_6                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_g1            		(w_cfg_acl_item_dmac_code_g1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_g1_valid      		(w_cfg_acl_item_dmac_code_g1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_g2            		(w_cfg_acl_item_dmac_code_g2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_g2_valid      		(w_cfg_acl_item_dmac_code_g2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_g3            		(w_cfg_acl_item_dmac_code_g3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_g3_valid      		(w_cfg_acl_item_dmac_code_g3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_g4            		(w_cfg_acl_item_dmac_code_g4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_g4_valid      		(w_cfg_acl_item_dmac_code_g4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_g5            		(w_cfg_acl_item_dmac_code_g5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_g5_valid      		(w_cfg_acl_item_dmac_code_g5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_g6            		(w_cfg_acl_item_dmac_code_g6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_g6_valid      		(w_cfg_acl_item_dmac_code_g6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_g1            		(w_cfg_acl_item_smac_code_g1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_g1_valid      		(w_cfg_acl_item_smac_code_g1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_g2            		(w_cfg_acl_item_smac_code_g2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_g2_valid      		(w_cfg_acl_item_smac_code_g2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_g3            		(w_cfg_acl_item_smac_code_g3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_g3_valid      		(w_cfg_acl_item_smac_code_g3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_g4            		(w_cfg_acl_item_smac_code_g4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_g4_valid      		(w_cfg_acl_item_smac_code_g4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_g5            		(w_cfg_acl_item_smac_code_g5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_g5_valid      		(w_cfg_acl_item_smac_code_g5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_g6            		(w_cfg_acl_item_smac_code_g6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_g6_valid      		(w_cfg_acl_item_smac_code_g6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_g1            		(w_cfg_acl_item_vlan_code_g1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_g1_valid      		(w_cfg_acl_item_vlan_code_g1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_g2            		(w_cfg_acl_item_vlan_code_g2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_g2_valid      		(w_cfg_acl_item_vlan_code_g2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_g3            		(w_cfg_acl_item_vlan_code_g3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_g3_valid      		(w_cfg_acl_item_vlan_code_g3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_g4            		(w_cfg_acl_item_vlan_code_g4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_g4_valid      		(w_cfg_acl_item_vlan_code_g4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_g1       		(w_cfg_acl_item_ethertype_code_g1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_g1_valid 		(w_cfg_acl_item_ethertype_code_g1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_g2       		(w_cfg_acl_item_ethertype_code_g2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_g2_valid 		(w_cfg_acl_item_ethertype_code_g2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_g     		(w_cfg_acl_item_action_pass_state_g     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_g_valid		(w_cfg_acl_item_action_pass_state_g_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_g 		(w_cfg_acl_item_action_cb_streamhandle_g 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_g_valid	(w_cfg_acl_item_action_cb_streamhandle_g_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_g        		(w_cfg_acl_item_action_flowctrl_g        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_g_valid  		(w_cfg_acl_item_action_flowctrl_g_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_g          		(w_cfg_acl_item_action_txport_g          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_g_valid    		(w_cfg_acl_item_action_txport_g_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_6                            (w_port_diag_state_6                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_6                     (w_port_rx_ultrashort_frm_6                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_6                     (w_port_rx_overlength_frm_6                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_6                         (w_port_rx_crcerr_frm_6                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_6                   (w_port_rx_loopback_frm_cnt_6                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_6                    (w_port_broadflow_drop_cnt_6                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_6                    (w_port_multiflow_drop_cnt_6                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_6                           (w_port_rx_byte_cnt_6                           ),  // ¶Ë¿Ú6½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_6                          (w_port_rx_frame_cnt_6                          ),  // ¶Ë¿Ú6½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_6                                    (w_rx_busy_6                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_6                            (w_rx_fragment_cnt_6                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_6                       (w_rx_fragment_mismatch_6                       ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_6                             (w_err_rx_crc_cnt_6                             ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_6                           (w_err_rx_frame_cnt_6                           ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_6                           (w_err_fragment_cnt_6                           ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_6                              (w_rx_frames_cnt_6                              ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_6                               (w_frag_next_rx_6                               ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_6                                  (w_frame_seq_6                          ),  // Ö¡ÐòºÅ
-        .o_reset_6                                      (w_reset_6                              ),  // ¶Ë¿Ú6¸´Î»ÐÅºÅ
+        .o_hash_ploy_regs_6                             (w_hash_ploy_regs_6                       		),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_6                         (w_hash_init_val_regs_6                       	),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_6                              (w_hash_regs_vld_6                          	),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_6                       (w_port_rxmac_down_regs_6                   	),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_6                   (w_port_broadcast_drop_regs_6                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_6                   (w_port_multicast_drop_regs_6                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_6                    (w_port_loopback_drop_regs_6                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_6                              (w_port_mac_regs_6                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_6                          (w_port_mac_vld_regs_6                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_6                              (w_port_mtu_regs_6                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_6                      (w_port_mirror_frwd_regs_6                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_6                     (w_port_flowctrl_cfg_regs_6                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_6             (w_port_rx_ultrashortinterval_num_6             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_6                               (w_acl_port_sel_6                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+		.o_acl_port_sel_6_valid							(w_acl_port_sel_6_valid                         ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+        .o_acl_clr_list_regs_6                          (w_acl_clr_list_regs_6                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_6                          (w_acl_list_rdy_regs_6                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_6                          (w_acl_item_sel_regs_6                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_g1            		(w_cfg_acl_item_dmac_code_g1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_g1_valid      		(w_cfg_acl_item_dmac_code_g1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_g2            		(w_cfg_acl_item_dmac_code_g2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_g2_valid      		(w_cfg_acl_item_dmac_code_g2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_g3            		(w_cfg_acl_item_dmac_code_g3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_g3_valid      		(w_cfg_acl_item_dmac_code_g3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_g4            		(w_cfg_acl_item_dmac_code_g4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_g4_valid      		(w_cfg_acl_item_dmac_code_g4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_g5            		(w_cfg_acl_item_dmac_code_g5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_g5_valid      		(w_cfg_acl_item_dmac_code_g5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_g6            		(w_cfg_acl_item_dmac_code_g6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_g6_valid      		(w_cfg_acl_item_dmac_code_g6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_g1            		(w_cfg_acl_item_smac_code_g1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_g1_valid      		(w_cfg_acl_item_smac_code_g1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_g2            		(w_cfg_acl_item_smac_code_g2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_g2_valid      		(w_cfg_acl_item_smac_code_g2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_g3            		(w_cfg_acl_item_smac_code_g3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_g3_valid      		(w_cfg_acl_item_smac_code_g3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_g4            		(w_cfg_acl_item_smac_code_g4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_g4_valid      		(w_cfg_acl_item_smac_code_g4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_g5            		(w_cfg_acl_item_smac_code_g5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_g5_valid      		(w_cfg_acl_item_smac_code_g5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_g6            		(w_cfg_acl_item_smac_code_g6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_g6_valid      		(w_cfg_acl_item_smac_code_g6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_g1            		(w_cfg_acl_item_vlan_code_g1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_g1_valid      		(w_cfg_acl_item_vlan_code_g1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_g2            		(w_cfg_acl_item_vlan_code_g2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_g2_valid      		(w_cfg_acl_item_vlan_code_g2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_g3            		(w_cfg_acl_item_vlan_code_g3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_g3_valid      		(w_cfg_acl_item_vlan_code_g3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_g4            		(w_cfg_acl_item_vlan_code_g4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_g4_valid      		(w_cfg_acl_item_vlan_code_g4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_g1       		(w_cfg_acl_item_ethertype_code_g1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_g1_valid 		(w_cfg_acl_item_ethertype_code_g1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_g2       		(w_cfg_acl_item_ethertype_code_g2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_g2_valid 		(w_cfg_acl_item_ethertype_code_g2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_g     		(w_cfg_acl_item_action_pass_state_g     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_g_valid		(w_cfg_acl_item_action_pass_state_g_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_g 		(w_cfg_acl_item_action_cb_streamhandle_g 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_g_valid	(w_cfg_acl_item_action_cb_streamhandle_g_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_g        		(w_cfg_acl_item_action_flowctrl_g        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_g_valid  		(w_cfg_acl_item_action_flowctrl_g_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_g          		(w_cfg_acl_item_action_txport_g          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_g_valid    		(w_cfg_acl_item_action_txport_g_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_6                            (w_port_diag_state_6                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_6                     (w_port_rx_ultrashort_frm_6                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_6                     (w_port_rx_overlength_frm_6                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_6                         (w_port_rx_crcerr_frm_6                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_6                   (w_port_rx_loopback_frm_cnt_6                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_6                    (w_port_broadflow_drop_cnt_6                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_6                    (w_port_multiflow_drop_cnt_6                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_6                           (w_port_rx_byte_cnt_6                           ),  // ï¿½Ë¿ï¿½6ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_6                          (w_port_rx_frame_cnt_6                          ),  // ï¿½Ë¿ï¿½6ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_6                                    (w_rx_busy_6                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_6                            (w_rx_fragment_cnt_6                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_6                       (w_rx_fragment_mismatch_6                       ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_6                             (w_err_rx_crc_cnt_6                             ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_6                           (w_err_rx_frame_cnt_6                           ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_6                           (w_err_fragment_cnt_6                           ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_6                              (w_rx_frames_cnt_6                              ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_6                               (w_frag_next_rx_6                               ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_6                                  (w_frame_seq_6                          ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_6                                      (w_reset_6                              ),  // ï¿½Ë¿ï¿½6ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
     `ifdef MAC7
-        .o_hash_ploy_regs_7                             (w_hash_ploy_regs_7                       		),  // ¹þÏ£¶àÏîÊ½
-        .o_hash_init_val_regs_7                         (w_hash_init_val_regs_7                       	),  // ¹þÏ£¶àÏîÊ½³õÊ¼Öµ
-        .o_hash_regs_vld_7                              (w_hash_regs_vld_7                          	),  // ¹þÏ£¼Ä´æÆ÷ÓÐÐ§ÐÅºÅ
-        .o_port_rxmac_down_regs_7                       (w_port_rxmac_down_regs_7                       ),  // ¶Ë¿Ú½ÓÊÕ·½ÏòMAC¹Ø±ÕÊ¹ÄÜ
-        .o_port_broadcast_drop_regs_7                   (w_port_broadcast_drop_regs_7                   ),  // ¶Ë¿Ú¹ã²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_multicast_drop_regs_7                   (w_port_multicast_drop_regs_7                   ),  // ¶Ë¿Ú×é²¥Ö¡¶ªÆúÊ¹ÄÜ
-        .o_port_loopback_drop_regs_7                    (w_port_loopback_drop_regs_7                    ),  // ¶Ë¿Ú»·»ØÖ¡¶ªÆúÊ¹ÄÜ
-        .o_port_mac_regs_7                              (w_port_mac_regs_7                              ),  // ¶Ë¿ÚµÄ MAC µØÖ·
-        .o_port_mac_vld_regs_7                          (w_port_mac_vld_regs_7                          ),  // Ê¹ÄÜ¶Ë¿Ú MAC µØÖ·ÓÐÐ§
-        .o_port_mtu_regs_7                              (w_port_mtu_regs_7                              ),  // MTUÅäÖÃÖµ
-        .o_port_mirror_frwd_regs_7                      (w_port_mirror_frwd_regs_7                      ),  // ¾µÏñ×ª·¢¼Ä´æÆ÷
-        .o_port_flowctrl_cfg_regs_7                     (w_port_flowctrl_cfg_regs_7                     ),  // ÏÞÁ÷¹ÜÀíÅäÖÃ
-        .o_port_rx_ultrashortinterval_num_7             (w_port_rx_ultrashortinterval_num_7             ),  // Ö¡¼ä¸ô
-        .o_acl_port_sel_7                               (w_acl_port_sel_7                               ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-		.o_acl_port_sel_7_valid                         (w_acl_port_sel_7_valid                         ),  // Ñ¡ÔñÒªÅäÖÃµÄ¶Ë¿Ú
-        .o_acl_clr_list_regs_7                          (w_acl_clr_list_regs_7                          ),  // Çå¿Õ¼Ä´æÆ÷ÁÐ±í
-        .i_acl_list_rdy_regs_7                          (w_acl_list_rdy_regs_7                          ),  // ÅäÖÃ¼Ä´æÆ÷²Ù×÷¿ÕÏÐ
-        .o_acl_item_sel_regs_7                          (w_acl_item_sel_regs_7                          ),  // ÅäÖÃÌõÄ¿Ñ¡Ôñ
-        .o_cfg_acl_item_dmac_code_h1            		(w_cfg_acl_item_dmac_code_h1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[15:0]
-		.o_cfg_acl_item_dmac_code_h1_valid      		(w_cfg_acl_item_dmac_code_h1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_h2            		(w_cfg_acl_item_dmac_code_h2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[31:16]
-		.o_cfg_acl_item_dmac_code_h2_valid      		(w_cfg_acl_item_dmac_code_h2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_h3            		(w_cfg_acl_item_dmac_code_h3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[47:32]
-		.o_cfg_acl_item_dmac_code_h3_valid      		(w_cfg_acl_item_dmac_code_h3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_h4            		(w_cfg_acl_item_dmac_code_h4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[63:48]
-		.o_cfg_acl_item_dmac_code_h4_valid      		(w_cfg_acl_item_dmac_code_h4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_h5            		(w_cfg_acl_item_dmac_code_h5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[79:64]
-		.o_cfg_acl_item_dmac_code_h5_valid      		(w_cfg_acl_item_dmac_code_h5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_dmac_code_h6            		(w_cfg_acl_item_dmac_code_h6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëdmacÖµ[95:80]
-		.o_cfg_acl_item_dmac_code_h6_valid      		(w_cfg_acl_item_dmac_code_h6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_h1            		(w_cfg_acl_item_smac_code_h1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[15:0]
-		.o_cfg_acl_item_smac_code_h1_valid      		(w_cfg_acl_item_smac_code_h1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ                   
-		.o_cfg_acl_item_smac_code_h2            		(w_cfg_acl_item_smac_code_h2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[31:16]
-		.o_cfg_acl_item_smac_code_h2_valid      		(w_cfg_acl_item_smac_code_h2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ	                     
-		.o_cfg_acl_item_smac_code_h3            		(w_cfg_acl_item_smac_code_h3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[47:32]
-		.o_cfg_acl_item_smac_code_h3_valid      		(w_cfg_acl_item_smac_code_h3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_h4            		(w_cfg_acl_item_smac_code_h4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[63:48]
-		.o_cfg_acl_item_smac_code_h4_valid      		(w_cfg_acl_item_smac_code_h4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_h5            		(w_cfg_acl_item_smac_code_h5            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[79:64]
-		.o_cfg_acl_item_smac_code_h5_valid      		(w_cfg_acl_item_smac_code_h5_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_smac_code_h6            		(w_cfg_acl_item_smac_code_h6            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈësmacÖµ[95:80]
-		.o_cfg_acl_item_smac_code_h6_valid      		(w_cfg_acl_item_smac_code_h6_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_h1            		(w_cfg_acl_item_vlan_code_h1            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[15:0]
-		.o_cfg_acl_item_vlan_code_h1_valid      		(w_cfg_acl_item_vlan_code_h1_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_h2            		(w_cfg_acl_item_vlan_code_h2            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[31:16]
-		.o_cfg_acl_item_vlan_code_h2_valid      		(w_cfg_acl_item_vlan_code_h2_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_h3            		(w_cfg_acl_item_vlan_code_h3            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[47:32]
-		.o_cfg_acl_item_vlan_code_h3_valid      		(w_cfg_acl_item_vlan_code_h3_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_vlan_code_h4            		(w_cfg_acl_item_vlan_code_h4            		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëvlanÖµ[63:48]
-		.o_cfg_acl_item_vlan_code_h4_valid      		(w_cfg_acl_item_vlan_code_h4_valid      		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_h1       		(w_cfg_acl_item_ethertype_code_h1       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[15:0]
-		.o_cfg_acl_item_ethertype_code_h1_valid 		(w_cfg_acl_item_ethertype_code_h1_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_ethertype_code_h2       		(w_cfg_acl_item_ethertype_code_h2       		), // ¶Ë¿ÚACL±íÏî-Ð´ÈëethertypeÖµ[31:16]
-		.o_cfg_acl_item_ethertype_code_h2_valid 		(w_cfg_acl_item_ethertype_code_h2_valid 		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_pass_state_h     		(w_cfg_acl_item_action_pass_state_h     		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ×´Ì¬
-		.o_cfg_acl_item_action_pass_state_h_valid		(w_cfg_acl_item_action_pass_state_h_valid		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_cb_streamhandle_h 		(w_cfg_acl_item_action_cb_streamhandle_h 		), // ¶Ë¿ÚACL¶¯×÷-stream_handleÖµ
-		.o_cfg_acl_item_action_cb_streamhandle_h_valid	(w_cfg_acl_item_action_cb_streamhandle_h_valid	), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_flowctrl_h        		(w_cfg_acl_item_action_flowctrl_h        		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄÁ÷¿ØÑ¡Ôñ
-		.o_cfg_acl_item_action_flowctrl_h_valid  		(w_cfg_acl_item_action_flowctrl_h_valid  		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		.o_cfg_acl_item_action_txport_h          		(w_cfg_acl_item_action_txport_h          		), // ¶Ë¿ÚACL¶¯×÷-±¨ÎÄ·¢ËÍ¶Ë¿ÚÓ³Éä
-		.o_cfg_acl_item_action_txport_h_valid    		(w_cfg_acl_item_action_txport_h_valid    		), // Ð´ÈëÓÐÐ§ÐÅºÅ
-		//  ×´Ì¬¼Ä´æÆ÷
-        .i_port_diag_state_7                            (w_port_diag_state_7                            ),  // ¶Ë¿Ú×´Ì¬¼Ä´æÆ÷
-        .i_port_rx_ultrashort_frm_7                     (w_port_rx_ultrashort_frm_7                     ),  // ¶Ë¿Ú½ÓÊÕ³¬¶ÌÖ¡(Ð¡ÓÚ64×Ö½Ú)
-        .i_port_rx_overlength_frm_7                     (w_port_rx_overlength_frm_7                     ),  // ¶Ë¿Ú½ÓÊÕ³¬³¤Ö¡(´óÓÚMTU×Ö½Ú)
-        .i_port_rx_crcerr_frm_7                         (w_port_rx_crcerr_frm_7                         ),  // ¶Ë¿Ú½ÓÊÕCRC´íÎóÖ¡
-        .i_port_rx_loopback_frm_cnt_7                   (w_port_rx_loopback_frm_cnt_7                   ),  // ¶Ë¿Ú½ÓÊÕ»·»ØÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_broadflow_drop_cnt_7                    (w_port_broadflow_drop_cnt_7                    ),  // ¶Ë¿Ú¹ã²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_multiflow_drop_cnt_7                    (w_port_multiflow_drop_cnt_7                    ),  // ¶Ë¿Ú×é²¥ÏÞÁ÷¶ªÆúÖ¡¼ÆÊýÆ÷Öµ
-        .i_port_rx_byte_cnt_7                           (w_port_rx_byte_cnt_7                           ),  // ¶Ë¿Ú7½ÓÊÕ×Ö½Ú¸öÊý¼ÆÊýÆ÷Öµ
-        .i_port_rx_frame_cnt_7                          (w_port_rx_frame_cnt_7                          ),  // ¶Ë¿Ú7½ÓÊÕÖ¡¸öÊý¼ÆÊýÆ÷Öµ
-        .i_rx_busy_7                                    (w_rx_busy_7                                    ),  // ½ÓÊÕÃ¦ÐÅºÅ
-        .i_rx_fragment_cnt_7                            (w_rx_fragment_cnt_7                            ),  // ½ÓÊÕ·ÖÆ¬¼ÆÊý
-        .i_rx_fragment_mismatch_7                       (w_rx_fragment_mismatch_7                       ),  // ·ÖÆ¬²»Æ¥Åä
-        .i_err_rx_crc_cnt_7                             (w_err_rx_crc_cnt_7                             ),  // CRC´íÎó¼ÆÊý
-        .i_err_rx_frame_cnt_7                           (w_err_rx_frame_cnt_7                           ),  // Ö¡´íÎó¼ÆÊý
-        .i_err_fragment_cnt_7                           (w_err_fragment_cnt_7                           ),  // ·ÖÆ¬´íÎó¼ÆÊý
-        .i_rx_frames_cnt_7                              (w_rx_frames_cnt_7                              ),  // ½ÓÊÕÖ¡¼ÆÊý
-        .i_frag_next_rx_7                               (w_frag_next_rx_7                               ),  // ÏÂÒ»¸ö·ÖÆ¬ºÅ
-        .i_frame_seq_7                                  (w_frame_seq_7                                  ),  // Ö¡ÐòºÅ
-        .o_reset_7                                      (w_reset_7                                      ),  // ¶Ë¿Ú7¸´Î»ÐÅºÅ
+        .o_hash_ploy_regs_7                             (w_hash_ploy_regs_7                       		),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½
+        .o_hash_init_val_regs_7                         (w_hash_init_val_regs_7                       	),  // ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½Ê¼Öµ
+        .o_hash_regs_vld_7                              (w_hash_regs_vld_7                          	),  // ï¿½ï¿½Ï£ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+        .o_port_rxmac_down_regs_7                       (w_port_rxmac_down_regs_7                       ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ·ï¿½ï¿½ï¿½MACï¿½Ø±ï¿½Ê¹ï¿½ï¿½
+        .o_port_broadcast_drop_regs_7                   (w_port_broadcast_drop_regs_7                   ),  // ï¿½Ë¿Ú¹ã²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_multicast_drop_regs_7                   (w_port_multicast_drop_regs_7                   ),  // ï¿½Ë¿ï¿½ï¿½é²¥Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_loopback_drop_regs_7                    (w_port_loopback_drop_regs_7                    ),  // ï¿½Ë¿Ú»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+        .o_port_mac_regs_7                              (w_port_mac_regs_7                              ),  // ï¿½Ë¿Úµï¿½ MAC ï¿½ï¿½Ö·
+        .o_port_mac_vld_regs_7                          (w_port_mac_vld_regs_7                          ),  // Ê¹ï¿½Ü¶Ë¿ï¿½ MAC ï¿½ï¿½Ö·ï¿½ï¿½Ð§
+        .o_port_mtu_regs_7                              (w_port_mtu_regs_7                              ),  // MTUï¿½ï¿½ï¿½ï¿½Öµ
+        .o_port_mirror_frwd_regs_7                      (w_port_mirror_frwd_regs_7                      ),  // ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½
+        .o_port_flowctrl_cfg_regs_7                     (w_port_flowctrl_cfg_regs_7                     ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_port_rx_ultrashortinterval_num_7             (w_port_rx_ultrashortinterval_num_7             ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_acl_port_sel_7                               (w_acl_port_sel_7                               ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+		.o_acl_port_sel_7_valid                         (w_acl_port_sel_7_valid                         ),  // Ñ¡ï¿½ï¿½Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½
+        .o_acl_clr_list_regs_7                          (w_acl_clr_list_regs_7                          ),  // ï¿½ï¿½Õ¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½
+        .i_acl_list_rdy_regs_7                          (w_acl_list_rdy_regs_7                          ),  // ï¿½ï¿½ï¿½Ã¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .o_acl_item_sel_regs_7                          (w_acl_item_sel_regs_7                          ),  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Ñ¡ï¿½ï¿½
+        .o_cfg_acl_item_dmac_code_h1            		(w_cfg_acl_item_dmac_code_h1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[15:0]
+		.o_cfg_acl_item_dmac_code_h1_valid      		(w_cfg_acl_item_dmac_code_h1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_h2            		(w_cfg_acl_item_dmac_code_h2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[31:16]
+		.o_cfg_acl_item_dmac_code_h2_valid      		(w_cfg_acl_item_dmac_code_h2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_h3            		(w_cfg_acl_item_dmac_code_h3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[47:32]
+		.o_cfg_acl_item_dmac_code_h3_valid      		(w_cfg_acl_item_dmac_code_h3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_h4            		(w_cfg_acl_item_dmac_code_h4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[63:48]
+		.o_cfg_acl_item_dmac_code_h4_valid      		(w_cfg_acl_item_dmac_code_h4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_h5            		(w_cfg_acl_item_dmac_code_h5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[79:64]
+		.o_cfg_acl_item_dmac_code_h5_valid      		(w_cfg_acl_item_dmac_code_h5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_dmac_code_h6            		(w_cfg_acl_item_dmac_code_h6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½dmacÖµ[95:80]
+		.o_cfg_acl_item_dmac_code_h6_valid      		(w_cfg_acl_item_dmac_code_h6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_h1            		(w_cfg_acl_item_smac_code_h1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[15:0]
+		.o_cfg_acl_item_smac_code_h1_valid      		(w_cfg_acl_item_smac_code_h1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½                   
+		.o_cfg_acl_item_smac_code_h2            		(w_cfg_acl_item_smac_code_h2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[31:16]
+		.o_cfg_acl_item_smac_code_h2_valid      		(w_cfg_acl_item_smac_code_h2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½	                     
+		.o_cfg_acl_item_smac_code_h3            		(w_cfg_acl_item_smac_code_h3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[47:32]
+		.o_cfg_acl_item_smac_code_h3_valid      		(w_cfg_acl_item_smac_code_h3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_h4            		(w_cfg_acl_item_smac_code_h4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[63:48]
+		.o_cfg_acl_item_smac_code_h4_valid      		(w_cfg_acl_item_smac_code_h4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_h5            		(w_cfg_acl_item_smac_code_h5            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[79:64]
+		.o_cfg_acl_item_smac_code_h5_valid      		(w_cfg_acl_item_smac_code_h5_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_smac_code_h6            		(w_cfg_acl_item_smac_code_h6            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½smacÖµ[95:80]
+		.o_cfg_acl_item_smac_code_h6_valid      		(w_cfg_acl_item_smac_code_h6_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_h1            		(w_cfg_acl_item_vlan_code_h1            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[15:0]
+		.o_cfg_acl_item_vlan_code_h1_valid      		(w_cfg_acl_item_vlan_code_h1_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_h2            		(w_cfg_acl_item_vlan_code_h2            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[31:16]
+		.o_cfg_acl_item_vlan_code_h2_valid      		(w_cfg_acl_item_vlan_code_h2_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_h3            		(w_cfg_acl_item_vlan_code_h3            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[47:32]
+		.o_cfg_acl_item_vlan_code_h3_valid      		(w_cfg_acl_item_vlan_code_h3_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_vlan_code_h4            		(w_cfg_acl_item_vlan_code_h4            		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½vlanÖµ[63:48]
+		.o_cfg_acl_item_vlan_code_h4_valid      		(w_cfg_acl_item_vlan_code_h4_valid      		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_h1       		(w_cfg_acl_item_ethertype_code_h1       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[15:0]
+		.o_cfg_acl_item_ethertype_code_h1_valid 		(w_cfg_acl_item_ethertype_code_h1_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_ethertype_code_h2       		(w_cfg_acl_item_ethertype_code_h2       		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-Ð´ï¿½ï¿½ethertypeÖµ[31:16]
+		.o_cfg_acl_item_ethertype_code_h2_valid 		(w_cfg_acl_item_ethertype_code_h2_valid 		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_pass_state_h     		(w_cfg_acl_item_action_pass_state_h     		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½×´Ì¬
+		.o_cfg_acl_item_action_pass_state_h_valid		(w_cfg_acl_item_action_pass_state_h_valid		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_cb_streamhandle_h 		(w_cfg_acl_item_action_cb_streamhandle_h 		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-stream_handleÖµ
+		.o_cfg_acl_item_action_cb_streamhandle_h_valid	(w_cfg_acl_item_action_cb_streamhandle_h_valid	), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_flowctrl_h        		(w_cfg_acl_item_action_flowctrl_h        		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½
+		.o_cfg_acl_item_action_flowctrl_h_valid  		(w_cfg_acl_item_action_flowctrl_h_valid  		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		.o_cfg_acl_item_action_txport_h          		(w_cfg_acl_item_action_txport_h          		), // ï¿½Ë¿ï¿½ACLï¿½ï¿½ï¿½ï¿½-ï¿½ï¿½ï¿½Ä·ï¿½ï¿½Í¶Ë¿ï¿½Ó³ï¿½ï¿½
+		.o_cfg_acl_item_action_txport_h_valid    		(w_cfg_acl_item_action_txport_h_valid    		), // Ð´ï¿½ï¿½ï¿½ï¿½Ð§ï¿½Åºï¿½
+		//  ×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_diag_state_7                            (w_port_diag_state_7                            ),  // ï¿½Ë¿ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+        .i_port_rx_ultrashort_frm_7                     (w_port_rx_ultrashort_frm_7                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(Ð¡ï¿½ï¿½64ï¿½Ö½ï¿½)
+        .i_port_rx_overlength_frm_7                     (w_port_rx_overlength_frm_7                     ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ³ï¿½ï¿½ï¿½Ö¡(ï¿½ï¿½ï¿½ï¿½MTUï¿½Ö½ï¿½)
+        .i_port_rx_crcerr_frm_7                         (w_port_rx_crcerr_frm_7                         ),  // ï¿½Ë¿Ú½ï¿½ï¿½ï¿½CRCï¿½ï¿½ï¿½ï¿½Ö¡
+        .i_port_rx_loopback_frm_cnt_7                   (w_port_rx_loopback_frm_cnt_7                   ),  // ï¿½Ë¿Ú½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_broadflow_drop_cnt_7                    (w_port_broadflow_drop_cnt_7                    ),  // ï¿½Ë¿Ú¹ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_multiflow_drop_cnt_7                    (w_port_multiflow_drop_cnt_7                    ),  // ï¿½Ë¿ï¿½ï¿½é²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_byte_cnt_7                           (w_port_rx_byte_cnt_7                           ),  // ï¿½Ë¿ï¿½7ï¿½ï¿½ï¿½ï¿½ï¿½Ö½Ú¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_port_rx_frame_cnt_7                          (w_port_rx_frame_cnt_7                          ),  // ï¿½Ë¿ï¿½7ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ
+        .i_rx_busy_7                                    (w_rx_busy_7                                    ),  // ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½Åºï¿½
+        .i_rx_fragment_cnt_7                            (w_rx_fragment_cnt_7                            ),  // ï¿½ï¿½ï¿½Õ·ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½
+        .i_rx_fragment_mismatch_7                       (w_rx_fragment_mismatch_7                       ),  // ï¿½ï¿½Æ¬ï¿½ï¿½Æ¥ï¿½ï¿½
+        .i_err_rx_crc_cnt_7                             (w_err_rx_crc_cnt_7                             ),  // CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_rx_frame_cnt_7                           (w_err_rx_frame_cnt_7                           ),  // Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_err_fragment_cnt_7                           (w_err_fragment_cnt_7                           ),  // ï¿½ï¿½Æ¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        .i_rx_frames_cnt_7                              (w_rx_frames_cnt_7                              ),  // ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½
+        .i_frag_next_rx_7                               (w_frag_next_rx_7                               ),  // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Æ¬ï¿½ï¿½
+        .i_frame_seq_7                                  (w_frame_seq_7                                  ),  // Ö¡ï¿½ï¿½ï¿½
+        .o_reset_7                                      (w_reset_7                                      ),  // ï¿½Ë¿ï¿½7ï¿½ï¿½Î»ï¿½Åºï¿½
     `endif
-    /*---------------------------------------- ¼Ä´æÆ÷ÅäÖÃ½Ó¿Ú -------------------------------------------*/
-    // ¼Ä´æÆ÷¿ØÖÆÐÅºÅ                     
-    .i_refresh_list_pulse                           (i_refresh_list_pulse                           ),  // Ë¢ÐÂ¼Ä´æÆ÷ÁÐ±í£¨×´Ì¬¼Ä´æÆ÷ºÍ¿ØÖÆ¼Ä´æÆ÷£©
-    .i_switch_err_cnt_clr                           (i_switch_err_cnt_clr                         ),  // Ë¢ÐÂ´íÎó¼ÆÊýÆ÷
-    .i_switch_err_cnt_stat                          (i_switch_err_cnt_stat                        ),  // Ë¢ÐÂ´íÎó×´Ì¬¼Ä´æÆ÷
-    // ¼Ä´æÆ÷Ð´¿ØÖÆ½Ó¿Ú         
-    .i_switch_reg_bus_we                            (i_switch_reg_bus_we                          ),  // ¼Ä´æÆ÷Ð´Ê¹ÄÜ
-    .i_switch_reg_bus_we_addr                       (i_switch_reg_bus_we_addr                     ),  // ¼Ä´æÆ÷Ð´µØÖ·
-    .i_switch_reg_bus_we_din                        (i_switch_reg_bus_we_din                      ),  // ¼Ä´æÆ÷Ð´Êý¾Ý
-    .i_switch_reg_bus_we_din_v                      (i_switch_reg_bus_we_din_v                    ),  // ¼Ä´æÆ÷Ð´Êý¾ÝÊ¹ÄÜ
-    // ¼Ä´æÆ÷¶Á¿ØÖÆ½Ó¿Ú         
-    .i_switch_reg_bus_rd                            (i_switch_reg_bus_rd                        ),  // ¼Ä´æÆ÷¶ÁÊ¹ÄÜ
-    .i_switch_reg_bus_rd_addr                       (i_switch_reg_bus_rd_addr                   ),  // ¼Ä´æÆ÷¶ÁµØÖ·
-    .o_switch_reg_bus_rd_dout                       (o_switch_reg_bus_rd_dout                   ),  // ¶Á³ö¼Ä´æÆ÷Êý¾Ý
-    .o_switch_reg_bus_rd_dout_v                     (o_switch_reg_bus_rd_dout_v                 )   // ¶ÁÊý¾ÝÓÐÐ§Ê¹ÄÜ
+    /*---------------------------------------- ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã½Ó¿ï¿½ -------------------------------------------*/
+    // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Åºï¿½                     
+    .i_refresh_list_pulse                           (i_refresh_list_pulse                           ),  // Ë¢ï¿½Â¼Ä´ï¿½ï¿½ï¿½ï¿½Ð±ï¿½ï¿½ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½Æ¼Ä´ï¿½ï¿½ï¿½ï¿½ï¿½
+    .i_switch_err_cnt_clr                           (i_switch_err_cnt_clr                         ),  // Ë¢ï¿½Â´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    .i_switch_err_cnt_stat                          (i_switch_err_cnt_stat                        ),  // Ë¢ï¿½Â´ï¿½ï¿½ï¿½×´Ì¬ï¿½Ä´ï¿½ï¿½ï¿½
+    // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½Æ½Ó¿ï¿½         
+    .i_switch_reg_bus_we                            (i_switch_reg_bus_we                          ),  // ï¿½Ä´ï¿½ï¿½ï¿½Ð´Ê¹ï¿½ï¿½
+    .i_switch_reg_bus_we_addr                       (i_switch_reg_bus_we_addr                     ),  // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½Ö·
+    .i_switch_reg_bus_we_din                        (i_switch_reg_bus_we_din                      ),  // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½
+    .i_switch_reg_bus_we_din_v                      (i_switch_reg_bus_we_din_v                    ),  // ï¿½Ä´ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ½Ó¿ï¿½         
+    .i_switch_reg_bus_rd                            (i_switch_reg_bus_rd                        ),  // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½
+    .i_switch_reg_bus_rd_addr                       (i_switch_reg_bus_rd_addr                   ),  // ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+    .o_switch_reg_bus_rd_dout                       (o_switch_reg_bus_rd_dout                   ),  // ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    .o_switch_reg_bus_rd_dout_v                     (o_switch_reg_bus_rd_dout_v                 )   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð§Ê¹ï¿½ï¿½
 );
 
 endmodule
